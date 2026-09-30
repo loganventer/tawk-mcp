@@ -87,4 +87,4 @@ scripts/docker-run.sh
 
 ## Versions and releases
 
-The version is in `Directory.Build.props`. Pushing a tag `vX.Y.Z` runs `.github/workflows/release.yml`: tests, then self-contained single-file builds for linux-x64, linux-arm64, osx-x64 and osx-arm64 attached to a GitHub release.
+The version is in `Directory.Build.props`. There is no CI: run the tests locally before pushing, and `install.sh` builds from source.

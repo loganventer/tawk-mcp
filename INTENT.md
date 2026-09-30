@@ -12,7 +12,7 @@ In scope:
 - The two-step confirmation for destructive operations, with the user asked directly through MCP elicitation.
 - Live updates: MCP resource subscriptions, Claude Code channel events, and a server-sent event stream for other programs.
 - Prompts that make common tasks one step: catching up and drafting a reply.
-- Streamable HTTP by default and stdio as the alternative, a systemd user service, a Docker image, and release binaries for Linux and macOS, with Windows through WSL.
+- Streamable HTTP by default and stdio as the alternative, a systemd user service, and a Docker image, for Linux and macOS, with Windows through WSL.
 - Starting and running whether or not tawk is running, and recovering by itself when tawk comes and goes.
 
 ## Out of scope

@@ -37,7 +37,7 @@ The installer builds tawk-mcp from source as one self-contained file in `~/.loca
 | Install the SDK without asking | `./install.sh --yes` |
 | Remove tawk-mcp | `./install.sh --uninstall` |
 
-Piped from GitHub, pass options after `bash -s --`, for example `curl -fsSL https://raw.githubusercontent.com/loganventer/tawk-mcp/main/install.sh | bash -s -- --no-service`. Release binaries for Linux (x64, arm64) and macOS (Intel, Apple silicon) are also on the [releases page](https://github.com/loganventer/tawk-mcp/releases).
+Piped from GitHub, pass options after `bash -s --`, for example `curl -fsSL https://raw.githubusercontent.com/loganventer/tawk-mcp/main/install.sh | bash -s -- --no-service`.
 
 tawk-mcp needs [tawk](https://github.com/loganventer/tawk) running beside it; the installer tells you if tawk is missing. In tawk, turn on **Settings > Automation > Control socket** and choose what agents may do under **Settings > Automation > Agent access**. What agents do shows in tawk's Agentic tab (click **🤖 Agentic** in the header, or press F3). [QUICKSTART.md](QUICKSTART.md) walks through it in five minutes.
 
