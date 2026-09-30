@@ -19,6 +19,9 @@ public static class HelpText
           --stdio | --http              transport, http by default     TAWKMCP_TRANSPORT
           --token-file PATH             bearer token file              TAWKMCP_TOKEN_FILE (or TAWKMCP_TOKEN)
           --channel auto|on|off         Claude Code channel events     TAWKMCP_CHANNEL
+          --memory write|read|off       voices, contacts, templates    TAWKMCP_MEMORY (write)
+          --data-file PATH              memory database                TAWKMCP_DATA_FILE
+          --schedule-jitter-s N         random +/- shift on schedules  TAWKMCP_SCHEDULE_JITTER_S (60, 0 = off)
           --backoff-initial-ms N        first retry wait, 500          TAWKMCP_BACKOFF_INITIAL_MS
           --backoff-max-ms N            longest retry wait, 30000      TAWKMCP_BACKOFF_MAX_MS
           --breaker-threshold N         failures before pausing, 5     TAWKMCP_BREAKER_THRESHOLD

@@ -23,18 +23,18 @@ Each class, record, enum and interface lives in its own file. Nullable reference
 | --- | --- | --- | --- |
 | Host | `Tawk.Mcp.Host` (assembly `tawk-mcp`) | The composition root, the command line, streamable HTTP hosting (the default) and stdio hosting, the bearer token and origin middleware, `/events` and `/healthz` | Everything, to compose it |
 | Clients | `Tawk.Mcp.Clients` | MCP tools, resources and prompts, resource subscriptions, the channel sink, the event stream hub, session tracking, the notification dispatcher | Managers |
-| Managers | `Tawk.Mcp.Managers` | Use cases: reading, sending, managing messages, chats, scheduled messages, statuses, the profile, settings and the app, and live updates | Engines, resource access |
-| Engines | `Tawk.Mcp.Engines` | Rules with no I/O: transcript and chat formatting, untrusted text fencing, catch-up and draft planning, notification headers, exponential backoff, the circuit breaker | Core |
-| Resource access | `Tawk.Mcp.ResourceAccess` | tawk's control socket: the line codec, the connection, the control client, the connection supervisor, the socket locator and watcher, the confirmation gate | Core |
+| Managers | `Tawk.Mcp.Managers` | Use cases: reading, sending, managing messages, chats, scheduled messages, statuses, the profile, settings and the app, and live updates; in `Memory`, categories, voices, contact profiles and templates | Engines, resource access |
+| Engines | `Tawk.Mcp.Engines` | Rules with no I/O: transcript and chat formatting, untrusted text fencing, catch-up and draft planning, notification headers, exponential backoff, the circuit breaker, schedule jitter; in `Memory`, style measuring, voice rules and scoring, voice resolution, guide import, the contact field catalog, template filling and memory formatting | Core |
+| Resource access | `Tawk.Mcp.ResourceAccess` | tawk's control socket: the line codec, the connection, the control client, the connection supervisor, the socket locator and watcher, the confirmation gate, the chat source for memory; in `Memory`, the SQLite connection factory, schema migrator and one store per kind of memory | Core |
 | Core | `Tawk.Mcp.Core` | Records for tawk's values, events, error codes, the `TawkControlException`, and contracts shared across layers (`ICircuitBreaker`, `IBackoffPolicy`, `IUserConfirmation`, `IDelay`) | Nothing above |
 
 ```mermaid
 flowchart TD
     HOST["Host<br/>TawkMcpComposition, Program,<br/>BearerTokenMiddleware, OriginGuardMiddleware,<br/>EventStreamEndpoint, HealthEndpoint"]
-    CL["Clients<br/>ChatTools, MessageTools, ScheduleTools, StatusTools,<br/>ProfileTools, SettingsTools, AppTools,<br/>ChatResources, TawkPrompts,<br/>ResourceUpdatePump, ChannelEventSink, EventStreamHub,<br/>NotificationDispatcher"]
-    MG["Managers<br/>ChatReadingManager, MessageSendingManager,<br/>MessageManagementManager, ChatManagementManager,<br/>ScheduleManagementManager, StatusManager,<br/>ProfileManager, SettingsManager, AppManager,<br/>LiveUpdatesManager"]
-    EN["Engines<br/>TranscriptFormatter, ChatDirectoryFormatter,<br/>UntrustedTextFence, CatchUpPlanner, DraftReplyPlanner,<br/>NotificationFormatter, ExponentialBackoffPolicy, CircuitBreaker"]
-    RA["Resource access<br/>UnixSocketTawkControl, ControlConnection,<br/>ControlLineCodec, TawkConnectionSupervisor,<br/>ConfirmationGate, SocketFileWatcher, ControlSocketLocator"]
+    CL["Clients<br/>ChatTools, MessageTools, ScheduleTools, StatusTools,<br/>ProfileTools, SettingsTools, AppTools,<br/>CategoryTools, VoiceTools, ContactTools, TemplateTools,<br/>ChatResources, MemoryResources, TawkPrompts,<br/>ResourceUpdatePump, ChannelEventSink, EventStreamHub,<br/>NotificationDispatcher"]
+    MG["Managers<br/>ChatReadingManager, MessageSendingManager,<br/>MessageManagementManager, ChatManagementManager,<br/>ScheduleManagementManager, StatusManager,<br/>ProfileManager, SettingsManager, AppManager,<br/>LiveUpdatesManager, CategoryManager, VoiceManager,<br/>ContactProfileManager, TemplateManager"]
+    EN["Engines<br/>TranscriptFormatter, ChatDirectoryFormatter,<br/>UntrustedTextFence, CatchUpPlanner, DraftReplyPlanner,<br/>NotificationFormatter, ExponentialBackoffPolicy, CircuitBreaker,<br/>RandomScheduleJitter, VoiceChecker and its rules,<br/>VoiceResolver, ContactFieldCatalog, TemplateRenderer"]
+    RA["Resource access<br/>UnixSocketTawkControl, ControlConnection,<br/>ControlLineCodec, TawkConnectionSupervisor,<br/>ConfirmationGate, SocketFileWatcher, ControlSocketLocator,<br/>TawkChatSource, SqliteConnectionFactory,<br/>Sqlite category, voice, contact and template stores"]
     CO["Core<br/>ChatSummary, ChatMessage, TawkEvent, ControlError,<br/>ICircuitBreaker, IBackoffPolicy, IUserConfirmation"]
     TAWK[("tawk<br/>control.sock")]
     MCP(["MCP clients<br/>HTTP or stdio"])
@@ -49,6 +49,7 @@ flowchart TD
     RA -.->|ICircuitBreaker, IBackoffPolicy| EN
     RA -.->|IUserConfirmation| CL
     RA --> TAWK
+    RA --> DB[("memory.db")]
     EN --> CO
     RA --> CO
     MG --> CO
@@ -124,21 +125,26 @@ Records mirror tawk's values in [CONTROL.md](https://github.com/loganventer/tawk
 - `TawkConnectionSupervisor` is a hosted service that keeps connecting: backoff between attempts, the circuit breaker around them, and an immediate attempt when `SocketFileWatcher` sees `control.sock` appear or a request is waiting (`ConnectSignal`).
 - `ConfirmationGate` runs writes. When tawk answers `needs_confirmation`, it keeps the token in a local variable, asks the user through `IUserConfirmation`, and calls `confirm` or `cancel_confirmation`. The token never leaves it.
 - `ControlSocketLocator` finds the socket (flag, `TAWK_CONTROL_SOCKET`, `$XDG_RUNTIME_DIR`, `~/.local/state`).
+- `TawkChatSource` (`ITawkChatSource`) is what memory needs from tawk: which chat a name means, through `chat_info` so tawk's visibility rules apply, and the text of the user's own recent messages for `learn_voice`.
+- In `Memory`, `SqliteConnectionFactory` owns the database path, creates the file 0600 in a 0700 folder on first use, turns on WAL and runs `SqliteSchemaMigrator`, which applies numbered steps recorded in `PRAGMA user_version`. `ICategoryStore`, `IVoiceStore`, `IContactStore` and `ITemplateStore` each persist one kind of memory with parameterised SQL through `Microsoft.Data.Sqlite`.
 
 ### Engines
 
 - `TranscriptFormatter` writes `[2026-09-30 18:02] Mom: text` lines with reply, media, forward, deletion, link, edit, reaction and status markers, indenting extra lines. `ChatDirectoryFormatter` does the same for chats, chat details and scheduled messages.
 - `UntrustedTextFence` wraps other people's text between fixed markers with a statement that it is data, and breaks up any run of angle brackets inside so the text cannot close the fence.
 - `CatchUpPlanner` and `DraftReplyPlanner` write the prompt instructions. `NotificationFormatter` writes the one-line header of a channel event.
-- `ExponentialBackoffPolicy` and `CircuitBreaker` (closed, open, half-open) take an injected random source and `TimeProvider`.
+- `ExponentialBackoffPolicy` and `CircuitBreaker` (closed, open, half-open) take an injected random source and `TimeProvider`. `RandomScheduleJitter` also takes a random source, and turns a schedule time into one shifted by whole seconds.
+- In `Memory`, measuring, judging and scoring are separate: `StyleFeatureExtractor` measures a draft, each `IVoiceRule` (forbidden patterns, case, emoji, length, language, address form, required markers, greeting and sign-off, learnt baseline) judges one thing, and `VoiceChecker` runs whichever rules are registered and scores the findings. `VoiceResolver` picks the variant for a category path and overlays its rules. `ContactFieldCatalog` holds `ContactFieldDefinition`s (from `StandardContactFields`) and checks values with one `IFieldValueValidator` per kind of value. `VoiceGuideImporter`, `StyleBaselineCalculator`, `TemplateRenderer` and `MemoryFormatter` do what their names say, and `MemoryWriteGuard` refuses changes in read-only mode.
 
 ### Managers
 
 Each manager is one area of use cases and returns model-ready text. The reading and sending managers call `ITawkControl` directly; the management managers go through `IConfirmationGate` so any answer that asks for confirmation is handled the same way. `LiveUpdatesManager` reads the event stream, subscribes to every chat after each connect, fences new messages for the model, and hands every update to each `IEventSink`.
 
+The memory managers (`CategoryManager`, `VoiceManager`, `ContactProfileManager`, `TemplateManager`) call the stores and memory engines, and fence what they return. They share two small helpers rather than calling each other: `CategoryEnsurer` creates a category the first time it is named, and `VoiceSelector` picks the voice and variant for a chat or category. `VoiceManager` also implements `IDraftGuidance` for the `draft_reply` prompt; with memory off, `NoDraftGuidance` takes its place. Deletions ask the user through `IUserConfirmation` and throw `MemoryException` if they do not agree.
+
 ### Clients
 
-- Seven tool classes (`[McpServerToolType]`) hold the 42 tools. Each tool calls one manager and turns `TawkControlException` into a tool error result through `ControlErrorMessages`, so nothing crashes the call. Write tools take `IProgress<ProgressNotificationValue>` and report "Waiting for approval in tawk". Tools that may need confirmation take the request's `McpServer` and build an `ElicitationConfirmation` from it.
+- Eleven tool classes (`[McpServerToolType]`) hold the 69 tools; the four memory tool classes and `MemoryResources` are left out when memory is off, leaving 42. Each tool calls one manager and turns `TawkControlException` into a tool error result through `ControlErrorMessages`, and `MemoryException` into one with its own message, so nothing crashes the call. `draft_template` is the one tool that uses two managers, filling the template and then drafting it. Write tools take `IProgress<ProgressNotificationValue>` and report "Waiting for approval in tawk". Tools that may need confirmation take the request's `McpServer` and build an `ElicitationConfirmation` from it.
 - `ChatResources` (`[McpServerResourceType]`) serves `tawk://chats` and `tawk://chat/{jid}`; `ResourceSubscriptionHandlers`, `ResourceSubscriptionRegistry` and `ResourceUpdatePump` handle subscriptions.
 - `TawkPrompts` (`[McpServerPromptType]`) serves `catch_up` and `draft_reply`.
 - `ChannelEventSink` sends `notifications/claude/channel`; `EventStreamHub` keeps the last 200 events for `/events`; `ClientSessionRegistry` and `SessionTracking` remember connected sessions; `ProtocolRevisionFilter` keeps clients on the initialize handshake.
@@ -173,3 +179,6 @@ Each manager is one area of use cases and returns model-ready text. The reading 
 - **A tool for a new tawk operation**: add the method to the manager for its area (or a new manager in its own file with its interface), call `ITawkControl` for reads or `IConfirmationGate` for writes, add the tool method to the matching tool class with a description that says what access it needs and that text is untrusted, register any new manager in `TawkMcpComposition`, add the operation to `UnixSocketTawkControl.WriteOps` if it may wait for approval, and add tests with `FakeTawkControl`.
 - **A new error code**: add it to `ControlErrorCode` and `ControlErrorCodes`, and give it a message in `ControlErrorMessages`.
 - **A new place for live updates to go**: implement `IEventSink` in the clients and register it.
+- **A new voice check**: add a class implementing `IVoiceRule` in `Engines/Memory` and register it in `AddMemory`. `VoiceChecker` does not change.
+- **A new contact field**: add a `ContactFieldDefinition` to `StandardContactFields`. A new kind of value needs a `FieldKind` and an `IFieldValueValidator` registered in `AddMemory`.
+- **A schema change**: add a step to `SqliteSchemaMigrator` that ends by setting the next `user_version`. Never edit a step that has shipped.

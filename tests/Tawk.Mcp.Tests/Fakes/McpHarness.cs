@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
+using Tawk.Mcp.Core.Memory;
 using Tawk.Mcp.Host;
 
 namespace Tawk.Mcp.Tests.Fakes;
@@ -29,10 +30,20 @@ public sealed class McpHarness : IAsyncDisposable
 
     public List<ElicitRequestParams> Elicitations { get; } = [];
 
-    public async Task StartAsync(bool elicitation = true, bool? accept = true, string clientName = "claude-code", string? protocolVersion = null)
+    public string DataFile { get; } = Path.Combine(Path.GetTempPath(), "tawk-memory-" + Guid.NewGuid().ToString("N")[..8], "memory.db");
+
+    public async Task StartAsync(
+        bool elicitation = true, bool? accept = true, string clientName = "claude-code", string? protocolVersion = null, MemoryMode memory = MemoryMode.Write)
     {
         Server.Start();
-        var options = new TawkMcpOptions { SocketPath = Server.SocketPath, BackoffInitialMs = 20, BackoffMaxMs = 200 };
+        var options = new TawkMcpOptions
+        {
+            SocketPath = Server.SocketPath,
+            BackoffInitialMs = 20,
+            BackoffMaxMs = 200,
+            DataFile = DataFile,
+            Memory = memory,
+        };
         var builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true });
         builder.Logging.ClearProviders();
         builder.Services.AddTawkMcp(options).WithStreamServerTransport(_toServer.Reader.AsStream(), _toClient.Writer.AsStream());
@@ -111,6 +122,12 @@ public sealed class McpHarness : IAsyncDisposable
         }
 
         await Server.DisposeAsync();
+        var folder = Path.GetDirectoryName(DataFile)!;
+        if (Directory.Exists(folder))
+        {
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            Directory.Delete(folder, true);
+        }
     }
 
     private ValueTask Record(JsonRpcNotification notification, CancellationToken cancellationToken)

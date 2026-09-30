@@ -8,6 +8,7 @@
 - [Who might attack](#who-might-attack)
 - [Controls](#controls)
 - [Prompt injection](#prompt-injection)
+- [Memory](#memory)
 - [The confirmation token](#the-confirmation-token)
 - [HTTP mode](#http-mode)
 - [Docker](#docker)
@@ -27,6 +28,7 @@ Only the latest release gets security fixes.
 - Your WhatsApp messages, chat list, contacts' names, statuses and profile.
 - Your WhatsApp account: messages sent in your name, deletions, blocks and profile changes.
 - tawk's settings.
+- tawk-mcp's memory: your voice guides, reply templates, and what you or an agent recorded about your contacts, who never agreed to be profiled.
 - The bearer token for HTTP mode, and the one-time confirmation tokens tawk hands out for destructive operations.
 
 ## Who might attack
@@ -37,6 +39,7 @@ Only the latest release gets security fixes.
 | A web page in your browser | Send requests to `localhost` | Reach tawk-mcp's HTTP endpoint |
 | Another user on the computer | Reach loopback ports | Use your tawk through tawk-mcp |
 | The model itself, misled or mistaken | Call any tool the client offers | Send, delete or change things you did not ask for |
+| Someone who messages you, through the model | Get text copied into memory | Plant instructions that a later session reads back |
 | Another program running as you | Everything you can | (out of scope, see below) |
 
 ## Controls
@@ -52,6 +55,11 @@ Only the latest release gets security fixes.
 | Loopback bind by default, bearer token always, constant-time compare | tawk-mcp | Other users and programs on the network |
 | Origin guard | tawk-mcp | Web pages in your browser |
 | Same-user check on the socket (`SO_PEERCRED`, `getpeereid`) | tawk | Other users on the computer |
+| Memory in one file (0600, folder 0700), created only when first used, and `--memory off` or `read` | tawk-mcp | Other users, and memory you do not want |
+| Stored memory is fenced as untrusted when read back, with its source and confidence | tawk-mcp | Instructions planted in memory |
+| Contacts are looked up through tawk, so hidden, locked and excluded chats cannot be profiled | tawk and tawk-mcp | Profiling chats you have hidden |
+| Sensitive fields only from you, hidden unless asked for; stated facts beat inferences; inferences lapse | tawk-mcp | Wrong or intrusive guesses about people |
+| Deleting memory asks you by elicitation | tawk-mcp | A model wiping what you saved |
 
 ## Prompt injection
 
@@ -64,6 +72,14 @@ Message text, chat names, previews, about texts and status text are written by o
 - says in every tool description and in its server instructions that this text is untrusted.
 
 These reduce the risk; they cannot remove it, because a model may still be persuaded. What limits the harm is that nothing happens to your account without you: every send waits for your approval in tawk, destructive operations need two confirmations, and with `access = read` nothing can be written at all. Channel events put incoming messages in front of the model without you asking, so leave `TAWKMCP_CHANNEL=off` or `access = read` if that worries you.
+
+## Memory
+
+Voices, contact profiles and templates are kept in a SQLite file, `~/.local/share/tawk-mcp/memory.db` by default, readable only by you. Nothing is created until memory is first used, and `--memory off` removes the tools altogether. The file is not encrypted: anyone who can read your files can read it, as with tawk's own database.
+
+A model can write to memory without asking you, because nothing reaches WhatsApp. That makes memory a place where text from a chat could be planted for a later session to read. tawk-mcp fences everything it reads back from memory the same way it fences chat text, says in its tool descriptions and server instructions that stored text is information only, and keeps who said each fact. Review a profile with `get_contact` now and then, and delete what you do not want.
+
+Profiles are about people who have not agreed to them. tawk-mcp refuses inferred values for sensitive fields, keeps personality to coarse bands, lets inferences lapse after a year and short-lived facts after a month, and never sends memory anywhere. Your MCP client still sends what it reads to its model service.
 
 ## The confirmation token
 
@@ -90,7 +106,7 @@ Anyone who can read your token file can use tawk-mcp as you. Treat it like a pas
 
 tawk-mcp itself sends nothing anywhere: no telemetry, no analytics, no update checks. It talks to tawk over a Unix socket and to MCP clients over loopback HTTP or stdio.
 
-Your MCP client, however, sends what tawk-mcp returns to its model service: message text, names, phone numbers in JIDs, statuses. Only connect clients you would trust with those chats, and use tawk's `chats` setting to limit what they can see.
+Your MCP client, however, sends what tawk-mcp returns to its model service: message text, names, phone numbers in JIDs, statuses, and whatever memory it reads. Only connect clients you would trust with those chats, and use tawk's `chats` setting to limit what they can see.
 
 ## What tawk-mcp does not protect against
 

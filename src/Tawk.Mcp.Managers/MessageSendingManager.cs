@@ -9,11 +9,13 @@ public sealed class MessageSendingManager : IMessageSendingManager
 {
     private readonly ITawkControl _control;
     private readonly ITranscriptFormatter _transcript;
+    private readonly IScheduleJitter _jitter;
 
-    public MessageSendingManager(ITawkControl control, ITranscriptFormatter transcript)
+    public MessageSendingManager(ITawkControl control, ITranscriptFormatter transcript, IScheduleJitter jitter)
     {
         _control = control;
         _transcript = transcript;
+        _jitter = jitter;
     }
 
     public async Task<string> SendMessageAsync(
@@ -42,14 +44,28 @@ public sealed class MessageSendingManager : IMessageSendingManager
     public async Task<string> ScheduleMessageAsync(
         string chat, string dueAt, string text, Action? onApprovalWaiting, CancellationToken cancellationToken)
     {
-        var args = new JsonObject { ["chat"] = chat, ["when"] = dueAt, ["text"] = text };
-        var scheduled = await _control.RequestAsync<ScheduledMessage>("schedule_message", args, onApprovalWaiting, cancellationToken)
-            .ConfigureAwait(false);
+        var nudge = _jitter.Nudge(dueAt);
+        ScheduledMessage scheduled;
+        try
+        {
+            scheduled = await ScheduleAsync(chat, nudge.When, text, onApprovalWaiting, cancellationToken).ConfigureAwait(false);
+        }
+        catch (TawkControlException ex) when (ex.Code == ControlErrorCode.BadRequest && nudge.When != dueAt)
+        {
+            // An older tawk cannot read the seconds adjustment. It refuses before asking the user, so asking again costs nothing.
+            nudge = new ScheduleNudge(dueAt, TimeSpan.Zero);
+            scheduled = await ScheduleAsync(chat, dueAt, text, onApprovalWaiting, cancellationToken).ConfigureAwait(false);
+        }
+
         var due = _transcript.FormatTimestamp(scheduled.DueAt);
         return scheduled.Edited
-            ? $"Scheduled for {due} (id {scheduled.Id}) after you edited it in tawk. The final text is:\n{scheduled.Text}"
-            : $"Scheduled for {due} (id {scheduled.Id}).";
+            ? $"Scheduled for {due} (id {scheduled.Id}) after you edited it in tawk.{ScheduleNudges.Describe(nudge)} The final text is:\n{scheduled.Text}"
+            : $"Scheduled for {due} (id {scheduled.Id}).{ScheduleNudges.Describe(nudge)}";
     }
+
+    private Task<ScheduledMessage> ScheduleAsync(string chat, string when, string text, Action? onApprovalWaiting, CancellationToken cancellationToken) =>
+        _control.RequestAsync<ScheduledMessage>(
+            "schedule_message", new JsonObject { ["chat"] = chat, ["when"] = when, ["text"] = text }, onApprovalWaiting, cancellationToken);
 
     public async Task<string> DraftMessageAsync(string chat, string text, CancellationToken cancellationToken)
     {

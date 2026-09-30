@@ -12,6 +12,7 @@ services:
     environment:
       TAWK_CONTROL_SOCKET: /run/tawk/control.sock
       TAWKMCP_TOKEN_FILE: /data/token
+      TAWKMCP_DATA_FILE: /data/memory.db
     volumes:
       - "${XDG_RUNTIME_DIR:-/run/user/1000}/tawk:/run/tawk"
       - "${HOME}/.config/tawk-mcp:/data"

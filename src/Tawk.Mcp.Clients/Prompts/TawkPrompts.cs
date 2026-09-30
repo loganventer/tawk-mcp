@@ -2,12 +2,14 @@ using System.ComponentModel;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using Tawk.Mcp.Core;
+using Tawk.Mcp.Core.Memory;
 using Tawk.Mcp.Managers;
+using Tawk.Mcp.Managers.Memory;
 
 namespace Tawk.Mcp.Clients.Prompts;
 
 [McpServerPromptType]
-public sealed class TawkPrompts(IChatReadingManager reading)
+public sealed class TawkPrompts(IChatReadingManager reading, IDraftGuidance guidance)
 {
     [McpServerPrompt(Name = "catch_up")]
     [Description("Catch up on unread WhatsApp messages in tawk.")]
@@ -33,11 +35,17 @@ public sealed class TawkPrompts(IChatReadingManager reading)
     {
         try
         {
-            return await reading.DraftReplyPromptAsync(chat, cancellationToken).ConfigureAwait(false);
+            var prompt = await reading.DraftReplyPromptAsync(chat, cancellationToken).ConfigureAwait(false);
+            var voice = await guidance.ForChatAsync(chat, cancellationToken).ConfigureAwait(false);
+            return voice.Length == 0 ? prompt : prompt + "\n\n" + voice;
         }
         catch (TawkControlException ex)
         {
             throw new McpException(ControlErrorMessages.Describe(ex), ex);
+        }
+        catch (MemoryException ex)
+        {
+            throw new McpException(ex.Message, ex);
         }
     }
 }

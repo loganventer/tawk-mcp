@@ -32,6 +32,45 @@ public class OtherToolsTests
     }
 
     [Test]
+    public async Task An_older_tawk_that_refuses_the_seconds_gets_the_exact_time()
+    {
+        var control = new FakeTawkControl().Answer("schedule_message", args =>
+            ((string?)args!["when"])!.EndsWith('s')
+                ? throw new Tawk.Mcp.Core.TawkControlException(Tawk.Mcp.Core.ControlErrorCode.BadRequest, "Give a time such as 18:00")
+                : System.Text.Json.JsonDocument.Parse("""{"id":"S3","due_at":1790791320}""").RootElement.Clone());
+        var parts = new TestParts(control);
+        var sending = new Tawk.Mcp.Managers.MessageSendingManager(
+            parts.Control, parts.Transcript, new Tawk.Mcp.Engines.RandomScheduleJitter(TimeSpan.FromSeconds(60), () => 0.9));
+
+        var result = await sending.ScheduleMessageAsync("Mom", "18:00", "hi", null, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(control.Requests.Count(r => r.Op == "schedule_message"), Is.EqualTo(2));
+            Assert.That((string?)control.Last("schedule_message").Args!["when"], Is.EqualTo("18:00"));
+            Assert.That(result, Does.Not.Contain("moved it"));
+        });
+    }
+
+    [Test]
+    public async Task Scheduling_moves_the_time_by_the_jitter_and_says_so()
+    {
+        var control = new FakeTawkControl()
+            .Answer("schedule_message", """{"id":"S2","due_at":1790791320}""");
+        var parts = new TestParts(control);
+        var sending = new Tawk.Mcp.Managers.MessageSendingManager(
+            parts.Control, parts.Transcript, new Tawk.Mcp.Engines.RandomScheduleJitter(TimeSpan.FromSeconds(60), () => 0.75));
+
+        var result = await sending.ScheduleMessageAsync("Mom", "18:00", "hi", null, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That((string?)control.Last("schedule_message").Args!["when"], Is.EqualTo("18:00 +30s"));
+            Assert.That(result, Does.Contain("moved it by +30.000 s"));
+        });
+    }
+
+    [Test]
     public async Task Status_tools_call_their_operations()
     {
         _parts.Control

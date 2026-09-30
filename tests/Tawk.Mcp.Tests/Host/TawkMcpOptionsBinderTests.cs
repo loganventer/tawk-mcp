@@ -101,4 +101,24 @@ public class TawkMcpOptionsBinderTests
             Assert.That(TawkMcpOptionsBinder.Bind(["--backoff-initial-ms", "900", "--backoff-max-ms", "100"], Env()).Error, Does.Contain("maximum"));
         });
     }
+
+    [Test]
+    public void Memory_and_jitter_options_bind_from_flags_and_the_environment()
+    {
+        var env = new Dictionary<string, string?> { ["TAWKMCP_MEMORY"] = "read", ["TAWKMCP_SCHEDULE_JITTER_S"] = "30" };
+        var fromEnv = TawkMcpOptionsBinder.Bind([], name => env.GetValueOrDefault(name));
+        var fromFlags = TawkMcpOptionsBinder.Bind(["--memory", "off", "--data-file", "/tmp/m.db", "--schedule-jitter-s", "0"], _ => null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(fromEnv.Memory, Is.EqualTo(Tawk.Mcp.Core.Memory.MemoryMode.Read));
+            Assert.That(fromEnv.ScheduleJitterS, Is.EqualTo(30));
+            Assert.That(fromFlags.Memory, Is.EqualTo(Tawk.Mcp.Core.Memory.MemoryMode.Off));
+            Assert.That(fromFlags.DataFile, Is.EqualTo("/tmp/m.db"));
+            Assert.That(fromFlags.ScheduleJitterS, Is.Zero);
+            Assert.That(new TawkMcpOptions().Memory, Is.EqualTo(Tawk.Mcp.Core.Memory.MemoryMode.Write));
+            Assert.That(TawkMcpOptionsBinder.Bind(["--memory", "maybe"], _ => null).Error, Does.Contain("write, read or off"));
+            Assert.That(TawkMcpOptionsBinder.Bind(["--schedule-jitter-s", "9000"], _ => null).Error, Is.Not.Null);
+        });
+    }
 }

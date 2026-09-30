@@ -1,5 +1,6 @@
 using System.Globalization;
 using Tawk.Mcp.Clients.Channels;
+using Tawk.Mcp.Core.Memory;
 
 namespace Tawk.Mcp.Host;
 
@@ -40,12 +41,15 @@ public static class TawkMcpOptionsBinder
                 "--bind" => options with { Bind = Next() },
                 "--socket" => options with { SocketPath = Next() },
                 "--token-file" => options with { TokenFile = Next() },
+                "--data-file" => options with { DataFile = Next() },
+                "--memory" => options with { Memory = Memory(arg, Next(), ref error) },
                 "--backoff-initial-ms" => options with { BackoffInitialMs = Int(arg, Next(), 1, 600_000, ref error) },
                 "--backoff-max-ms" => options with { BackoffMaxMs = Int(arg, Next(), 1, 3_600_000, ref error) },
                 "--breaker-threshold" => options with { BreakerThreshold = Int(arg, Next(), 1, 1000, ref error) },
                 "--breaker-cooldown-s" => options with { BreakerCooldownS = Int(arg, Next(), 0, 86_400, ref error) },
                 "--request-timeout-s" => options with { RequestTimeoutS = Int(arg, Next(), 1, 600, ref error) },
                 "--channel" => options with { Channel = Channel(arg, Next(), ref error) },
+                "--schedule-jitter-s" => options with { ScheduleJitterS = Int(arg, Next(), 0, 3600, ref error) },
                 _ => Unknown(options, arg, ref error),
             };
         }
@@ -85,6 +89,16 @@ public static class TawkMcpOptionsBinder
             options = options with { TokenFile = tokenFile };
         }
 
+        if (env("TAWKMCP_DATA_FILE") is { Length: > 0 } dataFile)
+        {
+            options = options with { DataFile = dataFile };
+        }
+
+        if (env("TAWKMCP_MEMORY") is { Length: > 0 } memory)
+        {
+            options = options with { Memory = Memory("TAWKMCP_MEMORY", memory, ref error) };
+        }
+
         if (env("TAWKMCP_TOKEN") is { Length: > 0 } token)
         {
             options = options with { Token = token };
@@ -113,6 +127,11 @@ public static class TawkMcpOptionsBinder
         if (env("TAWKMCP_REQUEST_TIMEOUT_S") is { Length: > 0 } timeout)
         {
             options = options with { RequestTimeoutS = Int("TAWKMCP_REQUEST_TIMEOUT_S", timeout, 1, 600, ref error) };
+        }
+
+        if (env("TAWKMCP_SCHEDULE_JITTER_S") is { Length: > 0 } jitter)
+        {
+            options = options with { ScheduleJitterS = Int("TAWKMCP_SCHEDULE_JITTER_S", jitter, 0, 3600, ref error) };
         }
 
         if (env("TAWKMCP_CHANNEL") is { Length: > 0 } channel)
@@ -147,6 +166,22 @@ public static class TawkMcpOptionsBinder
             default:
                 error ??= $"{name} must be auto, on or off, not {value}.";
                 return ChannelMode.Off;
+        }
+    }
+
+    private static MemoryMode Memory(string name, string value, ref string? error)
+    {
+        switch (value.ToUpperInvariant())
+        {
+            case "WRITE":
+                return MemoryMode.Write;
+            case "READ":
+                return MemoryMode.Read;
+            case "OFF":
+                return MemoryMode.Off;
+            default:
+                error ??= $"{name} must be write, read or off, not {value}.";
+                return MemoryMode.Off;
         }
     }
 

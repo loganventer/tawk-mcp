@@ -13,7 +13,9 @@ tawk-mcp talks to tawk over tawk's control socket, described in tawk's [CONTROL.
 - **Manage tawk** (with `access = manage`): edit, delete and forward messages, mute, pin, archive and export chats, statuses, your profile and tawk's settings.
 - **Two-step confirmation** for destructive operations, asked of you directly in your MCP client and again in tawk.
 - **Live updates**: resource subscriptions, Claude Code channel events, and a server-sent event stream at `/events`.
-- **Prompts**: `catch_up` and `draft_reply`.
+- **Memory for writing like you** (on by default, `--memory off` to drop it): voices tuned per audience with a `check_voice` scorer, contact profiles with a source and confidence on every field, and reply templates. Kept only on your computer, in a private SQLite file.
+- **Natural-looking schedules**: scheduled messages move by a random amount up to 60 seconds either way, so they do not land on the exact minute.
+- **Prompts**: `catch_up` and `draft_reply`, which brings in your voice for the chat when memory knows it.
 - **Resilient**: starts without tawk, connects as soon as tawk's socket appears, reconnects after tawk restarts, with backoff and a circuit breaker.
 - **Streamable HTTP by default**, on loopback with a bearer token; stdio when a client should start it; a Docker image; the installer registers it to start at boot.
 - **Untrusted text is fenced**: message text reaches the model inside clearly marked blocks it is told not to obey.
@@ -106,8 +108,14 @@ scripts/docker-run.sh               # builds, runs as you, prints the token and 
 | Profile | `get_profile` | `set_profile`, `set_profile_photo`, `remove_profile_photo` |
 | Settings | `get_settings`, `list_themes` | `set_setting` |
 | tawk itself | `app_status` | `reconnect`, `decline_call` |
+| Audience categories | `list_categories` | `set_category`, `delete_category` |
+| Voices | `list_voices`, `get_voice`, `export_voice`, `check_voice` | `set_voice`, `set_voice_variant`, `import_voice`, `learn_voice`, `delete_voice` |
+| Contact profiles | `list_contact_fields`, `get_contact`, `list_contacts`, `due_follow_ups` | `set_contact_fields`, `add_contact_note`, `forget_contact_field`, `set_contact_categories`, `delete_contact` |
+| Reply templates | `list_templates`, `get_template`, `render_template` | `set_template`, `delete_template`, `draft_template` |
 
-Resources: `tawk://chats` and `tawk://chat/{jid}`. Prompts: `catch_up` and `draft_reply`. Every tool is described in [MANUAL.md](MANUAL.md).
+The last four areas are tawk-mcp's own memory and never touch WhatsApp, except `draft_template`, which puts text into tawk's input box like `draft_message`.
+
+Resources: `tawk://chats`, `tawk://chat/{jid}`, `tawk://voices`, `tawk://voice/{name}`, `tawk://contact/{jid}` and `tawk://templates`. Prompts: `catch_up` and `draft_reply`. Every tool is described in [MANUAL.md](MANUAL.md).
 
 ## Documentation
 

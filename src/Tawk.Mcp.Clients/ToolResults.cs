@@ -1,5 +1,6 @@
 using ModelContextProtocol.Protocol;
 using Tawk.Mcp.Core;
+using Tawk.Mcp.Core.Memory;
 
 namespace Tawk.Mcp.Clients;
 
@@ -28,6 +29,10 @@ public static class ToolResults
         catch (TawkControlException ex)
         {
             return Error(ControlErrorMessages.Describe(ex));
+        }
+        catch (MemoryException ex)
+        {
+            return Error(ex.Message);
         }
     }
 }

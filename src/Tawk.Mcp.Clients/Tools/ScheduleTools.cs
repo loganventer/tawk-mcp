@@ -19,7 +19,8 @@ public sealed class ScheduleTools(IChatReadingManager reading, IMessageSendingMa
         ToolResults.RunAsync(() => reading.ListScheduledAsync(chat, cancellationToken));
 
     [McpServerTool(Name = "schedule_message", Destructive = false, ReadOnly = false, Idempotent = false, OpenWorld = true)]
-    [Description("Schedule a WhatsApp message to go out later from tawk." + ToolText.NeedsSend + " The user may edit the text while approving.")]
+    [Description("Schedule a WhatsApp message to go out later from tawk. tawk-mcp moves the time by a random few seconds either way, "
+        + "so it does not land on the exact minute." + ToolText.NeedsSend + " The user may edit the text while approving.")]
     public Task<CallToolResult> ScheduleMessageAsync(
         [Description("The chat's jid or name.")] string chat,
         [Description(When)] string when,
@@ -38,7 +39,7 @@ public sealed class ScheduleTools(IChatReadingManager reading, IMessageSendingMa
         ToolResults.RunAsync(() => schedule.CancelScheduledAsync(id, WriteContexts.For(server, progress), cancellationToken));
 
     [McpServerTool(Name = "reschedule", Destructive = false, ReadOnly = false, Idempotent = false, OpenWorld = false)]
-    [Description("Move a scheduled message to another time." + ToolText.NeedsManage)]
+    [Description("Move a scheduled message to another time, shifted by a random few seconds like schedule_message." + ToolText.NeedsManage)]
     public Task<CallToolResult> RescheduleAsync(
         McpServer? server,
         [Description("The scheduled message's id.")] string id,

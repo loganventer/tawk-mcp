@@ -1,4 +1,5 @@
 using Tawk.Mcp.Clients.Channels;
+using Tawk.Mcp.Core.Memory;
 
 namespace Tawk.Mcp.Host;
 
@@ -19,6 +20,11 @@ public sealed record TawkMcpOptions
 
     public string? Token { get; init; }
 
+    /// <summary>Where voices, contact profiles and templates are kept. Defaults to ~/.local/share/tawk-mcp/memory.db.</summary>
+    public string? DataFile { get; init; }
+
+    public MemoryMode Memory { get; init; } = MemoryMode.Write;
+
     public int BackoffInitialMs { get; init; } = 500;
 
     public int BackoffMaxMs { get; init; } = 30_000;
@@ -30,6 +36,9 @@ public sealed record TawkMcpOptions
     public int RequestTimeoutS { get; init; } = 10;
 
     public ChannelMode Channel { get; init; } = ChannelMode.Auto;
+
+    /// <summary>Scheduled messages are moved by a random amount up to this many seconds either way. 0 turns it off.</summary>
+    public int ScheduleJitterS { get; init; } = 60;
 
     public TimeSpan Heartbeat { get; init; } = TimeSpan.FromSeconds(15);
 

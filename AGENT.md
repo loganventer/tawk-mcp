@@ -13,9 +13,9 @@ TawkMcp.slnx
 Directory.Build.props        net10.0, nullable, analysers, warnings as errors, version
 Directory.Packages.props     central package versions
 src/Tawk.Mcp.Core            records, events, error codes, shared contracts
-src/Tawk.Mcp.ResourceAccess  codec, socket connection, control client, supervisor, watcher, confirmation gate
-src/Tawk.Mcp.Engines         formatters, fence, planners, backoff, circuit breaker
-src/Tawk.Mcp.Managers        use cases, one manager per area, plus IEventSink
+src/Tawk.Mcp.ResourceAccess  codec, socket connection, control client, supervisor, watcher, confirmation gate; Memory/ SQLite stores
+src/Tawk.Mcp.Engines         formatters, fence, planners, backoff, circuit breaker, schedule jitter; Memory/ voice rules, field catalog
+src/Tawk.Mcp.Managers        use cases, one manager per area, plus IEventSink; Memory/ voices, contacts, templates
 src/Tawk.Mcp.Clients         tools, resources, prompts, subscriptions, channel, event stream, dispatcher
 src/Tawk.Mcp.Host            composition root, Program, middleware, endpoints (assembly tawk-mcp)
 tests/Tawk.Mcp.Tests         NUnit tests, Fakes/ holds every fake

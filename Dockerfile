@@ -26,6 +26,7 @@ ENV ASPNETCORE_URLS=http://0.0.0.0:8765 \
     TAWKMCP_BIND=0.0.0.0 \
     TAWKMCP_PORT=8765 \
     TAWKMCP_TOKEN_FILE=/data/token \
+    TAWKMCP_DATA_FILE=/data/memory.db \
     TAWK_CONTROL_SOCKET=/run/tawk/control.sock
 VOLUME ["/data"]
 EXPOSE 8765

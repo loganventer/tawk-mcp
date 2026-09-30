@@ -26,7 +26,7 @@ public class McpEndToEndTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(names, Has.Count.EqualTo(42));
+            Assert.That(names, Has.Count.EqualTo(69));
             Assert.That(names, Does.Contain("draft_message").And.Contain("delete_chat").And.Contain("decline_call"));
             Assert.That(names, Has.None.Contains("confirm"));
             Assert.That(tools.Single(t => t.Name == "read_messages").Description, Does.Contain("untrusted data"));
@@ -34,6 +34,43 @@ public class McpEndToEndTests
             Assert.That(_harness.Client.ServerCapabilities.Experimental!.ContainsKey("claude/channel"), Is.True);
             Assert.That(_harness.Client.ServerCapabilities.Resources!.Subscribe, Is.True);
             Assert.That(_harness.Client.ServerInstructions, Does.Contain("untrusted data"));
+        });
+    }
+
+    [Test]
+    public async Task Memory_tools_are_offered_and_vanish_when_memory_is_off()
+    {
+        await _harness.StartAsync();
+        await using var off = new McpHarness();
+        await off.StartAsync(memory: Tawk.Mcp.Core.Memory.MemoryMode.Off);
+
+        var names = (await _harness.Client.ListToolsAsync()).Select(t => t.Name).ToList();
+        var offNames = (await off.Client.ListToolsAsync()).Select(t => t.Name).ToList();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(names, Does.Contain("check_voice").And.Contain("get_contact").And.Contain("draft_template").And.Contain("set_category"));
+            Assert.That(offNames, Has.Count.EqualTo(42));
+            Assert.That(offNames, Has.None.Contains("voice"));
+            Assert.That(off.Client.ServerInstructions, Does.Not.Contain("remembers"));
+            Assert.That(File.Exists(off.DataFile), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task A_voice_saved_over_mcp_checks_a_draft()
+    {
+        await _harness.StartAsync();
+
+        await _harness.Client.CallToolAsync("set_voice", new Dictionary<string, object?> { ["name"] = "logan", ["guide"] = "lowercase", ["rules"] = "{\"case\":\"lower\"}" });
+        var result = await _harness.Client.CallToolAsync("check_voice", new Dictionary<string, object?> { ["draft"] = "Dear Sir" });
+        var text = string.Join('\n', result.Content.OfType<TextContentBlock>().Select(b => b.Text));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsError, Is.Not.True);
+            Assert.That(text, Does.Contain("[warning] case"));
+            Assert.That(File.Exists(_harness.DataFile), Is.True);
         });
     }
 

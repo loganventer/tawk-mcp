@@ -20,9 +20,10 @@
 | `~/.config/systemd/user/tawk-mcp.service` | The user service the installer registers on Linux with systemd |
 | `~/Library/LaunchAgents/com.loganventer.tawk-mcp.plist` | The LaunchAgent the installer registers on macOS; its log is `~/Library/Logs/tawk-mcp.log` |
 | `~/.config/tawk-mcp/token` | The bearer token for HTTP mode (file 0600, folder 0700). `$XDG_CONFIG_HOME` is used instead of `~/.config` when set |
+| `~/.local/share/tawk-mcp/memory.db` | Memory: voices, contact profiles and templates (file 0600, folder 0700), created the first time memory is used. `$XDG_DATA_HOME` is used instead of `~/.local/share` when set |
 | `$XDG_RUNTIME_DIR/tawk/control.sock` | tawk's control socket, owned by tawk. `~/.local/state/tawk/control.sock` when `XDG_RUNTIME_DIR` is not set |
 
-tawk-mcp keeps nothing else on disk: no cache, no log file, no copy of your messages. Logs go to stderr.
+tawk-mcp keeps nothing else on disk: no cache, no log file, no copy of your messages. Logs go to stderr. With `--memory off` the memory file is never created.
 
 ## Settings in tawk
 
@@ -51,6 +52,9 @@ Flags override environment variables, which override the defaults.
 | | `TAWKMCP_TOKEN` | | Use this token and keep no file, for container secrets |
 | `--socket PATH` | `TAWK_CONTROL_SOCKET` | see [The control socket](#the-control-socket) | tawk's control socket |
 | `--channel auto\|on\|off` | `TAWKMCP_CHANNEL` | `auto` | Claude Code channel events: `auto` for clients that identify as Claude Code, `on` for every client, `off` for none |
+| `--memory write\|read\|off` | `TAWKMCP_MEMORY` | `write` | Memory for voices, contacts and templates: `read` offers the tools but refuses changes, `off` removes them |
+| `--data-file PATH` | `TAWKMCP_DATA_FILE` | `~/.local/share/tawk-mcp/memory.db` | Where memory is kept |
+| `--schedule-jitter-s N` | `TAWKMCP_SCHEDULE_JITTER_S` | `60` | Scheduled messages move by a random amount up to this many seconds either way (0 to 3600, 0 turns it off) |
 | `--backoff-initial-ms N` | `TAWKMCP_BACKOFF_INITIAL_MS` | `500` | First wait between connection attempts (1 to 600000) |
 | `--backoff-max-ms N` | `TAWKMCP_BACKOFF_MAX_MS` | `30000` | Longest wait (1 to 3600000, not below the first) |
 | `--breaker-threshold N` | `TAWKMCP_BREAKER_THRESHOLD` | `5` | Failures in a row before retries pause (1 to 1000) |
@@ -105,6 +109,7 @@ The image sets:
 | `TAWKMCP_BIND` | `0.0.0.0` | Inside the container; publish the port on `127.0.0.1` only |
 | `TAWKMCP_PORT` | `8765` | |
 | `TAWKMCP_TOKEN_FILE` | `/data/token` | `/data` is a volume; mount `~/.config/tawk-mcp` there to share the token with the host |
+| `TAWKMCP_DATA_FILE` | `/data/memory.db` | Memory lives in the same volume, so it survives a new container |
 | `TAWK_CONTROL_SOCKET` | `/run/tawk/control.sock` | Mount `$XDG_RUNTIME_DIR/tawk` at `/run/tawk` |
 | `ASPNETCORE_URLS` | `http://0.0.0.0:8765` | For tooling that reads it; tawk-mcp itself uses `TAWKMCP_BIND` and `TAWKMCP_PORT` |
 

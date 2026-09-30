@@ -15,10 +15,10 @@ public sealed class TestParts
         Directory = new ChatDirectoryFormatter(Transcript);
         Gate = new ConfirmationGate(Control);
         Reading = new ChatReadingManager(Control, Transcript, Directory, Fence, new CatchUpPlanner(Clock), new DraftReplyPlanner());
-        Sending = new MessageSendingManager(Control, Transcript);
+        Sending = new MessageSendingManager(Control, Transcript, Jitter);
         Messages = new MessageManagementManager(Gate);
         Chats = new ChatManagementManager(Gate, Directory, Fence);
-        Schedule = new ScheduleManagementManager(Gate, Transcript);
+        Schedule = new ScheduleManagementManager(Gate, Transcript, Jitter);
         Statuses = new StatusManager(Control, Gate, Fence);
         Profile = new ProfileManager(Control, Gate);
         Settings = new SettingsManager(Control, Gate);
@@ -26,6 +26,9 @@ public sealed class TestParts
     }
 
     public ManualTimeProvider Clock { get; } = new();
+
+    /// <summary>Off by default so tests see the time they asked for.</summary>
+    public IScheduleJitter Jitter { get; } = new RandomScheduleJitter(TimeSpan.Zero, () => 0.5);
 
     public FakeTawkControl Control { get; }
 

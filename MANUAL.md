@@ -10,6 +10,7 @@
 - [Sending tools](#sending-tools)
 - [Managing tools](#managing-tools)
 - [The two-step confirmation](#the-two-step-confirmation)
+- [Memory tools](#memory-tools)
 - [Resources](#resources)
 - [Prompts](#prompts)
 - [Claude Code channel](#claude-code-channel)
@@ -186,6 +187,8 @@ Reacts to a message with an emoji (`messageId`, `emoji`), or removes your reacti
 
 Schedules a message (`chat`, `when`, `text`). `when` is anything tawk's `/later` accepts: `18:00`, `+30m`, `tomorrow 9:00`, `fri 17:30`. You approve it in tawk, and can edit the text as with `send_message`.
 
+tawk-mcp moves the time by a random amount between minus and plus 60 seconds, picked to the millisecond, so scheduled messages do not all go out on the exact minute. It sends the shift to tawk as whole seconds (`18:00 +37s`), since tawk schedules to the second, and the result says how far it moved. The shift never moves a message into the past. `reschedule` does the same. Set `--schedule-jitter-s 0` to turn it off. A tawk older than 0.7.1 cannot read the shift; tawk-mcp then schedules the exact time instead, without asking you twice.
+
 ### `mark_read`
 
 Marks a chat as read. This sends read receipts if you have them on in tawk.
@@ -235,12 +238,53 @@ If you decline or dismiss the question in your client, tawk-mcp cancels the requ
 
 If your MCP client cannot ask questions (it does not support MCP elicitation), tawk-mcp cancels at once and answers "This needs your confirmation, and your MCP client cannot ask you. Do it in tawk instead." There is no tool that confirms, so the model has no way around this.
 
+## Memory tools
+
+tawk-mcp can remember how you write, who your contacts are to you, and replies you use often, so a model can draft messages that sound like you. Memory is a private file on your computer (see [CONFIGURATION.md](CONFIGURATION.md#where-things-live)); nothing in it is sent to WhatsApp. It is on by default; `--memory read` keeps the tools but refuses changes, and `--memory off` removes them.
+
+Writing to memory needs no approval, because nothing leaves your computer. Deleting anything from it asks you directly in your MCP client, the same way as the first step of [the two-step confirmation](#the-two-step-confirmation). Everything read back from memory is fenced as untrusted, because an agent may have copied text from a chat into it.
+
+### Audience categories
+
+`list_categories`, `set_category` and `delete_category` manage the audiences voices, contacts and templates are grouped by. Paths nest with slashes, such as `family/spouse`, `friends/close`, `work/formal`, `services` or `elders`, and a voice variant for `family` also covers `family/spouse`. Naming a new category anywhere creates it.
+
+### Voices
+
+A voice is a Markdown guide to how you write, plus rules that can be checked. A voice can have a variant for each audience category, with its own guide, rules and verbatim examples; a variant's rules replace the voice's rules one by one.
+
+- `import_voice` takes a whole Markdown guide and a map from heading text to category, such as `{"Wife (Anneke)": "family/spouse", "Close friends": "friends/close"}`. Each mapped section becomes that category's variant; the rest is the base guide.
+- `set_voice` and `set_voice_variant` create or change a voice or a variant. `rules` is JSON with any of: `languages` (`af`, `en`, `mix`), `case` (`lower`, `sentence`, `any`), `max_words`, `max_emoji`, `allowed_emoji`, `required_address_forms`, `forbidden_address_forms`, `must_include_any`, `forbidden_patterns` (regular expressions, such as an em dash or `kind regards`), `greeting` and `signoff` (`none`, `optional`, `required`). Unknown keys are refused.
+- `get_voice` shows what applies to a chat (from the contact's categories), to a category, or a whole voice. `export_voice` gives it back as one Markdown file.
+- `check_voice` scores a draft out of 100 for a chat or a category. It lists what the rules flag (errors cost 25, warnings 10, hints 3) and shows the guide, so the model can judge the tone itself. The rules only catch what can be counted.
+- `learn_voice` reads your own recent messages in chats you name and stores averages on a variant: message length, how often you start in lowercase, emoji per message, laughter. Only the numbers are kept. `check_voice` then adds hints when a draft is far from them.
+- `delete_voice` deletes a voice, or one variant with `category`.
+
+The voice used is the one named, else the contact's own voice, else the default voice, else the only voice there is.
+
+### Contact profiles
+
+`list_contact_fields` lists every field a profile can hold. They follow the JSContact contact standard (RFC 9553) for names, languages and dates, add how to talk to someone (address form such as `jy`, `u` or `oom-tannie`, language mix, brevity, directness, humour, topics to enjoy or avoid, how best to approach them), relationship details (relation, closeness, who defers to whom), short-lived context (what is going on for them, follow-ups, gift ideas), and a few personality fields kept to `low`, `mid` or `high` bands (Big Five, top Schwartz values), because guessing personality from chat is only roughly accurate. MBTI, Enneagram, DISC and love languages are free-text labels a person identifies with, never inferred.
+
+- `set_contact_fields` stores fields as JSON with a `source`: `user` (you said so), `contact` (they said so), `inferred` (the model worked it out) or `imported`. Every field keeps its source, a confidence from 0 to 1, optional evidence such as message ids, and when it lapses: inferences after a year, `current_situation` after a month. An inference never replaces a value someone stated.
+- `sensitive_notes` (health, beliefs and similar) can only come from you, and `get_contact` hides it unless asked with `include_sensitive`. Attachment bands and personality labels can be stated by you or the contact, never inferred.
+- `add_contact_note`, `forget_contact_field`, `set_contact_categories` (which also sets the contact's voice), `list_contacts`, `get_contact` and `delete_contact` do what they say. `due_follow_ups` lists follow-ups whose date has come.
+
+A contact is always found through tawk, so chats that tawk hides from agents cannot be looked up or profiled.
+
+### Reply templates
+
+`set_template` saves a reply with `{{placeholders}}`, optionally for a category, a voice and a language. `{{contact.name}}`, `{{contact.first_name}}` and `{{contact.<field>}}` fill from the contact's profile (a list gives its first item, so `{{contact.nicknames}}` is the first nickname); anything else comes from `values`. `render_template` fills it and checks it against the voice without sending anything. `draft_template` fills it and puts it into the chat's draft in tawk, and refuses while any placeholder has no value. `list_templates`, `get_template` and `delete_template` manage them.
+
 ## Resources
 
 | Resource | Contents |
 | --- | --- |
 | `tawk://chats` | Your chat list, as `list_chats` shows it |
 | `tawk://chat/{jid}` | The 30 most recent messages of one chat |
+| `tawk://voices` | The voices in memory |
+| `tawk://voice/{name}` | One voice with its rules and variants |
+| `tawk://contact/{jid}` | One contact's profile, without sensitive fields |
+| `tawk://templates` | The reply templates in memory |
 
 Clients may subscribe to both. A subscribed client is told (`notifications/resources/updated`) when a chat gets a new message or its unread count changes, and the chat list resource changes with every chat. After tawk-mcp reconnects to tawk it tells subscribed clients about every subscribed resource, and sends `notifications/resources/list_changed`, since messages may have arrived while it was away.
 
@@ -254,7 +298,7 @@ In Claude Code: `/mcp__tawk__catch_up` or `/mcp__tawk__catch_up 2h`.
 
 ### `draft_reply`
 
-Drafts a reply for one chat (`chat`). It reads the last 30 messages and tells the model to show you the draft and stop, to offer `draft_message` if you like it, and never to send unless you ask.
+Drafts a reply for one chat (`chat`). It reads the last 30 messages and tells the model to show you the draft and stop, to offer `draft_message` if you like it, and never to send unless you ask. When memory has a voice, the prompt also carries how you write to that person and asks the model to run `check_voice` on the draft first.
 
 ## Claude Code channel
 
