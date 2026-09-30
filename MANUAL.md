@@ -187,7 +187,7 @@ Reacts to a message with an emoji (`messageId`, `emoji`), or removes your reacti
 
 Schedules a message (`chat`, `when`, `text`). `when` is anything tawk's `/later` accepts: `18:00`, `+30m`, `tomorrow 9:00`, `fri 17:30`. You approve it in tawk, and can edit the text as with `send_message`.
 
-tawk-mcp moves the time by a random amount between minus and plus 60 seconds, picked to the millisecond, so scheduled messages do not all go out on the exact minute. It sends the shift to tawk as whole seconds (`18:00 +37s`), since tawk schedules to the second, and the result says how far it moved. The shift never moves a message into the past. `reschedule` does the same. Set `--schedule-jitter-s 0` to turn it off. A tawk older than 0.7.1 cannot read the shift; tawk-mcp then schedules the exact time instead, without asking you twice.
+tawk-mcp moves the time by a random amount between minus and plus 60 seconds, picked to the millisecond, so scheduled messages do not all go out on the exact minute. It sends the shift to tawk as whole seconds (`18:00 +37s`), since tawk schedules to the second, and the result says how far it moved. The shift never moves a message into the past. `reschedule` does the same. Set `--schedule-jitter-s 0` to turn it off. A tawk without seconds adjustments in its control protocol cannot read the shift; tawk-mcp then schedules the exact time instead, without asking you twice.
 
 ### `mark_read`
 
