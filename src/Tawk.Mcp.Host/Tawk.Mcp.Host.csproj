@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>tawk-mcp</AssemblyName>
+    <RootNamespace>Tawk.Mcp.Host</RootNamespace>
+    <UserSecretsId />
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol.AspNetCore" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Tawk.Mcp.Core\Tawk.Mcp.Core.csproj" />
+    <ProjectReference Include="..\Tawk.Mcp.ResourceAccess\Tawk.Mcp.ResourceAccess.csproj" />
+    <ProjectReference Include="..\Tawk.Mcp.Engines\Tawk.Mcp.Engines.csproj" />
+    <ProjectReference Include="..\Tawk.Mcp.Managers\Tawk.Mcp.Managers.csproj" />
+    <ProjectReference Include="..\Tawk.Mcp.Clients\Tawk.Mcp.Clients.csproj" />
+  </ItemGroup>
+</Project>

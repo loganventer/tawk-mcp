@@ -1,0 +1,58 @@
+using System.ComponentModel;
+using ModelContextProtocol;
+using ModelContextProtocol.Protocol;
+using ModelContextProtocol.Server;
+using Tawk.Mcp.Managers;
+
+namespace Tawk.Mcp.Clients.Tools;
+
+[McpServerToolType]
+public sealed class ScheduleTools(IChatReadingManager reading, IMessageSendingManager sending, IScheduleManagementManager schedule)
+{
+    private const string When = "When to send, as tawk's /later takes it: 18:00, +30m, tomorrow 9:00, fri 17:30.";
+
+    [McpServerTool(Name = "list_scheduled", ReadOnly = true, Idempotent = true, OpenWorld = false)]
+    [Description("List messages scheduled in tawk that have not gone out yet." + ToolText.Untrusted)]
+    public Task<CallToolResult> ListScheduledAsync(
+        [Description("Only messages scheduled for this chat (jid or name).")] string? chat = null,
+        CancellationToken cancellationToken = default) =>
+        ToolResults.RunAsync(() => reading.ListScheduledAsync(chat, cancellationToken));
+
+    [McpServerTool(Name = "schedule_message", Destructive = false, ReadOnly = false, Idempotent = false, OpenWorld = true)]
+    [Description("Schedule a WhatsApp message to go out later from tawk." + ToolText.NeedsSend + " The user may edit the text while approving.")]
+    public Task<CallToolResult> ScheduleMessageAsync(
+        [Description("The chat's jid or name.")] string chat,
+        [Description(When)] string when,
+        [Description("The message text.")] string text,
+        IProgress<ProgressNotificationValue>? progress = null,
+        CancellationToken cancellationToken = default) =>
+        ToolResults.RunAsync(() => sending.ScheduleMessageAsync(chat, when, text, ApprovalProgress.Reporter(progress), cancellationToken));
+
+    [McpServerTool(Name = "cancel_scheduled", Destructive = true, ReadOnly = false, Idempotent = false, OpenWorld = false)]
+    [Description("Cancel a scheduled message." + ToolText.NeedsManage + ToolText.TwoStep)]
+    public Task<CallToolResult> CancelScheduledAsync(
+        McpServer? server,
+        [Description("The scheduled message's id, from list_scheduled.")] string id,
+        IProgress<ProgressNotificationValue>? progress = null,
+        CancellationToken cancellationToken = default) =>
+        ToolResults.RunAsync(() => schedule.CancelScheduledAsync(id, WriteContexts.For(server, progress), cancellationToken));
+
+    [McpServerTool(Name = "reschedule", Destructive = false, ReadOnly = false, Idempotent = false, OpenWorld = false)]
+    [Description("Move a scheduled message to another time." + ToolText.NeedsManage)]
+    public Task<CallToolResult> RescheduleAsync(
+        McpServer? server,
+        [Description("The scheduled message's id.")] string id,
+        [Description(When)] string when,
+        IProgress<ProgressNotificationValue>? progress = null,
+        CancellationToken cancellationToken = default) =>
+        ToolResults.RunAsync(() => schedule.RescheduleAsync(id, when, WriteContexts.For(server, progress), cancellationToken));
+
+    [McpServerTool(Name = "send_scheduled_now", Destructive = false, ReadOnly = false, Idempotent = false, OpenWorld = true)]
+    [Description("Send a scheduled message now." + ToolText.NeedsManage)]
+    public Task<CallToolResult> SendScheduledNowAsync(
+        McpServer? server,
+        [Description("The scheduled message's id.")] string id,
+        IProgress<ProgressNotificationValue>? progress = null,
+        CancellationToken cancellationToken = default) =>
+        ToolResults.RunAsync(() => schedule.SendScheduledNowAsync(id, WriteContexts.For(server, progress), cancellationToken));
+}

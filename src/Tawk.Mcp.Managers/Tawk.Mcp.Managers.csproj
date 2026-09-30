@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Tawk.Mcp.Core\Tawk.Mcp.Core.csproj" />
+    <ProjectReference Include="..\Tawk.Mcp.Engines\Tawk.Mcp.Engines.csproj" />
+    <ProjectReference Include="..\Tawk.Mcp.ResourceAccess\Tawk.Mcp.ResourceAccess.csproj" />
+  </ItemGroup>
+</Project>

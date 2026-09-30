@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Tawk.Mcp.Core\Tawk.Mcp.Core.csproj" />
+    <ProjectReference Include="..\Tawk.Mcp.Managers\Tawk.Mcp.Managers.csproj" />
+  </ItemGroup>
+</Project>

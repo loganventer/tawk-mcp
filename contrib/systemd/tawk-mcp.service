@@ -1,0 +1,14 @@
+# A user service that keeps tawk-mcp serving MCP over HTTP at http://127.0.0.1:8765/mcp.
+# Install: cp tawk-mcp.service ~/.config/systemd/user/ && systemctl --user enable --now tawk-mcp
+# It may start before tawk; it connects as soon as tawk's control socket appears.
+[Unit]
+Description=tawk-mcp, the MCP server for tawk
+After=default.target
+
+[Service]
+ExecStart=%h/.local/bin/tawk-mcp
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Tawk.Mcp.Core/Tawk.Mcp.Core.csproj" />
+    <Project Path="src/Tawk.Mcp.ResourceAccess/Tawk.Mcp.ResourceAccess.csproj" />
+    <Project Path="src/Tawk.Mcp.Engines/Tawk.Mcp.Engines.csproj" />
+    <Project Path="src/Tawk.Mcp.Managers/Tawk.Mcp.Managers.csproj" />
+    <Project Path="src/Tawk.Mcp.Clients/Tawk.Mcp.Clients.csproj" />
+    <Project Path="src/Tawk.Mcp.Host/Tawk.Mcp.Host.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Tawk.Mcp.Tests/Tawk.Mcp.Tests.csproj" />
+  </Folder>
+</Solution>
