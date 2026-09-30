@@ -53,6 +53,27 @@ public class OtherToolsTests
     }
 
     [Test]
+    public async Task A_reschedule_that_an_older_tawk_refuses_gets_the_exact_time()
+    {
+        var control = new FakeTawkControl().Answer("reschedule", args =>
+            ((string?)args!["when"])!.EndsWith('s')
+                ? throw new Tawk.Mcp.Core.TawkControlException(Tawk.Mcp.Core.ControlErrorCode.BadRequest, "Give a time such as 18:00")
+                : System.Text.Json.JsonDocument.Parse("""{"due_at":1790791320}""").RootElement.Clone());
+        var parts = new TestParts(control);
+        var schedule = new Tawk.Mcp.Managers.ScheduleManagementManager(
+            parts.Gate, parts.Transcript, new Tawk.Mcp.Engines.RandomScheduleJitter(TimeSpan.FromSeconds(60), () => 0.9));
+
+        var result = await schedule.RescheduleAsync("S1", "21:00", Tawk.Mcp.Core.WriteContext.None, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(control.Requests.Count(r => r.Op == "reschedule"), Is.EqualTo(2));
+            Assert.That((string?)control.Last("reschedule").Args!["when"], Is.EqualTo("21:00"));
+            Assert.That(result, Does.StartWith("Rescheduled for").And.Not.Contain("moved it"));
+        });
+    }
+
+    [Test]
     public async Task Scheduling_moves_the_time_by_the_jitter_and_says_so()
     {
         var control = new FakeTawkControl()

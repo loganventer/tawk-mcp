@@ -13,8 +13,20 @@ public sealed class ScheduleManagementManager(IConfirmationGate gate, ITranscrip
     public async Task<string> RescheduleAsync(string id, string dueAt, WriteContext context, CancellationToken cancellationToken)
     {
         var nudge = jitter.Nudge(dueAt);
+        ConfirmationOutcome outcome;
+        try
+        {
+            outcome = await RunAsync("reschedule", new JsonObject { ["id"] = id, ["when"] = nudge.When }, context, cancellationToken).ConfigureAwait(false);
+        }
+        catch (TawkControlException ex) when (ex.Code == ControlErrorCode.BadRequest && nudge.When != dueAt)
+        {
+            // An older tawk cannot read the seconds adjustment. It refuses before asking the user, so asking again costs nothing.
+            nudge = new ScheduleNudge(dueAt, TimeSpan.Zero);
+            outcome = await RunAsync("reschedule", new JsonObject { ["id"] = id, ["when"] = dueAt }, context, cancellationToken).ConfigureAwait(false);
+        }
+
         return WriteResults.Describe(
-            await RunAsync("reschedule", new JsonObject { ["id"] = id, ["when"] = nudge.When }, context, cancellationToken).ConfigureAwait(false),
+            outcome,
             r => (WriteResults.Number(r, "due_at") is { } due ? $"Rescheduled for {transcript.FormatTimestamp(due)}." : "Rescheduled.")
                 + ScheduleNudges.Describe(nudge));
     }
