@@ -1,5 +1,7 @@
 # tawk-mcp serves streamable HTTP (its default transport) on 127.0.0.1:8765 with a bearer token.
 # Run with scripts/docker-run.sh, or export UID and GID first: UID=$(id -u) GID=$(id -g) docker compose up -d
+# Containers run in UTC: set TZ to your zone (TZ=Africa/Johannesburg docker compose up -d) or the times
+# tawk-mcp shows and reads are off by your offset. scripts/docker-run.sh does this for you.
 # Create "$XDG_RUNTIME_DIR/tawk" and ~/.config/tawk-mcp yourself (mode 0700) before the first start,
 # otherwise Docker creates them owned by root and neither tawk nor tawk-mcp can use them.
 services:
@@ -13,6 +15,7 @@ services:
       TAWK_CONTROL_SOCKET: /run/tawk/control.sock
       TAWKMCP_TOKEN_FILE: /data/token
       TAWKMCP_DATA_FILE: /data/memory.db
+      TZ: "${TZ:-UTC}"
     volumes:
       - "${XDG_RUNTIME_DIR:-/run/user/1000}/tawk:/run/tawk"
       - "${HOME}/.config/tawk-mcp:/data"

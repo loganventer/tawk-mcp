@@ -11,6 +11,19 @@ runtime="${XDG_RUNTIME_DIR:-$HOME/.local/state}"
 tawk_dir="$runtime/tawk"
 data_dir="${XDG_CONFIG_HOME:-$HOME/.config}/tawk-mcp"
 
+# Containers run in UTC unless told otherwise, which would put every time tawk-mcp shows or reads
+# (message times, "since" cutoffs, follow-up dates) off by your offset. Give it this machine's zone.
+host_timezone() {
+  if [ -n "${TZ:-}" ]; then printf '%s\n' "$TZ"; return; fi
+  if [ -L /etc/localtime ]; then
+    zone="$(readlink /etc/localtime)"
+    case "$zone" in */zoneinfo/*) printf '%s\n' "${zone##*/zoneinfo/}"; return ;; esac
+  fi
+  if [ -r /etc/timezone ]; then cat /etc/timezone; return; fi
+  printf 'UTC\n'
+}
+timezone="$(host_timezone)"
+
 # Docker would create missing bind folders owned by root, which tawk and tawk-mcp could not use.
 mkdir -p "$tawk_dir" "$data_dir"
 chmod 0700 "$tawk_dir" "$data_dir"
@@ -24,6 +37,7 @@ docker run -d --name "$name" --restart unless-stopped \
   -v "$data_dir:/data" \
   -e TAWK_CONTROL_SOCKET=/run/tawk/control.sock \
   -e TAWKMCP_TOKEN_FILE=/data/token \
+  -e TZ="$timezone" \
   "$image" >/dev/null
 
 for _ in $(seq 1 50); do
@@ -33,7 +47,7 @@ done
 token="$(cat "$data_dir/token")"
 
 cat <<INFO
-tawk-mcp is running at http://127.0.0.1:$port/mcp
+tawk-mcp is running at http://127.0.0.1:$port/mcp (times in $timezone)
 Health: $(curl -fsS "http://127.0.0.1:$port/healthz" 2>/dev/null || echo "not answering yet")
 
 Bearer token (kept in $data_dir/token):

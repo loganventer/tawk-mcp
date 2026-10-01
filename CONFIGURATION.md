@@ -113,6 +113,8 @@ The image sets:
 | `TAWK_CONTROL_SOCKET` | `/run/tawk/control.sock` | Mount `$XDG_RUNTIME_DIR/tawk` at `/run/tawk` |
 | `ASPNETCORE_URLS` | `http://0.0.0.0:8765` | For tooling that reads it; tawk-mcp itself uses `TAWKMCP_BIND` and `TAWKMCP_PORT` |
 
+Containers run in UTC, and tawk-mcp shows and reads times in its machine's zone (message times in transcripts, the catch-up cutoff, follow-up dates). Pass your zone with `-e TZ=Africa/Johannesburg` or they are off by your offset; `scripts/docker-run.sh` passes this machine's zone for you, and `compose.yaml` takes it from `TZ`.
+
 Run it with `--user "$(id -u):$(id -g)"` and `-p 127.0.0.1:8765:8765`. `TAWKMCP_TOKEN` can be passed instead of the token file, for example from a secret store. The other variables work in the container as anywhere else.
 
 ## MCP protocol revision
