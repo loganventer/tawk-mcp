@@ -20,6 +20,8 @@ public sealed class ClientSessionRegistry : IClientSessionRegistry
     {
         lock (_gate)
         {
+            // One entry per session, and the newest: the SDK hands each request its own server object.
+            _sessions.Remove(session);
             _sessions.Add(session);
         }
     }
