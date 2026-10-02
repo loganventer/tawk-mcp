@@ -255,4 +255,18 @@ The digest is a SHA-256 over the rows and tombstones in a fixed order, not over 
 
 ## The workflow check
 
+```mermaid
+flowchart TD
+    CALL["A tool call finishes"] --> COUNT["Count one round"]
+    EVENT["A message is delivered<br/>as a channel event"] --> COUNT
+    COUNT --> WHICH{"Was it get_workflow?"}
+    WHICH -- yes --> RESET["Start counting again"]
+    WHICH -- no --> DUE{"Rounds reached<br/>TAWKMCP_WORKFLOW_EVERY?"}
+    DUE -- no --> PLAIN["Result goes back as it is"]
+    DUE -- yes --> FAILED{"Did the call fail,<br/>or was it a channel event?"}
+    FAILED -- yes --> WAIT["The check rides on the next tool call that succeeds"]
+    FAILED -- no --> ADD["Add the workflow text to the result<br/>as a second text block"]
+    ADD --> RESET
+```
+
 Each tool call passes through a filter after it has run. The filter counts a round, and when the count reaches `TAWKMCP_WORKFLOW_EVERY` it adds the workflow text to the result as a second text block and starts again. A message delivered to the agent as a channel event counts as a round too, and the check then rides on the agent's next tool call. A failed call counts but never carries the check, and `get_workflow` resets the count. The text is fixed in the source, followed by the user's own instructions file; nothing from a chat or from memory is ever part of it.
