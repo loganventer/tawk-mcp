@@ -16,6 +16,9 @@ services:
       TAWKMCP_TOKEN_FILE: /data/token
       TAWKMCP_DATA_FILE: /data/memory.db
       TZ: "${TZ:-UTC}"
+      # Memory sync is off unless both are set. There is no default repository; use a private one of your own.
+      TAWKMCP_SYNC_REPO: "${TAWKMCP_SYNC_REPO:-}"
+      TAWKMCP_SYNC_TOKEN: "${TAWKMCP_SYNC_TOKEN:-}"
     volumes:
       - "${XDG_RUNTIME_DIR:-/run/user/1000}/tawk:/run/tawk"
       - "${HOME}/.config/tawk-mcp:/data"

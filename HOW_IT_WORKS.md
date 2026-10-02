@@ -12,6 +12,8 @@
 - [The circuit breaker](#the-circuit-breaker)
 - [A hung tawk](#a-hung-tawk)
 - [HTTP requests](#http-requests)
+- [A memory sync](#a-memory-sync)
+- [The workflow check](#the-workflow-check)
 
 ## Start-up
 
@@ -224,3 +226,33 @@ flowchart LR
 ```
 
 `/events` starts with a `: connected` comment and the current `event: tawk` state, replays kept events after `Last-Event-ID`, then streams new ones, with a `: heartbeat` comment after 15 quiet seconds.
+
+## A memory sync
+
+```mermaid
+flowchart TD
+    START["Start, then every interval"] --> SET{"Repository and token set?"}
+    SET -- no --> OFF["No sync"]
+    SET -- yes --> LOCK{"Lock file free?"}
+    LOCK -- no --> SKIP["Skip this cycle"]
+    LOCK -- yes --> HEAD["Read the remote file's version"]
+    HEAD --> SAME{"Same version as last time,<br/>and local content unchanged?"}
+    SAME -- yes --> DONE["Up to date"]
+    SAME -- no --> CHANGED{"Remote version changed?"}
+    CHANGED -- yes --> MERGE["Download it, bring it to this schema,<br/>merge it into the local database"]
+    CHANGED -- no --> DIGEST
+    MERGE --> DIGEST{"Local digest equals remote digest?"}
+    DIGEST -- yes --> DONE
+    DIGEST -- no --> PUSH["Copy the database and push it,<br/>naming the version it replaces"]
+    PUSH --> OK{"Accepted?"}
+    OK -- yes --> DONE
+    OK -- "no, the remote moved (3 tries)" --> HEAD
+```
+
+The merge takes each table in turn and matches rows by key. Where both sides have a row, the stronger source wins (user, contact, imported, inferred), then the newer `updated`, and an exact tie is settled by the row's content so both machines choose the same one. A delete leaves a tombstone: one newer than the winning row removes it everywhere, and a row changed after its tombstone survives and clears it. Rows that have lapsed are dropped before the merge and never brought back. Deleting a contact takes its fields, categories and observations with it on every machine.
+
+The digest is a SHA-256 over the rows and tombstones in a fixed order, not over the file's bytes, so two machines holding the same memory compare equal and neither pushes.
+
+## The workflow check
+
+Each tool call passes through a filter after it has run. The filter counts a round, and when the count reaches `TAWKMCP_WORKFLOW_EVERY` it adds the workflow text to the result as a second text block and starts again. A message delivered to the agent as a channel event counts as a round too, and the check then rides on the agent's next tool call. A failed call counts but never carries the check, and `get_workflow` resets the count. The text is fixed in the source, followed by the user's own instructions file; nothing from a chat or from memory is ever part of it.

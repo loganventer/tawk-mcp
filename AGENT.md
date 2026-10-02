@@ -12,11 +12,11 @@ tawk-mcp is an MCP server for [tawk](https://github.com/loganventer/tawk), a Wha
 TawkMcp.slnx
 Directory.Build.props        net10.0, nullable, analysers, warnings as errors, version
 Directory.Packages.props     central package versions
-src/Tawk.Mcp.Core            records, events, error codes, shared contracts
-src/Tawk.Mcp.ResourceAccess  codec, socket connection, control client, supervisor, watcher, confirmation gate; Memory/ SQLite stores
-src/Tawk.Mcp.Engines         formatters, fence, planners, backoff, circuit breaker, schedule jitter; Memory/ voice rules, field catalog
-src/Tawk.Mcp.Managers        use cases, one manager per area, plus IEventSink; Memory/ voices, contacts, templates
-src/Tawk.Mcp.Clients         tools, resources, prompts, subscriptions, channel, event stream, dispatcher
+src/Tawk.Mcp.Core            records, events, error codes, shared contracts; Okf/ concepts and links; Sync/ rows, plans, options
+src/Tawk.Mcp.ResourceAccess  codec, socket connection, control client, supervisor, watcher, confirmation gate; Memory/ SQLite stores; Sync/ snapshots, GitHub remote
+src/Tawk.Mcp.Engines         formatters, fence, planners, backoff, circuit breaker, schedule jitter; Memory/ voice rules, field catalog; Knowledge/ OKF bundles; Sync/ merge rules
+src/Tawk.Mcp.Managers        use cases, one manager per area, plus IEventSink; Memory/ voices, contacts, templates; Knowledge/; Sync/
+src/Tawk.Mcp.Clients         tools, resources, prompts, subscriptions, channel, event stream, dispatcher; Workflow/ the workflow check
 src/Tawk.Mcp.Host            composition root, Program, middleware, endpoints (assembly tawk-mcp)
 tests/Tawk.Mcp.Tests         NUnit tests, Fakes/ holds every fake
 ```
@@ -33,6 +33,10 @@ tests/Tawk.Mcp.Tests         NUnit tests, Fakes/ holds every fake
 - **Untrusted text.** Anything written by other people must reach a model through `IUntrustedTextFence`. Never put it in a tool description or a header unfenced, except names flattened as `NotificationFormatter` does.
 - **Confirmation tokens** never leave `ConfirmationGate`. Do not log them, return them, or add any tool that confirms.
 - **Never hang.** Every wait needs a bound, except a write waiting for the user's approval in tawk.
+- **Repositories own the SQL.** Every table is reached through a store interface in `ResourceAccess`; nothing above that layer writes SQL. SQLite has no stored procedures, so a write of several statements runs in one transaction inside its store.
+- **Every delete leaves a tombstone** and every write clears it (`Tombstones`), or memory sync brings the row back from another machine.
+- **Sync has no default destination, ever.** The repository and token are always the user's own, set per instance. Do not add a default repository, token or owner anywhere in the code, the image or the documentation.
+- **Only fixed text and the user's own instructions file become instructions.** Never load text from a chat or from the memory database into the server instructions or the workflow check.
 - **Tests use hand-written fakes only**, no mocking library. Put fakes in `tests/Tawk.Mcp.Tests/Fakes`, one per file. Socket behaviour is tested against `FakeTawkServer` in a temp folder.
 
 ## Writing

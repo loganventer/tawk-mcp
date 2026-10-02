@@ -12,7 +12,9 @@ In scope:
 - The two-step confirmation for destructive operations, with the user asked directly through MCP elicitation.
 - Live updates: MCP resource subscriptions, Claude Code channel events, and a server-sent event stream for other programs.
 - Prompts that make common tasks one step: catching up and drafting a reply.
-- Memory that helps a model write the way you do: voices with a version per audience, a rule-based check of drafts against them, profiles of your contacts, and reply templates. It lives in one private file on your computer and can be switched off.
+- Memory that helps a model write the way you do: voices with a version per audience, a rule-based check of drafts against them, profiles of your contacts, knowledge about people and topics in the Open Knowledge Format, and reply templates. It lives in one private file on your computer and can be switched off.
+- Keeping that memory in step between your own machines, through a private repository you name. Off until you set it up.
+- Telling a connected agent how to work: fixed server instructions, a memory workflow handed over every so many rounds, and your own standing instructions from a file you write.
 - A small random shift on scheduled messages, so they do not all land on the exact minute.
 - Streamable HTTP by default and stdio as the alternative, a systemd user service, and a Docker image, for Linux and macOS, with Windows through WSL.
 - Starting and running whether or not tawk is running, and recovering by itself when tawk comes and goes.
@@ -32,7 +34,8 @@ In scope:
 - **tawk is the authority.** tawk-mcp never widens what tawk allows, never works around a refusal, and says origin `mcp` in its hello so tawk treats it as a model.
 - **Other people's text is data.** Everything written by others reaches the model fenced as untrusted, in tool results, resources, prompts and channel events.
 - **Confirmation tokens stay inside tawk-mcp.** They never appear in a tool result, a log line, a notification or an error.
-- **Nothing leaves the machine except what your MCP client sends to its model service.** tawk-mcp has no telemetry and no update checks, and in HTTP mode it listens on loopback unless told otherwise.
+- **Nothing leaves the machine except what your MCP client sends to its model service, and memory sync if you turn it on.** tawk-mcp has no telemetry and no update checks, and in HTTP mode it listens on loopback unless told otherwise. Sync has no default destination: it goes only to the repository you set, with the token you set.
+- **Only you instruct the agent.** Instructions are fixed text plus a file you write. Text from chats and from memory is information, never instructions.
 - **What is remembered stays yours.** Memory is a local file readable only by you. Every stored fact says who said it and how sure it is, an inference never overwrites what someone stated, and deleting anything asks you first.
 - **Never hang.** A tool call gets an answer within seconds whether tawk is up, down, restarting or hung, except while you are deciding on an approval.
 - **One way to build a thing.** iDesign layers, one type per file, interfaces bound only in the composition root, and warnings as errors.

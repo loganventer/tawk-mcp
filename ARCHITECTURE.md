@@ -126,7 +126,8 @@ Records mirror tawk's values in [CONTROL.md](https://github.com/loganventer/tawk
 - `ConfirmationGate` runs writes. When tawk answers `needs_confirmation`, it keeps the token in a local variable, asks the user through `IUserConfirmation`, and calls `confirm` or `cancel_confirmation`. The token never leaves it.
 - `ControlSocketLocator` finds the socket (flag, `TAWK_CONTROL_SOCKET`, `$XDG_RUNTIME_DIR`, `~/.local/state`).
 - `TawkChatSource` (`ITawkChatSource`) is what memory needs from tawk: which chat a name means, through `chat_info` so tawk's visibility rules apply, and the text of the user's own recent messages for `learn_voice`.
-- In `Memory`, `SqliteConnectionFactory` owns the database path, creates the file 0600 in a 0700 folder on first use, turns on WAL and runs `SqliteSchemaMigrator`, which applies numbered steps recorded in `PRAGMA user_version`. `ICategoryStore`, `IVoiceStore`, `IContactStore` and `ITemplateStore` each persist one kind of memory with parameterised SQL through `Microsoft.Data.Sqlite`.
+- In `Memory`, `SqliteConnectionFactory` owns the database path, creates the file 0600 in a 0700 folder on first use, turns on WAL and runs `SqliteSchemaMigrator`, which applies numbered steps recorded in `PRAGMA user_version`. `ICategoryStore`, `IVoiceStore`, `IContactStore`, `ITemplateStore` and `IOkfStore` are the repositories: each persists one kind of memory with parameterised SQL through `Microsoft.Data.Sqlite`, and no SQL exists outside them. `IOkfStore` holds Open Knowledge Format concepts and links; `SqliteContactStore` keeps each contact's concept in step and serves notes from observation concepts. Every delete writes a row to `sync_tombstone` through `Tombstones`, and every write clears it. `IOkfBundleFiles` reads and writes a bundle folder on disk.
+- In `Sync`, `IMemorySnapshotStore` reads every synced row of a database (the local one, or a downloaded copy, which it first brings up to the current schema), applies a merge in one transaction and makes a consistent copy; `SyncTables` lists the tables with their keys and parents. `IMemoryRemote` is the remote file, implemented by `GitHubMemoryRemote` over the REST API. `ISyncStateStore`, `ISyncLock` and `ISyncScratch` keep the last version seen, the per-machine lock and the private temporary copies.
 
 ### Engines
 
@@ -135,6 +136,8 @@ Records mirror tawk's values in [CONTROL.md](https://github.com/loganventer/tawk
 - `CatchUpPlanner` and `DraftReplyPlanner` write the prompt instructions. `NotificationFormatter` writes the one-line header of a channel event.
 - `ExponentialBackoffPolicy` and `CircuitBreaker` (closed, open, half-open) take an injected random source and `TimeProvider`. `RandomScheduleJitter` also takes a random source, and turns a schedule time into one shifted by whole seconds.
 - In `Memory`, measuring, judging and scoring are separate: `StyleFeatureExtractor` measures a draft, each `IVoiceRule` (forbidden patterns, case, emoji, length, language, address form, required markers, greeting and sign-off, learnt baseline) judges one thing, and `VoiceChecker` runs whichever rules are registered and scores the findings. `VoiceResolver` picks the variant for a category path and overlays its rules. `ContactFieldCatalog` holds `ContactFieldDefinition`s (from `StandardContactFields`) and checks values with one `IFieldValueValidator` per kind of value. `VoiceGuideImporter`, `StyleBaselineCalculator`, `TemplateRenderer` and `MemoryFormatter` do what their names say, and `MemoryWriteGuard` refuses changes in read-only mode.
+- In `Knowledge`, `KnowledgeFormatter` writes concepts and observations for a model, `KnowledgePrecedence` decides which of two versions is kept (stronger source, then newer), and `OkfBundleWriter` and `OkfBundleReader` turn concepts into Markdown files with YAML frontmatter and back. Reading uses YamlDotNet; writing is a small emitter that quotes anything YAML could misread.
+- In `Sync`, `MemoryMerger` holds the merge rules and `MemoryDigest` fingerprints the content. Both are pure: they see snapshots, never a database.
 
 ### Managers
 
@@ -142,17 +145,20 @@ Each manager is one area of use cases and returns model-ready text. The reading 
 
 The memory managers (`CategoryManager`, `VoiceManager`, `ContactProfileManager`, `TemplateManager`) call the stores and memory engines, and fence what they return. They share two small helpers rather than calling each other: `CategoryEnsurer` creates a category the first time it is named, and `VoiceSelector` picks the voice and variant for a chat or category. `VoiceManager` also implements `IDraftGuidance` for the `draft_reply` prompt; with memory off, `NoDraftGuidance` takes its place. Deletions ask the user through `IUserConfirmation` and throw `MemoryException` if they do not agree.
 
+`KnowledgeManager` records and shows observations and relations, with `KnowledgeSubjects` working out which concept a tool argument means. `OkfBundleManager` exports and imports bundles. `MemorySyncManager` runs one sync cycle: lock, read the remote version, merge, compare digests, push, retry on a lost race.
+
 ### Clients
 
-- Eleven tool classes (`[McpServerToolType]`) hold the 69 tools; the four memory tool classes and `MemoryResources` are left out when memory is off, leaving 42. Each tool calls one manager and turns `TawkControlException` into a tool error result through `ControlErrorMessages`, and `MemoryException` into one with its own message, so nothing crashes the call. `draft_template` is the one tool that uses two managers, filling the template and then drafting it. Write tools take `IProgress<ProgressNotificationValue>` and report "Waiting for approval in tawk". Tools that may need confirmation take the request's `McpServer` and build an `ElicitationConfirmation` from it.
+- Thirteen tool classes (`[McpServerToolType]`) hold the 76 tools; the memory tool classes and `MemoryResources` are left out when memory is off, leaving 42. Each tool calls one manager and turns `TawkControlException` into a tool error result through `ControlErrorMessages`, and `MemoryException` into one with its own message, so nothing crashes the call. `draft_template` is the one tool that uses two managers, filling the template and then drafting it. Write tools take `IProgress<ProgressNotificationValue>` and report "Waiting for approval in tawk". Tools that may need confirmation take the request's `McpServer` and build an `ElicitationConfirmation` from it.
 - `ChatResources` (`[McpServerResourceType]`) serves `tawk://chats` and `tawk://chat/{jid}`; `ResourceSubscriptionHandlers`, `ResourceSubscriptionRegistry` and `ResourceUpdatePump` handle subscriptions.
 - `TawkPrompts` (`[McpServerPromptType]`) serves `catch_up` and `draft_reply`.
 - `ChannelEventSink` sends `notifications/claude/channel`; `EventStreamHub` keeps the last 200 events for `/events`; `ClientSessionRegistry` and `SessionTracking` remember connected sessions; `ProtocolRevisionFilter` keeps clients on the initialize handshake.
-- `NotificationDispatcher` is the hosted service that runs the live updates manager.
+- `NotificationDispatcher` is the hosted service that runs the live updates manager. `MemorySyncService` is the one that runs a sync cycle at start and then every interval; it is registered only when a repository and a token are set.
+- In `Workflow`, `WorkflowCadence` counts rounds, `WorkflowReminder` is the tool call filter that adds `TawkWorkflow`'s fixed text to a result when it is due, and `ChannelEventSink` counts each message it delivers. `TawkServerInstructions` holds the server instructions.
 
 ### Host
 
-`Program` reads options (`TawkMcpOptionsBinder`: environment, then flags), runs a command (`print-token`, `healthcheck`, `--version`, `--help`) or serves. By default it uses `WebApplication` with `WithHttpTransport` in stateful session mode (sessions carry elicitation, subscriptions and notifications), binds Kestrel where `TAWKMCP_BIND` says, puts `OriginGuardMiddleware` and `BearerTokenMiddleware` in front, and maps `/mcp`, `/events` and `/healthz`. With `--stdio` it uses the generic host with `WithStdioServerTransport` and logs to stderr only. `FileTokenStore` and `FixedTokenStore` implement `ITokenStore`.
+`Program` reads options (`TawkMcpOptionsBinder`: environment, then flags), runs a command (`print-token`, `healthcheck`, `sync`, `export-okf`, `import-okf`, `--version`, `--help`) or serves. The memory commands go through `MemoryCommand`, which composes only the memory services. `UserInstructionsFile` reads the user's own instructions once at start. By default it uses `WebApplication` with `WithHttpTransport` in stateful session mode (sessions carry elicitation, subscriptions and notifications), binds Kestrel where `TAWKMCP_BIND` says, puts `OriginGuardMiddleware` and `BearerTokenMiddleware` in front, and maps `/mcp`, `/events` and `/healthz`. With `--stdio` it uses the generic host with `WithStdioServerTransport` and logs to stderr only. `FileTokenStore` and `FixedTokenStore` implement `ITokenStore`.
 
 ## Composition root
 
@@ -163,7 +169,9 @@ The memory managers (`CategoryManager`, `VoiceManager`, `ContactProfileManager`,
 - One reader task per connection reads tawk's socket; writes to the socket are serialised by a semaphore. Any number of requests may be in flight.
 - The supervisor runs on its own background task and waits on a delay, a signal, or the end of the connection.
 - Every reader of `ITawkControl.Events` gets its own unbounded channel. The live updates manager is the one reader in production, and hands each update to the sinks in turn; a failing sink is logged and skipped.
-- The event stream hub gives each `/events` subscriber its own channel and keeps the replay buffer under a lock.
+- The event stream hub gives each `/events` subscriber its own bounded channel, which drops its oldest events if the reader stalls, and keeps the replay buffer under a lock.
+- The session registry keeps at most 64 sessions; past that the one heard from longest ago is let go with its subscriptions.
+- A sync cycle runs on its own background task and holds a lock file, so two tawk-mcp processes on one machine never sync at once.
 - Tool calls run on the MCP SDK's request tasks and share the one connection.
 
 ## Design principles
@@ -181,4 +189,5 @@ The memory managers (`CategoryManager`, `VoiceManager`, `ContactProfileManager`,
 - **A new place for live updates to go**: implement `IEventSink` in the clients and register it.
 - **A new voice check**: add a class implementing `IVoiceRule` in `Engines/Memory` and register it in `AddMemory`. `VoiceChecker` does not change.
 - **A new contact field**: add a `ContactFieldDefinition` to `StandardContactFields`. A new kind of value needs a `FieldKind` and an `IFieldValueValidator` registered in `AddMemory`.
+- **A table that should sync**: add it to `SyncTables` with its key and parent, give its store a tombstone on delete and a clear on write, and make sure its rows carry `updated`.
 - **A schema change**: add a step to `SqliteSchemaMigrator` that ends by setting the next `user_version`. Never edit a step that has shipped.

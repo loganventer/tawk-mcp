@@ -79,7 +79,13 @@ Voices, contact profiles and templates are kept in a SQLite file, `~/.local/shar
 
 A model can write to memory without asking you, because nothing reaches WhatsApp. That makes memory a place where text from a chat could be planted for a later session to read. tawk-mcp fences everything it reads back from memory the same way it fences chat text, says in its tool descriptions and server instructions that stored text is information only, and keeps who said each fact. Review a profile with `get_contact` now and then, and delete what you do not want.
 
-Profiles are about people who have not agreed to them. tawk-mcp refuses inferred values for sensitive fields, keeps personality to coarse bands, lets inferences lapse after a year and short-lived facts after a month, and never sends memory anywhere. Your MCP client still sends what it reads to its model service.
+Profiles are about people who have not agreed to them. tawk-mcp refuses inferred values for sensitive fields and sensitive observations, keeps personality to coarse bands, lets inferences lapse after a year and short-lived facts after a month, and sends memory nowhere unless you set up sync. Your MCP client still sends what it reads to its model service.
+
+**Sync.** Memory sync is off until you give a machine a repository and a token; there is no default destination. With it on, the whole memory file is uploaded to that repository, unencrypted, over HTTPS. Use a private repository, and a fine-grained token limited to that repository with contents read and write. The token is read from the environment only, is sent only to the configured API address (which must be https), and is never logged or written to disk by tawk-mcp. Anyone who can read the repository can read the memory, and anyone who can write to it can change what your machines merge in: stored text stays fenced as untrusted when read back, but treat write access to the repository as write access to memory.
+
+**Exports.** `export-okf` writes knowledge as Markdown files readable only by you, and leaves sensitive entries out unless asked. `import-okf` takes a bundle's own word for who said what, so import only bundles you trust.
+
+**Instructions.** The server instructions and the workflow check are fixed text, plus the instructions file you write yourself. Nothing from a chat and nothing from memory is ever added to them, so a message cannot plant instructions that way. Anyone who can write to that file can instruct your agents, as with any other configuration file.
 
 ## The confirmation token
 
@@ -104,7 +110,7 @@ Anyone who can read your token file can use tawk-mcp as you. Treat it like a pas
 
 ## What leaves the machine
 
-tawk-mcp itself sends nothing anywhere: no telemetry, no analytics, no update checks. It talks to tawk over a Unix socket and to MCP clients over loopback HTTP or stdio.
+tawk-mcp has no telemetry, no analytics and no update checks. It talks to tawk over a Unix socket and to MCP clients over loopback HTTP or stdio. The one thing it can send elsewhere is the memory file, to the GitHub repository you name, and only once you have set up [memory sync](#memory) with a repository and a token of your own. Without both it makes no outside connection at all.
 
 Your MCP client, however, sends what tawk-mcp returns to its model service: message text, names, phone numbers in JIDs, statuses, and whatever memory it reads. Only connect clients you would trust with those chats, and use tawk's `chats` setting to limit what they can see.
 

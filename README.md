@@ -13,7 +13,10 @@ tawk-mcp talks to tawk over tawk's control socket, described in tawk's [CONTROL.
 - **Manage tawk** (with `access = manage`): edit, delete and forward messages, mute, pin, archive and export chats, statuses, your profile and tawk's settings.
 - **Two-step confirmation** for destructive operations, asked of you directly in your MCP client and again in tawk.
 - **Live updates**: resource subscriptions, Claude Code channel events, and a server-sent event stream at `/events`.
-- **Memory for writing like you** (on by default, `--memory off` to drop it): voices tuned per audience with a `check_voice` scorer, contact profiles with a source and confidence on every field, and reply templates. Kept only on your computer, in a private SQLite file.
+- **Memory for writing like you** (on by default, `--memory off` to drop it): voices tuned per audience with a `check_voice` scorer, contact profiles with a source and confidence on every field, and reply templates. Kept on your computer, in a private SQLite file.
+- **Knowledge in the Open Knowledge Format**: observations about people and topics and the relations between them, held as [OKF 0.2](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) concepts in the same file, and exported or imported as a bundle of Markdown files.
+- **Memory sync between your machines** (off until you set it up): the memory file is merged row by row with a copy in a private GitHub repository of yours. There is no default destination.
+- **It instructs the agent itself**: every client that connects gets the working rules as server instructions, a memory workflow is handed to the agent every 20 rounds so profiles and voices stay current, and your own standing instructions come from a text file you write.
 - **Natural-looking schedules**: scheduled messages move by a random amount up to 60 seconds either way, so they do not land on the exact minute.
 - **Prompts**: `catch_up` and `draft_reply`, which brings in your voice for the chat when memory knows it.
 - **Resilient**: starts without tawk, connects as soon as tawk's socket appears, reconnects after tawk restarts, with backoff and a circuit breaker.
@@ -111,9 +114,10 @@ scripts/docker-run.sh               # builds, runs as you, prints the token and 
 | Audience categories | `list_categories` | `set_category`, `delete_category` |
 | Voices | `list_voices`, `get_voice`, `export_voice`, `check_voice` | `set_voice`, `set_voice_variant`, `import_voice`, `learn_voice`, `delete_voice` |
 | Contact profiles | `list_contact_fields`, `get_contact`, `list_contacts`, `due_follow_ups` | `set_contact_fields`, `add_contact_note`, `forget_contact_field`, `set_contact_categories`, `delete_contact` |
+| Knowledge | `list_observations`, `get_knowledge`, `get_workflow` | `record_observation`, `record_relation`, `forget_observation`, `forget_relation` |
 | Reply templates | `list_templates`, `get_template`, `render_template` | `set_template`, `delete_template`, `draft_template` |
 
-The last four areas are tawk-mcp's own memory and never touch WhatsApp, except `draft_template`, which puts text into tawk's input box like `draft_message`.
+The last five areas are tawk-mcp's own memory and never touch WhatsApp, except `draft_template`, which puts text into tawk's input box like `draft_message`.
 
 Resources: `tawk://chats`, `tawk://chat/{jid}`, `tawk://voices`, `tawk://voice/{name}`, `tawk://contact/{jid}` and `tawk://templates`. Prompts: `catch_up` and `draft_reply`. Every tool is described in [MANUAL.md](MANUAL.md).
 

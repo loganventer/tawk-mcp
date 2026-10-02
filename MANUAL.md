@@ -11,6 +11,9 @@
 - [Managing tools](#managing-tools)
 - [The two-step confirmation](#the-two-step-confirmation)
 - [Memory tools](#memory-tools)
+- [Knowledge](#knowledge)
+- [The memory workflow](#the-memory-workflow)
+- [Memory sync](#memory-sync)
 - [Resources](#resources)
 - [Prompts](#prompts)
 - [Claude Code channel](#claude-code-channel)
@@ -240,9 +243,9 @@ If your MCP client cannot ask questions (it does not support MCP elicitation), t
 
 ## Memory tools
 
-tawk-mcp can remember how you write, who your contacts are to you, and replies you use often, so a model can draft messages that sound like you. Memory is a private file on your computer (see [CONFIGURATION.md](CONFIGURATION.md#where-things-live)); nothing in it is sent to WhatsApp. It is on by default; `--memory read` keeps the tools but refuses changes, and `--memory off` removes them.
+tawk-mcp can remember how you write, who your contacts are to you, and replies you use often, so a model can draft messages that sound like you. Memory is a private file on your computer (see [CONFIGURATION.md](CONFIGURATION.md#where-things-live)); nothing in it is sent to WhatsApp, and it leaves your computer only if you set up [memory sync](#memory-sync). It is on by default; `--memory read` keeps the tools but refuses changes, and `--memory off` removes them.
 
-Writing to memory needs no approval, because nothing leaves your computer. Deleting anything from it asks you directly in your MCP client, the same way as the first step of [the two-step confirmation](#the-two-step-confirmation). Everything read back from memory is fenced as untrusted, because an agent may have copied text from a chat into it.
+Writing to memory needs no approval, because nothing reaches WhatsApp. Deleting anything from it asks you directly in your MCP client, the same way as the first step of [the two-step confirmation](#the-two-step-confirmation). Everything read back from memory is fenced as untrusted, because an agent may have copied text from a chat into it.
 
 ### Audience categories
 
@@ -274,6 +277,40 @@ A contact is always found through tawk, so chats that tawk hides from agents can
 ### Reply templates
 
 `set_template` saves a reply with `{{placeholders}}`, optionally for a category, a voice and a language. `{{contact.name}}`, `{{contact.first_name}}` and `{{contact.<field>}}` fill from the contact's profile (a list gives its first item, so `{{contact.nicknames}}` is the first nickname); anything else comes from `values`. `render_template` fills it and checks it against the voice without sending anything. `draft_template` fills it and puts it into the chat's draft in tawk, and refuses while any placeholder has no value. `list_templates`, `get_template` and `delete_template` manage them.
+
+## Knowledge
+
+Beyond profile fields, memory holds knowledge in the [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md), version 0.2. Everything is a concept: each contact (`contacts/<jid>`), you (`self`), a topic (`concepts/cape-town-trip`), and each observation. Relations are links between concepts, with the kind of relation as the link's label. Concepts and links are rows in the memory database; the Markdown files the format describes are produced on export.
+
+A subject is named by a chat's jid or name, `self`, or a topic id starting with `concepts/`. A topic is created the first time it is named.
+
+- `record_observation` stores a sentence or two about a subject, with a `source` (`user`, `contact`, `inferred` or `imported`), optional one-word `tags`, a `confidence`, and `evidence` such as message ids. An inferred observation is marked stale after about six months unless `stale_after_days` says otherwise. `sensitive` observations can only come from you. In OKF terms the source becomes who generated the concept (`human:self`, `human:<jid>`, `tawk-mcp/<version>` or `process:import`), and what you state is also marked verified by you.
+- `list_observations` lists them, newest first, by subject, tag or text. Sensitive ones are hidden unless asked for with `include_sensitive`.
+- `record_relation` says the first subject is `label` the second, such as Anneke is "spouse of" self. An inference never replaces a relation someone stated.
+- `get_knowledge` shows one subject: its relations in both directions and the observations about it. `get_contact` still shows a person's profile fields, and lists the observations about them as notes.
+- `forget_observation` and `forget_relation` remove one of either.
+
+`add_contact_note` still works; a note is an observation about that contact. Upgrading from an earlier version turns every existing note into one, and keeps the old notes aside in the database.
+
+Two commands exchange knowledge with other OKF stores:
+
+```sh
+tawk-mcp export-okf ~/tawk-knowledge          # a new or empty folder
+tawk-mcp export-okf ~/tawk-knowledge --include-sensitive
+tawk-mcp import-okf ~/some-okf-bundle
+```
+
+An export is one Markdown file per concept, with YAML frontmatter (`type`, `title`, `resource`, `tags`, `generated`, `verified`, `status`, `stale_after`, `sources`) and an `index.md` that declares `okf_version: "0.2"`. A contact's profile fields are in its file under `profile`, and its relations appear both under `links` and as Markdown links in the body. The folder is readable only by you. An import reads any conformant bundle: only `type` is required, unknown keys are kept, and in a bundle from elsewhere every Markdown link between concepts becomes a relation labelled "related to". Where a concept is already in memory, the stronger source wins, then the newer change.
+
+## The memory workflow
+
+tawk-mcp keeps the agent's memory habits going by itself. Once every 20 rounds (a tool call or an incoming message handed to the agent each count as one), it adds a workflow check to a tool result: record what was learned about people as profile fields or observations with the right source, record relations, refresh your voice with `learn_voice` where you wrote messages yourself, store follow-ups, and correct what turned out wrong. The check never sends, reacts or marks anything read. `get_workflow` shows it at any time.
+
+The interval is `TAWKMCP_WORKFLOW_EVERY` (0 turns it off). Your own standing instructions, from `~/.config/tawk-mcp/instructions.md`, are part of the server instructions and of every workflow check. See [CONFIGURATION.md](CONFIGURATION.md#instructions-for-agents).
+
+## Memory sync
+
+Memory can be kept in step between your machines through a private GitHub repository of your own. It is off until you set a repository and a token on a machine; there is no default destination. [CONFIGURATION.md](CONFIGURATION.md#memory-sync) has the setup and the merge rules. `tawk-mcp sync` runs one cycle and says what happened.
 
 ## Resources
 

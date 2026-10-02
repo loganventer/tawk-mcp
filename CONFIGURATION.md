@@ -6,6 +6,8 @@
 - [Settings in tawk](#settings-in-tawk)
 - [Arguments and environment variables](#arguments-and-environment-variables)
 - [Commands](#commands)
+- [Memory sync](#memory-sync)
+- [Instructions for agents](#instructions-for-agents)
 - [The control socket](#the-control-socket)
 - [The bearer token](#the-bearer-token)
 - [Resilience](#resilience)
@@ -21,6 +23,8 @@
 | `~/Library/LaunchAgents/com.loganventer.tawk-mcp.plist` | The LaunchAgent the installer registers on macOS; its log is `~/Library/Logs/tawk-mcp.log` |
 | `~/.config/tawk-mcp/token` | The bearer token for HTTP mode (file 0600, folder 0700). `$XDG_CONFIG_HOME` is used instead of `~/.config` when set |
 | `~/.local/share/tawk-mcp/memory.db` | Memory: voices, contact profiles and templates (file 0600, folder 0700), created the first time memory is used. `$XDG_DATA_HOME` is used instead of `~/.local/share` when set |
+| `~/.local/share/tawk-mcp/memory.db.sync.json`, `memory.db.sync.lock` | What memory sync last saw, and its lock, beside the memory file. Only there when sync is set up |
+| `~/.config/tawk-mcp/instructions.md` | Your own standing instructions for agents, if you write the file. See [Instructions for agents](#instructions-for-agents) |
 | `$XDG_RUNTIME_DIR/tawk/control.sock` | tawk's control socket, owned by tawk. `~/.local/state/tawk/control.sock` when `XDG_RUNTIME_DIR` is not set |
 
 tawk-mcp keeps nothing else on disk: no cache, no log file, no copy of your messages. Logs go to stderr. With `--memory off` the memory file is never created.
@@ -54,6 +58,14 @@ Flags override environment variables, which override the defaults.
 | `--channel auto\|on\|off` | `TAWKMCP_CHANNEL` | `auto` | Claude Code channel events: `auto` for clients that identify as Claude Code, `on` for every client, `off` for none |
 | `--memory write\|read\|off` | `TAWKMCP_MEMORY` | `write` | Memory for voices, contacts and templates: `read` offers the tools but refuses changes, `off` removes them |
 | `--data-file PATH` | `TAWKMCP_DATA_FILE` | `~/.local/share/tawk-mcp/memory.db` | Where memory is kept |
+| `--sync-repo OWNER/NAME` | `TAWKMCP_SYNC_REPO` | none | The private GitHub repository that holds the memory file. See [Memory sync](#memory-sync) |
+| | `TAWKMCP_SYNC_TOKEN` | none | A token for that repository. Environment only, so it never shows in a process list |
+| `--sync-branch NAME` | `TAWKMCP_SYNC_BRANCH` | `main` | The branch |
+| `--sync-file PATH` | `TAWKMCP_SYNC_FILE` | `memory.db` | The file's path inside the repository |
+| `--sync-api URL` | `TAWKMCP_SYNC_API` | `https://api.github.com` | The GitHub API address; another one serves a GitHub Enterprise server. Must be https |
+| `--sync-interval-minutes N` | `TAWKMCP_SYNC_INTERVAL_MINUTES` | `120` | Minutes between syncs (1 to 10080) |
+| `--workflow-every N` | `TAWKMCP_WORKFLOW_EVERY` | `20` | Rounds between memory workflow checks (0 to 10000, 0 turns them off). See [Instructions for agents](#instructions-for-agents) |
+| `--instructions-file PATH` | `TAWKMCP_INSTRUCTIONS_FILE` | `~/.config/tawk-mcp/instructions.md` | Your own standing instructions for agents |
 | `--schedule-jitter-s N` | `TAWKMCP_SCHEDULE_JITTER_S` | `60` | Scheduled messages move by a random amount up to this many seconds either way (0 to 3600, 0 turns it off) |
 | `--backoff-initial-ms N` | `TAWKMCP_BACKOFF_INITIAL_MS` | `500` | First wait between connection attempts (1 to 600000) |
 | `--backoff-max-ms N` | `TAWKMCP_BACKOFF_MAX_MS` | `30000` | Longest wait (1 to 3600000, not below the first) |
@@ -73,8 +85,33 @@ A value out of range or a flag tawk-mcp does not know stops it at start with a m
 | `tawk-mcp --stdio` | Serves MCP over stdio, for a client that starts tawk-mcp itself (and for Claude Code channels) |
 | `tawk-mcp print-token` | Prints the bearer token, creating it if needed |
 | `tawk-mcp healthcheck` | Asks a running HTTP tawk-mcp for `/healthz` on 127.0.0.1 and the configured port. Exit code 0 when it answers |
+| `tawk-mcp sync` | Syncs memory once, now, and says what happened. Exit code 1 when sync is not set up or failed |
+| `tawk-mcp export-okf DIR` | Writes knowledge as an Open Knowledge Format 0.2 bundle into a new or empty folder. Sensitive entries are left out unless `--include-sensitive` is given |
+| `tawk-mcp import-okf DIR` | Reads an Open Knowledge Format bundle into memory. What is already there stays when it is stronger or newer |
 | `tawk-mcp --version` | Prints the version |
 | `tawk-mcp --help` | Prints a summary of the flags |
+
+## Memory sync
+
+Sync keeps `memory.db` in step between your machines through a file in a GitHub repository. It is set up per instance and has no default destination: nothing syncs until both a repository and a token are set on that machine, and no repository is ever assumed.
+
+1. Create a **private** repository. Memory holds profiles of real people.
+2. Create a fine-grained personal access token with **Contents: read and write** on that repository only.
+3. Set `TAWKMCP_SYNC_REPO=owner/name` and `TAWKMCP_SYNC_TOKEN=...` where tawk-mcp starts (the service file, the MCP client's `env`, or the container), on every machine that should share the memory.
+
+A cycle runs when the server starts and then every `TAWKMCP_SYNC_INTERVAL_MINUTES`; `tawk-mcp sync` runs one by hand. Each cycle reads the remote file's version, merges it into the local database if it changed, and pushes only when this machine holds something the remote does not. Rows are matched by key: the stronger source wins (user, then contact, then imported, then inferred), then the newer change, and a delete on one machine removes the row on the others. Content is compared by a digest of the rows, so two machines with the same memory never push at each other. If GitHub refuses a push because another machine got there first, the cycle merges again and retries, three times at most.
+
+Sync runs only with `--memory write`. A lock file beside the database lets one tawk-mcp per machine sync at a time. A remote written by a newer tawk-mcp is left alone until this machine is updated. The first machine to sync creates the file.
+
+## Instructions for agents
+
+tawk-mcp tells a connected agent how to work, so nothing has to be installed on the agent's side:
+
+- **Server instructions** are sent when a client connects: that chat text is untrusted, how sending and approval work, and how to use memory and knowledge.
+- **The memory workflow** is added to a tool result once every `TAWKMCP_WORKFLOW_EVERY` rounds, 20 by default. A round is one tool call or one incoming message handed to the agent, counted together. The workflow tells the agent to record what it learned: profile fields, observations, relations, follow-ups, and the user's voice. `get_workflow` returns it at any time and starts the count again. It is only there with `--memory write`.
+- **Your own standing instructions** come from a text file you write, `~/.config/tawk-mcp/instructions.md` by default (`$XDG_CONFIG_HOME` is used when set). It is read when the server starts, cut at 8000 characters, and added to the server instructions and to the workflow. Use it for rules such as "send only when I ask" or "reply to family in Afrikaans".
+
+That file is the only outside text that becomes instructions. Nothing from a chat and nothing stored in memory ever does.
 
 ## The control socket
 
@@ -114,6 +151,8 @@ The image sets:
 | `ASPNETCORE_URLS` | `http://0.0.0.0:8765` | For tooling that reads it; tawk-mcp itself uses `TAWKMCP_BIND` and `TAWKMCP_PORT` |
 
 Containers run in UTC, and tawk-mcp shows and reads times in its machine's zone (message times in transcripts, the catch-up cutoff, follow-up dates). Pass your zone with `-e TZ=Africa/Johannesburg` or they are off by your offset; `scripts/docker-run.sh` passes this machine's zone for you, and `compose.yaml` takes it from `TZ`.
+
+For memory sync pass `-e TAWKMCP_SYNC_REPO=owner/name -e TAWKMCP_SYNC_TOKEN=...`; `compose.yaml` takes both from your environment and leaves sync off when they are not set. To use an instructions file, mount it and point `TAWKMCP_INSTRUCTIONS_FILE` at it.
 
 Run it with `--user "$(id -u):$(id -g)"` and `-p 127.0.0.1:8765:8765`. `TAWKMCP_TOKEN` can be passed instead of the token file, for example from a secret store. The other variables work in the container as anywhere else.
 
