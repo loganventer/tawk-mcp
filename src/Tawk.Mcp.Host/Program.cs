@@ -30,7 +30,18 @@ switch (options.Command)
         return 0;
     case HostCommand.Healthcheck:
         return await HealthCheckCommand.RunAsync(options, Console.Out);
+    case HostCommand.ExportOkf:
+    case HostCommand.ImportOkf:
+    case HostCommand.Sync:
+        return await MemoryCommand.RunAsync(options, Console.Out);
 }
+
+// The user's own instructions file is read once, when the server starts.
+options = options with
+{
+    UserInstructions = UserInstructionsFile.Read(options.InstructionsFile ?? UserInstructionsFile.DefaultPath(
+        Environment.GetEnvironmentVariable, Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))),
+};
 
 if (options.Transport == TransportKind.Stdio)
 {

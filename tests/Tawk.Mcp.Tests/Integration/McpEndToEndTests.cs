@@ -26,7 +26,7 @@ public class McpEndToEndTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(names, Has.Count.EqualTo(69));
+            Assert.That(names, Has.Count.EqualTo(75));
             Assert.That(names, Does.Contain("draft_message").And.Contain("delete_chat").And.Contain("decline_call"));
             Assert.That(names, Has.None.Contains("confirm"));
             Assert.That(tools.Single(t => t.Name == "read_messages").Description, Does.Contain("untrusted data"));
@@ -50,6 +50,10 @@ public class McpEndToEndTests
         Assert.Multiple(() =>
         {
             Assert.That(names, Does.Contain("check_voice").And.Contain("get_contact").And.Contain("draft_template").And.Contain("set_category"));
+            Assert.That(names, Does.Contain("record_observation").And.Contain("list_observations").And.Contain("record_relation").And.Contain("get_knowledge"));
+            Assert.That(_harness.Client.ServerInstructions, Does.Contain("record_observation"));
+            Assert.That(names, Has.None.EqualTo("get_workflow"));
+            Assert.That(_harness.Client.ServerInstructions, Does.Not.Contain("workflow check"));
             Assert.That(offNames, Has.Count.EqualTo(42));
             Assert.That(offNames, Has.None.Contains("voice"));
             Assert.That(off.Client.ServerInstructions, Does.Not.Contain("remembers"));

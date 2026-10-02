@@ -108,6 +108,7 @@ public sealed class UnixSocketTawkControl : ITawkControl, ITawkConnector, IAsync
 
             if (!connection.IsAlive)
             {
+                await connection.DisposeAsync().ConfigureAwait(false);
                 throw TawkControlException.NotRunning(SocketPath);
             }
 
@@ -243,6 +244,9 @@ public sealed class UnixSocketTawkControl : ITawkControl, ITawkConnector, IAsync
         }
 
         PublishStateIfChanged();
+
+        // The connection is finished with: let go of its socket now instead of leaving it to the finaliser.
+        _ = connection.DisposeAsync().AsTask();
     }
 
     private string NextId() => Interlocked.Increment(ref _nextId).ToString(CultureInfo.InvariantCulture);

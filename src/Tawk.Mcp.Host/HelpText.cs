@@ -10,6 +10,9 @@ public static class HelpText
           tawk-mcp --stdio              serve MCP over stdio, for a client that starts tawk-mcp itself
           tawk-mcp print-token          print the bearer token for HTTP mode, creating it if needed
           tawk-mcp healthcheck          ask a running HTTP server for /healthz (exit 0 when it answers)
+          tawk-mcp sync                 sync the memory database with its repository once, now
+          tawk-mcp export-okf DIR       write knowledge as an Open Knowledge Format 0.2 bundle (--include-sensitive for all of it)
+          tawk-mcp import-okf DIR       read an Open Knowledge Format bundle into memory
           tawk-mcp --version | --help
 
         Options (each also has an environment variable):
@@ -21,6 +24,14 @@ public static class HelpText
           --channel auto|on|off         Claude Code channel events     TAWKMCP_CHANNEL
           --memory write|read|off       voices, contacts, templates    TAWKMCP_MEMORY (write)
           --data-file PATH              memory database                TAWKMCP_DATA_FILE
+          --sync-repo OWNER/NAME        private repository for memory  TAWKMCP_SYNC_REPO
+          --sync-branch NAME            its branch, main               TAWKMCP_SYNC_BRANCH
+          --sync-file PATH              the file in it, memory.db      TAWKMCP_SYNC_FILE
+          --sync-api URL                GitHub API address             TAWKMCP_SYNC_API (https://api.github.com)
+          --sync-interval-minutes N     minutes between syncs, 120     TAWKMCP_SYNC_INTERVAL_MINUTES
+                                        sync runs only with a repository and a token in TAWKMCP_SYNC_TOKEN
+          --workflow-every N            rounds between workflow checks TAWKMCP_WORKFLOW_EVERY (20, 0 = off)
+          --instructions-file PATH      your standing instructions     TAWKMCP_INSTRUCTIONS_FILE
           --schedule-jitter-s N         random +/- shift on schedules  TAWKMCP_SCHEDULE_JITTER_S (60, 0 = off)
           --backoff-initial-ms N        first retry wait, 500          TAWKMCP_BACKOFF_INITIAL_MS
           --backoff-max-ms N            longest retry wait, 30000      TAWKMCP_BACKOFF_MAX_MS

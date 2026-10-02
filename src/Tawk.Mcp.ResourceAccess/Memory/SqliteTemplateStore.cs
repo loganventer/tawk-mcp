@@ -3,7 +3,7 @@ using Tawk.Mcp.Core.Memory;
 
 namespace Tawk.Mcp.ResourceAccess.Memory;
 
-public sealed class SqliteTemplateStore(ISqliteConnectionFactory connections) : ITemplateStore
+public sealed class SqliteTemplateStore(ISqliteConnectionFactory connections, TimeProvider clock) : ITemplateStore
 {
     private const string Columns = "SELECT name, description, category, voice, language, body, updated FROM response_template";
 
@@ -54,6 +54,7 @@ public sealed class SqliteTemplateStore(ISqliteConnectionFactory connections) : 
                 ("$language", responseTemplate.Language),
                 ("$body", responseTemplate.Body),
                 ("$updated", SqliteCommands.ToUnixMs(responseTemplate.Updated))).ConfigureAwait(false);
+            await Tombstones.ClearAsync(connection, null, Tombstones.Template, responseTemplate.Name, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -62,8 +63,14 @@ public sealed class SqliteTemplateStore(ISqliteConnectionFactory connections) : 
         var connection = await connections.OpenAsync(cancellationToken).ConfigureAwait(false);
         await using (connection.ConfigureAwait(false))
         {
-            return await SqliteCommands.ExecuteAsync(
+            var removed = await SqliteCommands.ExecuteAsync(
                 connection, "DELETE FROM response_template WHERE name = $name", cancellationToken, null, ("$name", name)).ConfigureAwait(false) > 0;
+            if (removed)
+            {
+                await Tombstones.MarkAsync(connection, null, Tombstones.Template, name, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+            }
+
+            return removed;
         }
     }
 

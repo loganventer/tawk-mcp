@@ -1,5 +1,7 @@
 using Tawk.Mcp.Clients.Channels;
+using Tawk.Mcp.Core;
 using Tawk.Mcp.Core.Memory;
+using Tawk.Mcp.Core.Sync;
 
 namespace Tawk.Mcp.Host;
 
@@ -39,6 +41,35 @@ public sealed record TawkMcpOptions
 
     /// <summary>Scheduled messages are moved by a random amount up to this many seconds either way. 0 turns it off.</summary>
     public int ScheduleJitterS { get; init; } = 60;
+
+    /// <summary>The folder an Open Knowledge Format bundle is exported to or imported from.</summary>
+    public string? BundlePath { get; init; }
+
+    /// <summary>Whether an export also holds what is marked sensitive.</summary>
+    public bool IncludeSensitive { get; init; }
+
+    /// <summary>A token with contents read and write on the memory repository. Memory does not sync without it.</summary>
+    public string? SyncToken { get; init; }
+
+    /// <summary>The private GitHub repository that holds the memory database, as owner/name. Memory does not sync without it.</summary>
+    public string? SyncRepository { get; init; }
+
+    public string SyncBranch { get; init; } = SyncOptions.DefaultBranch;
+
+    public string SyncFile { get; init; } = SyncOptions.DefaultFile;
+
+    public string SyncApi { get; init; } = SyncOptions.DefaultApi;
+
+    public int SyncIntervalMinutes { get; init; } = SyncOptions.DefaultIntervalMinutes;
+
+    /// <summary>The agent is handed the memory workflow once every this many rounds. 0 turns it off.</summary>
+    public int WorkflowEvery { get; init; } = WorkflowOptions.DefaultEvery;
+
+    /// <summary>A text file of the user's own standing instructions for agents. Defaults to ~/.config/tawk-mcp/instructions.md.</summary>
+    public string? InstructionsFile { get; init; }
+
+    /// <summary>What that file held when the server started.</summary>
+    public string? UserInstructions { get; init; }
 
     public TimeSpan Heartbeat { get; init; } = TimeSpan.FromSeconds(15);
 

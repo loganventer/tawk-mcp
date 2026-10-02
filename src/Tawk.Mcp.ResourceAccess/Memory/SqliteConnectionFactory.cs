@@ -92,9 +92,13 @@ public sealed class SqliteConnectionFactory(string path, ISchemaMigrator migrato
         }
 
         Directory.CreateDirectory(folder, PrivateFolder);
-        var options = new FileStreamOptions { Mode = FileMode.OpenOrCreate, Access = FileAccess.Write, Share = FileShare.ReadWrite, UnixCreateMode = PrivateFile };
-        using (new FileStream(path, options))
+        // Only a missing file is created here: opening one that another tawk-mcp has in use can be refused.
+        if (!File.Exists(path))
         {
+            var options = new FileStreamOptions { Mode = FileMode.OpenOrCreate, Access = FileAccess.Write, Share = FileShare.ReadWrite, UnixCreateMode = PrivateFile };
+            using (new FileStream(path, options))
+            {
+            }
         }
 
         // An existing file keeps its old mode on open, so set it explicitly.

@@ -3,7 +3,7 @@ using Tawk.Mcp.Core.Memory;
 
 namespace Tawk.Mcp.ResourceAccess.Memory;
 
-public sealed class SqliteVoiceStore(ISqliteConnectionFactory connections) : IVoiceStore
+public sealed class SqliteVoiceStore(ISqliteConnectionFactory connections, TimeProvider clock) : IVoiceStore
 {
     private const string VoiceColumns = "SELECT name, description, guide, rules, is_default, updated FROM voice";
     private const string VariantColumns = "SELECT voice, category, guide, rules, examples, updated FROM voice_variant";
@@ -50,7 +50,14 @@ public sealed class SqliteVoiceStore(ISqliteConnectionFactory connections) : IVo
             {
                 if (voice.IsDefault)
                 {
-                    await SqliteCommands.ExecuteAsync(connection, "UPDATE voice SET is_default = 0", cancellationToken, transaction).ConfigureAwait(false);
+                    // The voice that stops being the default changed too, and the memory sync has to see that.
+                    await SqliteCommands.ExecuteAsync(
+                        connection,
+                        "UPDATE voice SET is_default = 0, updated = $updated WHERE is_default = 1 AND name <> $name",
+                        cancellationToken,
+                        transaction,
+                        ("$name", voice.Name),
+                        ("$updated", SqliteCommands.ToUnixMs(voice.Updated))).ConfigureAwait(false);
                 }
 
                 await SqliteCommands.ExecuteAsync(
@@ -67,6 +74,7 @@ public sealed class SqliteVoiceStore(ISqliteConnectionFactory connections) : IVo
                     ("$rules", StoreJson.Write(voice.Rules)),
                     ("$isDefault", voice.IsDefault ? 1 : 0),
                     ("$updated", SqliteCommands.ToUnixMs(voice.Updated))).ConfigureAwait(false);
+                await Tombstones.ClearAsync(connection, transaction, Tombstones.Voice, voice.Name, cancellationToken).ConfigureAwait(false);
                 await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             }
         }
@@ -77,8 +85,14 @@ public sealed class SqliteVoiceStore(ISqliteConnectionFactory connections) : IVo
         var connection = await connections.OpenAsync(cancellationToken).ConfigureAwait(false);
         await using (connection.ConfigureAwait(false))
         {
-            return await SqliteCommands.ExecuteAsync(
+            var removed = await SqliteCommands.ExecuteAsync(
                 connection, "DELETE FROM voice WHERE name = $name", cancellationToken, null, ("$name", name)).ConfigureAwait(false) > 0;
+            if (removed)
+            {
+                await Tombstones.MarkAsync(connection, null, Tombstones.Voice, name, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+            }
+
+            return removed;
         }
     }
 
@@ -112,6 +126,8 @@ public sealed class SqliteVoiceStore(ISqliteConnectionFactory connections) : IVo
                 ("$rules", StoreJson.Write(variant.Rules)),
                 ("$examples", StoreJson.Write(variant.Examples)),
                 ("$updated", SqliteCommands.ToUnixMs(variant.Updated))).ConfigureAwait(false);
+            await Tombstones.ClearAsync(
+                connection, null, Tombstones.VoiceVariant, Tombstones.Key(variant.Voice, variant.Category), cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -120,13 +136,20 @@ public sealed class SqliteVoiceStore(ISqliteConnectionFactory connections) : IVo
         var connection = await connections.OpenAsync(cancellationToken).ConfigureAwait(false);
         await using (connection.ConfigureAwait(false))
         {
-            return await SqliteCommands.ExecuteAsync(
+            var removed = await SqliteCommands.ExecuteAsync(
                 connection,
                 "DELETE FROM voice_variant WHERE voice = $voice AND category = $category",
                 cancellationToken,
                 null,
                 ("$voice", voice),
                 ("$category", category)).ConfigureAwait(false) > 0;
+            if (removed)
+            {
+                await Tombstones.MarkAsync(
+                    connection, null, Tombstones.VoiceVariant, Tombstones.Key(voice, category), clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+            }
+
+            return removed;
         }
     }
 

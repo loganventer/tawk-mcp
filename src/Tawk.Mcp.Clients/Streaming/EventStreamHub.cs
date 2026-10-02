@@ -10,6 +10,7 @@ namespace Tawk.Mcp.Clients.Streaming;
 public sealed class EventStreamHub : IEventSink, IEventStreamHub
 {
     public const int DefaultCapacity = 200;
+    private const int SubscriberBacklog = 1000;
 
     private static readonly JsonSerializerOptions Json = new()
     {
@@ -55,7 +56,9 @@ public sealed class EventStreamHub : IEventSink, IEventStreamHub
 
     public EventStreamSubscription Subscribe(long? lastEventId)
     {
-        var channel = Channel.CreateUnbounded<StreamEvent>(new UnboundedChannelOptions { SingleReader = true });
+        // A reader that has stalled loses its oldest events instead of holding every one; it can replay by event id.
+        var channel = Channel.CreateBounded<StreamEvent>(
+            new BoundedChannelOptions(SubscriberBacklog) { SingleReader = true, FullMode = BoundedChannelFullMode.DropOldest });
         IReadOnlyList<StreamEvent> replay;
         lock (_gate)
         {

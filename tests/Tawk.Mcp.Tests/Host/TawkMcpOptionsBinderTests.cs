@@ -121,4 +121,66 @@ public class TawkMcpOptionsBinderTests
             Assert.That(TawkMcpOptionsBinder.Bind(["--schedule-jitter-s", "9000"], _ => null).Error, Is.Not.Null);
         });
     }
+
+    [Test]
+    public void Sync_workflow_and_bundle_options_bind()
+    {
+        var defaults = TawkMcpOptionsBinder.Bind([], Env());
+        var fromEnv = TawkMcpOptionsBinder.Bind([], Env(
+            ("TAWKMCP_SYNC_TOKEN", "t"), ("TAWKMCP_SYNC_REPO", "me/mem"), ("TAWKMCP_SYNC_BRANCH", "trunk"),
+            ("TAWKMCP_SYNC_INTERVAL_MINUTES", "30"), ("TAWKMCP_WORKFLOW_EVERY", "0"), ("TAWKMCP_INSTRUCTIONS_FILE", "/x/i.md")));
+        var flags = TawkMcpOptionsBinder.Bind(
+            ["export-okf", "/tmp/out", "--include-sensitive", "--sync-repo", "a/b", "--sync-interval-minutes", "5", "--workflow-every", "7"], Env());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That((defaults.SyncToken, defaults.SyncRepository, defaults.SyncBranch, defaults.SyncIntervalMinutes, defaults.WorkflowEvery),
+                Is.EqualTo(((string?)null, (string?)null, "main", 120, 20)));
+            Assert.That((fromEnv.SyncToken, fromEnv.SyncRepository, fromEnv.SyncBranch, fromEnv.SyncIntervalMinutes, fromEnv.WorkflowEvery, fromEnv.InstructionsFile),
+                Is.EqualTo(((string?)"t", (string?)"me/mem", "trunk", 30, 0, (string?)"/x/i.md")));
+            Assert.That((flags.Command, flags.BundlePath, flags.IncludeSensitive, flags.SyncRepository, flags.SyncIntervalMinutes, flags.WorkflowEvery),
+                Is.EqualTo((HostCommand.ExportOkf, (string?)"/tmp/out", true, (string?)"a/b", 5, 7)));
+            Assert.That(TawkMcpOptionsBinder.Bind(["import-okf", "/in"], Env()).Command, Is.EqualTo(HostCommand.ImportOkf));
+            Assert.That(TawkMcpOptionsBinder.Bind(["sync"], Env()).Command, Is.EqualTo(HostCommand.Sync));
+            Assert.That(TawkMcpOptionsBinder.Bind(["export-okf"], Env()).Error, Does.Contain("needs a value"));
+            Assert.That(TawkMcpOptionsBinder.Bind(["--sync-repo", "https://github.com/a/b"], Env()).Error, Does.Contain("owner/name"));
+            Assert.That(TawkMcpOptionsBinder.Bind(["--sync-token", "t"], Env()).Error, Does.Contain("Unknown argument"));
+            Assert.That((defaults.SyncFile, defaults.SyncApi), Is.EqualTo(("memory.db", "https://api.github.com/")));
+            var elsewhere = TawkMcpOptionsBinder.Bind(["--sync-file", "data/mem.db"], Env(("TAWKMCP_SYNC_API", "https://ghe.example.com/api/v3")));
+            Assert.That((elsewhere.Error, elsewhere.SyncFile, elsewhere.SyncApi), Is.EqualTo(((string?)null, "data/mem.db", "https://ghe.example.com/api/v3/")));
+            Assert.That(TawkMcpOptionsBinder.Bind(["--sync-file", "../memory.db"], Env()).Error, Does.Contain("inside the repository"));
+            Assert.That(TawkMcpOptionsBinder.Bind(["--sync-api", "http://plain.example.com"], Env()).Error, Does.Contain("https address"));
+        });
+    }
+
+    [Test]
+    public async Task The_memory_commands_work_without_a_server()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "tawk-command-" + Guid.NewGuid().ToString("N")[..8]);
+        try
+        {
+            var options = new TawkMcpOptions { DataFile = Path.Combine(folder, "memory.db"), BundlePath = Path.Combine(folder, "bundle") };
+            using var output = new StringWriter();
+
+            var exported = await MemoryCommand.RunAsync(options with { Command = HostCommand.ExportOkf }, output);
+            var again = await MemoryCommand.RunAsync(options with { Command = HostCommand.ExportOkf }, output);
+            var imported = await MemoryCommand.RunAsync(options with { Command = HostCommand.ImportOkf }, output);
+            var synced = await MemoryCommand.RunAsync(options with { Command = HostCommand.Sync }, output);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That((exported, again, imported, synced), Is.EqualTo((0, 1, 0, 1)));
+                Assert.That(File.Exists(Path.Combine(folder, "bundle", "index.md")), Is.True);
+                Assert.That(output.ToString(), Does.Contain("Exported 0 concept(s)").And.Contain("is not empty").And.Contain("Read 0 concept(s)").And.Contain("Memory sync is off"));
+            });
+        }
+        finally
+        {
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, true);
+            }
+        }
+    }
 }

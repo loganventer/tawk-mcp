@@ -108,6 +108,12 @@ internal sealed class ControlConnection : IAsyncDisposable
             _pending.TryRemove(id, out _);
             throw new TawkControlException(ControlErrorCode.Offline, QuitMessage, ex);
         }
+        catch (OperationCanceledException)
+        {
+            // Cancelled before the request went out: nothing will ever answer it.
+            _pending.TryRemove(id, out _);
+            throw;
+        }
 
         try
         {

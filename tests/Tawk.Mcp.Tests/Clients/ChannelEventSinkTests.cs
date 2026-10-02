@@ -1,5 +1,6 @@
 using Tawk.Mcp.Clients.Channels;
 using Tawk.Mcp.Clients.Sessions;
+using Tawk.Mcp.Clients.Workflow;
 using Tawk.Mcp.Core;
 using Tawk.Mcp.Tests.Fakes;
 
@@ -10,6 +11,7 @@ public class ChannelEventSinkTests
     private readonly ClientSessionRegistry _sessions = new();
     private readonly FakeClientSession _claude = new("claude-code");
     private readonly FakeClientSession _other = new("some-editor");
+    private readonly WorkflowCadence _cadence = new(new WorkflowOptions(2, null));
 
     [SetUp]
     public void SetUp()
@@ -23,7 +25,7 @@ public class ChannelEventSinkTests
     [Test]
     public async Task Sends_a_channel_event_to_claude_code_with_meta()
     {
-        await new ChannelEventSink(new ChannelOptions(ChannelMode.Auto), _sessions).OnUpdateAsync(Update(), CancellationToken.None);
+        await new ChannelEventSink(new ChannelOptions(ChannelMode.Auto), _sessions, _cadence).OnUpdateAsync(Update(), CancellationToken.None);
 
         var (method, parameters) = _claude.Sent.Single();
         var meta = parameters["meta"]!.AsObject();
@@ -42,7 +44,7 @@ public class ChannelEventSinkTests
     [Test]
     public async Task Nothing_is_sent_when_the_channel_is_off()
     {
-        await new ChannelEventSink(new ChannelOptions(ChannelMode.Off), _sessions).OnUpdateAsync(Update(), CancellationToken.None);
+        await new ChannelEventSink(new ChannelOptions(ChannelMode.Off), _sessions, _cadence).OnUpdateAsync(Update(), CancellationToken.None);
 
         Assert.That(_claude.Sent, Is.Empty);
     }
@@ -50,7 +52,7 @@ public class ChannelEventSinkTests
     [Test]
     public async Task On_sends_to_every_session()
     {
-        await new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions).OnUpdateAsync(Update(), CancellationToken.None);
+        await new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence).OnUpdateAsync(Update(), CancellationToken.None);
 
         Assert.That(_other.Sent, Has.Count.EqualTo(1));
     }
@@ -58,7 +60,7 @@ public class ChannelEventSinkTests
     [Test]
     public async Task The_users_own_messages_are_not_pushed()
     {
-        await new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions).OnUpdateAsync(Update(fromMe: true), CancellationToken.None);
+        await new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence).OnUpdateAsync(Update(fromMe: true), CancellationToken.None);
 
         Assert.That(_claude.Sent, Is.Empty);
     }
@@ -68,8 +70,27 @@ public class ChannelEventSinkTests
     {
         _claude.Broken = true;
 
-        await new ChannelEventSink(new ChannelOptions(ChannelMode.Auto), _sessions).OnUpdateAsync(Update(), CancellationToken.None);
+        await new ChannelEventSink(new ChannelOptions(ChannelMode.Auto), _sessions, _cadence).OnUpdateAsync(Update(), CancellationToken.None);
 
         Assert.That(_sessions.Sessions, Does.Not.Contain(_claude));
+    }
+
+    [Test]
+    public void The_session_heard_from_longest_ago_is_let_go_past_the_cap()
+    {
+        var evicted = new List<IClientSession>();
+        var registry = new ClientSessionRegistry(evicted.Add, capacity: 2);
+        var third = new FakeClientSession("third");
+
+        registry.Add(_claude);
+        registry.Add(_other);
+        registry.Add(_claude);
+        registry.Add(third);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(registry.Sessions, Is.EqualTo(new IClientSession[] { _claude, third }));
+            Assert.That(evicted, Is.EqualTo(new IClientSession[] { _other }));
+        });
     }
 }

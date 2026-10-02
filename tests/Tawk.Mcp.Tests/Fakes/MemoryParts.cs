@@ -1,7 +1,10 @@
 using Microsoft.Data.Sqlite;
 using Tawk.Mcp.Core.Memory;
+using Tawk.Mcp.Core.Okf;
 using Tawk.Mcp.Engines;
+using Tawk.Mcp.Engines.Knowledge;
 using Tawk.Mcp.Engines.Memory;
+using Tawk.Mcp.Managers.Knowledge;
 using Tawk.Mcp.Managers.Memory;
 using Tawk.Mcp.ResourceAccess.Memory;
 
@@ -14,10 +17,11 @@ public sealed class MemoryParts : IDisposable
     {
         Folder = Path.Combine(Path.GetTempPath(), "tawk-memory-" + Guid.NewGuid().ToString("N")[..8]);
         Connections = new SqliteConnectionFactory(Path.Combine(Folder, "tawk-mcp", "memory.db"), new SqliteSchemaMigrator());
-        Categories = new SqliteCategoryStore(Connections);
-        Voices = new SqliteVoiceStore(Connections);
-        Contacts = new SqliteContactStore(Connections);
-        Templates = new SqliteTemplateStore(Connections);
+        Categories = new SqliteCategoryStore(Connections, Clock);
+        Voices = new SqliteVoiceStore(Connections, Clock);
+        Contacts = new SqliteContactStore(Connections, Producer, Clock);
+        Knowledge = new SqliteOkfStore(Connections, Clock);
+        Templates = new SqliteTemplateStore(Connections, Clock);
         Guard = new MemoryWriteGuard(mode);
         Ensurer = new CategoryEnsurer(Categories);
         Selector = new VoiceSelector(Voices, Contacts, new VoiceResolver());
@@ -37,6 +41,10 @@ public sealed class MemoryParts : IDisposable
         VoiceManager = new VoiceManager(
             Voices, Ensurer, Chats, Selector, Checker, new VoiceGuideImporter(), new StyleBaselineCalculator(Extractor), Formatter, Fence, Guard, Clock);
         Profiles = new ContactProfileManager(Contacts, Voices, Ensurer, Chats, Catalog, Formatter, Fence, Guard, Clock);
+        KnowledgeManager = new KnowledgeManager(
+            Knowledge, new KnowledgeSubjects(Knowledge, Contacts, Chats, Producer, Clock), new KnowledgeFormatter(), Fence, Guard, Producer, Clock);
+        Bundles = new OkfBundleManager(
+            Knowledge, Contacts, new OkfBundleWriter(), new OkfBundleReader(), new DiskOkfBundleFiles(), new KnowledgePrecedence(), Guard, Clock);
         TemplateManager = new TemplateManager(
             Templates, Contacts, Voices, Ensurer, Chats, new TemplateRenderer(), Selector, Checker, Formatter, Fence, Guard, Clock);
     }
@@ -64,6 +72,10 @@ public sealed class MemoryParts : IDisposable
 
     public SqliteContactStore Contacts { get; }
 
+    public SqliteOkfStore Knowledge { get; }
+
+    public OkfProducer Producer { get; } = new("test");
+
     public SqliteTemplateStore Templates { get; }
 
     public MemoryWriteGuard Guard { get; }
@@ -81,6 +93,10 @@ public sealed class MemoryParts : IDisposable
     public VoiceManager VoiceManager { get; }
 
     public ContactProfileManager Profiles { get; }
+
+    public KnowledgeManager KnowledgeManager { get; }
+
+    public OkfBundleManager Bundles { get; }
 
     public TemplateManager TemplateManager { get; }
 

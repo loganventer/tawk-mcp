@@ -12,14 +12,22 @@ using Tawk.Mcp.Clients.Resources;
 using Tawk.Mcp.Clients.Sessions;
 using Tawk.Mcp.Clients.Streaming;
 using Tawk.Mcp.Clients.Tools;
+using Tawk.Mcp.Clients.Workflow;
 using Tawk.Mcp.Core;
 using Tawk.Mcp.Core.Memory;
+using Tawk.Mcp.Core.Okf;
+using Tawk.Mcp.Core.Sync;
 using Tawk.Mcp.Engines;
+using Tawk.Mcp.Engines.Knowledge;
 using Tawk.Mcp.Engines.Memory;
+using Tawk.Mcp.Engines.Sync;
 using Tawk.Mcp.Managers;
+using Tawk.Mcp.Managers.Knowledge;
 using Tawk.Mcp.Managers.Memory;
+using Tawk.Mcp.Managers.Sync;
 using Tawk.Mcp.ResourceAccess;
 using Tawk.Mcp.ResourceAccess.Memory;
+using Tawk.Mcp.ResourceAccess.Sync;
 
 namespace Tawk.Mcp.Host;
 
@@ -90,9 +98,20 @@ public static class TawkMcpComposition
         }
 
         // Clients.
-        var sessions = new ClientSessionRegistry();
+        var workflow = new WorkflowOptions(options.Memory == MemoryMode.Write ? options.WorkflowEvery : 0, options.UserInstructions);
+        var cadence = new WorkflowCadence(workflow);
+        services.AddSingleton(workflow);
+        services.AddSingleton<IWorkflowCadence>(cadence);
+        if (options.Memory == MemoryMode.Write && options.SyncToken is { Length: > 0 } && options.SyncRepository is { Length: > 0 })
+        {
+            services.AddHostedService<MemorySyncService>();
+        }
+
+        // A session that is let go takes its resource subscriptions with it.
+        var subscriptions = new ResourceSubscriptionRegistry();
+        var sessions = new ClientSessionRegistry(subscriptions.RemoveSession);
         services.AddSingleton<IClientSessionRegistry>(sessions);
-        services.AddSingleton<IResourceSubscriptionRegistry, ResourceSubscriptionRegistry>();
+        services.AddSingleton<IResourceSubscriptionRegistry>(subscriptions);
         services.AddSingleton(new ChannelOptions(options.Channel));
         services.AddSingleton<EventStreamHub>();
         services.AddSingleton<IEventStreamHub>(sp => sp.GetRequiredService<EventStreamHub>());
@@ -107,7 +126,9 @@ public static class TawkMcpComposition
                 server.ServerInfo = new Implementation { Name = "tawk-mcp", Title = "tawk", Version = Version };
                 server.ServerInstructions = TawkServerInstructions.Text
                     + (options.Memory == MemoryMode.Off ? string.Empty : TawkServerInstructions.Memory)
-                    + (options.Channel == ChannelMode.Off ? string.Empty : TawkServerInstructions.Channel);
+                    + (workflow.Enabled ? TawkServerInstructions.Workflow : string.Empty)
+                    + (options.Channel == ChannelMode.Off ? string.Empty : TawkServerInstructions.Channel)
+                    + TawkServerInstructions.FromUser(options.UserInstructions);
                 if (options.Channel != ChannelMode.Off)
                 {
                     server.Capabilities ??= new ServerCapabilities();
@@ -129,16 +150,28 @@ public static class TawkMcpComposition
             .WithMessageFilters(filters => filters
                 .AddIncomingFilter(ProtocolRevisionFilter.Filter())
                 .AddIncomingFilter(SessionTracking.Filter(sessions)))
-            .WithMemory(options.Memory);
+            .WithRequestFilters(filters => filters.AddCallToolFilter(WorkflowReminder.Filter(cadence, workflow)))
+            .WithMemory(options.Memory, workflow);
     }
 
-    private static IMcpServerBuilder WithMemory(this IMcpServerBuilder builder, MemoryMode mode) =>
+    /// <summary>The memory stores, engines and managers alone, for the commands that work on memory without serving MCP.</summary>
+    public static ServiceProvider BuildMemory(TawkMcpOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        var services = new ServiceCollection();
+        services.AddSingleton(TimeProvider.System);
+        AddMemory(services, options, Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+        return services.BuildServiceProvider();
+    }
+
+    private static IMcpServerBuilder WithMemory(this IMcpServerBuilder builder, MemoryMode mode, WorkflowOptions workflow) =>
         mode == MemoryMode.Off
             ? builder
-            : builder
+            : (workflow.Enabled ? builder.WithTools<WorkflowTools>() : builder)
                 .WithTools<CategoryTools>()
                 .WithTools<VoiceTools>()
                 .WithTools<ContactTools>()
+                .WithTools<KnowledgeTools>()
                 .WithTools<TemplateTools>()
                 .WithResources<MemoryResources>();
 
@@ -151,9 +184,33 @@ public static class TawkMcpComposition
         services.AddSingleton<ISqliteConnectionFactory>(sp => new SqliteConnectionFactory(path, sp.GetRequiredService<ISchemaMigrator>()));
         services.AddSingleton<ICategoryStore, SqliteCategoryStore>();
         services.AddSingleton<IVoiceStore, SqliteVoiceStore>();
+        services.AddSingleton(new OkfProducer(Version));
+        services.AddSingleton<IOkfStore, SqliteOkfStore>();
+        services.AddSingleton<IOkfBundleFiles, DiskOkfBundleFiles>();
         services.AddSingleton<IContactStore, SqliteContactStore>();
         services.AddSingleton<ITemplateStore, SqliteTemplateStore>();
         services.AddSingleton<ITawkChatSource, TawkChatSource>();
+
+        // Sync. It has no default destination: without a repository and a token set on this machine, nothing syncs.
+        // Everything it keeps on this machine sits beside the database.
+        var sync = new SyncOptions
+        {
+            Token = options.SyncToken,
+            Repository = options.SyncRepository,
+            Branch = options.SyncBranch,
+            File = options.SyncFile,
+            Api = Uri.TryCreate(options.SyncApi, UriKind.Absolute, out var api) ? api : new Uri(SyncOptions.DefaultApi),
+            Interval = TimeSpan.FromMinutes(options.SyncIntervalMinutes),
+        };
+        services.AddSingleton(sync);
+        services.AddSingleton<IMemorySnapshotStore, SqliteMemorySnapshotStore>();
+        services.AddSingleton<IMemoryRemote>(_ => new GitHubMemoryRemote(new HttpClient { Timeout = TimeSpan.FromSeconds(100) }, sync, Version));
+        services.AddSingleton<ISyncStateStore>(new FileSyncStateStore(path + ".sync.json"));
+        services.AddSingleton<ISyncLock>(new FileSyncLock(path + ".sync.lock"));
+        services.AddSingleton<ISyncScratch, TempSyncScratch>();
+        services.AddSingleton<IMemoryMerger, MemoryMerger>();
+        services.AddSingleton<IMemoryDigest, MemoryDigest>();
+        services.AddSingleton<IMemorySyncManager, MemorySyncManager>();
 
         // Engines. Each voice rule is its own class; the checker runs whichever are registered here.
         services.AddSingleton<IStyleFeatureExtractor, StyleFeatureExtractor>();
@@ -172,6 +229,10 @@ public static class TawkMcpComposition
         services.AddSingleton<IStyleBaselineCalculator, StyleBaselineCalculator>();
         services.AddSingleton<ITemplateRenderer, TemplateRenderer>();
         services.AddSingleton<IMemoryFormatter, MemoryFormatter>();
+        services.AddSingleton<IKnowledgeFormatter, KnowledgeFormatter>();
+        services.AddSingleton<IKnowledgePrecedence, KnowledgePrecedence>();
+        services.AddSingleton<IOkfBundleWriter, OkfBundleWriter>();
+        services.AddSingleton<IOkfBundleReader, OkfBundleReader>();
         services.AddSingleton<IMemoryWriteGuard>(new MemoryWriteGuard(options.Memory));
         services.AddSingleton<IFieldValueValidator, TextValueValidator>();
         services.AddSingleton<IFieldValueValidator, TextListValueValidator>();
@@ -192,6 +253,9 @@ public static class TawkMcpComposition
         services.AddSingleton<IDraftGuidance>(sp => sp.GetRequiredService<VoiceManager>());
         services.AddSingleton<IContactProfileManager, ContactProfileManager>();
         services.AddSingleton<ITemplateManager, TemplateManager>();
+        services.AddSingleton<IKnowledgeSubjects, KnowledgeSubjects>();
+        services.AddSingleton<IKnowledgeManager, KnowledgeManager>();
+        services.AddSingleton<IOkfBundleManager, OkfBundleManager>();
     }
 
     public static ITokenStore CreateTokenStore(TawkMcpOptions options)

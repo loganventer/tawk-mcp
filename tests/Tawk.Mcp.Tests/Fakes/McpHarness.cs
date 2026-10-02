@@ -33,7 +33,8 @@ public sealed class McpHarness : IAsyncDisposable
     public string DataFile { get; } = Path.Combine(Path.GetTempPath(), "tawk-memory-" + Guid.NewGuid().ToString("N")[..8], "memory.db");
 
     public async Task StartAsync(
-        bool elicitation = true, bool? accept = true, string clientName = "claude-code", string? protocolVersion = null, MemoryMode memory = MemoryMode.Write)
+        bool elicitation = true, bool? accept = true, string clientName = "claude-code", string? protocolVersion = null, MemoryMode memory = MemoryMode.Write,
+        int workflowEvery = 0, string? userInstructions = null)
     {
         Server.Start();
         var options = new TawkMcpOptions
@@ -43,6 +44,8 @@ public sealed class McpHarness : IAsyncDisposable
             BackoffMaxMs = 200,
             DataFile = DataFile,
             Memory = memory,
+            WorkflowEvery = workflowEvery,
+            UserInstructions = userInstructions,
         };
         var builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true });
         builder.Logging.ClearProviders();

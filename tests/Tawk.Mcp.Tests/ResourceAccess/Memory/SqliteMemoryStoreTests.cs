@@ -50,7 +50,7 @@ public class SqliteMemoryStoreTests
         Assert.Multiple(async () =>
         {
             Assert.That(Convert.ToInt32(await command.ExecuteScalarAsync(), System.Globalization.CultureInfo.InvariantCulture), Is.EqualTo(SqliteSchemaMigrator.CurrentVersion));
-            Assert.That(await new SqliteCategoryStore(again).ListAsync(CancellationToken.None), Has.Count.EqualTo(1));
+            Assert.That(await new SqliteCategoryStore(again, _parts.Clock).ListAsync(CancellationToken.None), Has.Count.EqualTo(1));
         });
     }
 

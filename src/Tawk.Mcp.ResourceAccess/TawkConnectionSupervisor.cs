@@ -40,7 +40,9 @@ public sealed partial class TawkConnectionSupervisor : BackgroundService
         _logger = logger;
     }
 
-    /// <summary>The waits chosen so far, for tests and diagnostics.</summary>
+    private const int MaxWaitsKept = 100;
+
+    /// <summary>The most recent waits chosen, for tests and diagnostics.</summary>
     public IList<TimeSpan> Waits { get; } = new List<TimeSpan>();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -123,6 +125,12 @@ public sealed partial class TawkConnectionSupervisor : BackgroundService
 
     private async Task WaitAsync(TimeSpan wait, CancellationToken stoppingToken)
     {
+        // Kept short: while tawk is not running this is called for as long as the server is.
+        if (Waits.Count >= MaxWaitsKept)
+        {
+            Waits.RemoveAt(0);
+        }
+
         Waits.Add(wait);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
         var delay = _delay.DelayAsync(wait, linked.Token);
