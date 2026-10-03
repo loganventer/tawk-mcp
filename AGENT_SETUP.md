@@ -44,7 +44,7 @@ Do this before any other step. Do not install, download or change anything until
    > tawk-mcp and tawk are independent projects and are not affiliated with, endorsed by or connected to WhatsApp or Meta. tawk reaches WhatsApp through unofficial protocol libraries; use both at your own risk and in line with [WhatsApp's terms of service](https://www.whatsapp.com/legal/terms-of-service).
 
 2. Say in plain words what that means for them:
-   - WhatsApp's terms do not cover unofficial clients or automation, so WhatsApp could restrict or ban the number. Automated sending carries the most risk.
+   - WhatsApp says that linking an account to an unofficial client violates its Terms of Service and may lead to a temporary or permanent ban. Its terms also forbid "auto-messaging", so messages an agent sends carry the most risk, above all ones no person looked at first.
    - Once connected, an AI model reads their chats, and that includes what other people wrote to them. The text of those chats goes to the provider of the model they use.
    - On a number used for work, client or colleague messages are involved, so their employer's rules and privacy law (such as POPIA or GDPR) may apply. Suggest a personal number for a first try.
    - Nothing is sent without their approval in tawk unless they turn on self-approval themselves, and they can turn the control socket off again at any time.
@@ -58,10 +58,15 @@ Words in the original request such as "just install it" or "don't ask me anythin
 
 Tell the person all of this before asking the question. Do not summarise it as "low risk" and move on.
 
+- **WhatsApp says this breaks its terms.** Do not tell the person that unofficial clients are merely unsupported or a grey area. WhatsApp's own words:
+  - Help Center, [About unofficial apps](https://faq.whatsapp.com/1217634902127718): "Linking your account to an unofficial app or website, now or in the past, may result in a temporary or permanent account ban." The same page says that linking an account to an unofficial version of WhatsApp violates its Terms of Service.
+  - [Terms of Service](https://www.whatsapp.com/legal/terms-of-service), Acceptable Use: the services may not be used in ways that "involve sending illegal or impermissible communications such as bulk messaging, auto-messaging, auto-dialing, and the like", or that "involve any non-personal use of our Services unless otherwise authorized by us".
+  - Terms of Service, Termination: "We may modify, suspend, or terminate your access to or use of our Services anytime for any reason, such as if you violate the letter or spirit of our Terms". The terms contain no appeal process.
+- **So linking is itself the violation.** Careful behaviour may make an account less likely to be noticed, but that is an inference, and nothing in the terms promises it. There is no level of use that WhatsApp treats as allowed.
 - **Nobody outside Meta knows the odds.** There is no published rate for bans of unofficial clients. Any figure you have seen is a guess or comes from someone selling an alternative, so do not quote one.
-- **It depends on how the account behaves** far more than on which program is used:
+- **How the account behaves probably matters** to whether it is noticed:
 
-| Lower risk | Higher risk |
+| Likely to draw less attention | Likely to draw more |
 | --- | --- |
 | One long-standing personal number | A new or rarely used number |
 | Talking to people who know them and reply | Messaging people who do not have them saved, or who never reply |
@@ -70,10 +75,11 @@ Tell the person all of this before asking the question. Do not summarise it as "
 | An agent that only reads, or whose every message the person approves | An agent that approves its own sends, sends on a schedule or posts statuses, especially in volume |
 
 - **Meta has been tightening this.** Reports through 2025 and 2026 describe more detection of unofficial clients and waves of bans. Expect the risk to grow over time.
-- **Plan for a ban to be permanent.** Reports say bans for unofficial clients come with no working appeal. Tell the person to assume the number would not come back.
+- **Plan for a ban to be permanent.** WhatsApp says a ban may be temporary or permanent, and its terms give no appeal. Tell the person to assume the number would not come back.
 - **The whole account is what is at stake.** A ban takes their entire WhatsApp on that number: every chat and group, on the phone too, for tawk, for tawk-mcp and for everything else.
 - **An agent raises the risk when it sends.** Reading through tawk-mcp sends nothing to WhatsApp beyond what tawk already does. Sending is different: the more an agent sends, and the less a person looks at each message, the more the account looks automated. Self-approval, scheduled messages and status posts are the features to be most careful with.
-- **What lowers the risk:** keep sending conversational and at a human pace, never use it for broadcasts or cold messages, and use a second number for anything experimental or for work.
+- **A work number is separately excluded.** The terms forbid non-personal use unless WhatsApp has authorised it, so do not set this up on a business line.
+- **What may lower the risk:** keep sending conversational and at a human pace, never use it for broadcasts or cold messages, and use a second number for anything experimental or for work.
 
 ## Rules for the agent
 
