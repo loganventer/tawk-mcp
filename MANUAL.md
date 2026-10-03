@@ -184,6 +184,8 @@ On my way, 10 minutes
 
 If you decline, the result says so and the model is told not to retry unless you ask.
 
+If you turned on **Add AI disclaimer** in tawk (Settings, Automation), tawk adds your disclaimer line under every message sent, scheduled or used to answer a status through tawk-mcp. The tool result says so, and tells the model not to add a line of its own.
+
 ### `react`
 
 Reacts to a message with an emoji (`messageId`, `emoji`), or removes your reaction when `emoji` is empty.
