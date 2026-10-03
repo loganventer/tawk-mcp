@@ -61,6 +61,7 @@ public static class TawkMcpOptionsBinder
                 "--breaker-cooldown-s" => options with { BreakerCooldownS = Int(arg, Next(), 0, 86_400, ref error) },
                 "--request-timeout-s" => options with { RequestTimeoutS = Int(arg, Next(), 1, 600, ref error) },
                 "--channel" => options with { Channel = Channel(arg, Next(), ref error) },
+                "--channel-own" => options with { ChannelOwn = OnOff(arg, Next(), ref error) },
                 "--schedule-jitter-s" => options with { ScheduleJitterS = Int(arg, Next(), 0, 3600, ref error) },
                 _ => Unknown(options, arg, ref error),
             };
@@ -192,6 +193,11 @@ public static class TawkMcpOptionsBinder
             options = options with { InstructionsFile = instructions };
         }
 
+        if (env("TAWKMCP_CHANNEL_OWN") is { Length: > 0 } channelOwn)
+        {
+            options = options with { ChannelOwn = OnOff("TAWKMCP_CHANNEL_OWN", channelOwn, ref error) };
+        }
+
         if (env("TAWKMCP_CHANNEL") is { Length: > 0 } channel)
         {
             options = options with { Channel = Channel("TAWKMCP_CHANNEL", channel, ref error) };
@@ -242,6 +248,20 @@ public static class TawkMcpOptionsBinder
         }
 
         return value.EndsWith('/') ? value : value + "/";
+    }
+
+    private static bool OnOff(string name, string value, ref string? error)
+    {
+        switch (value.ToUpperInvariant())
+        {
+            case "ON":
+                return true;
+            case "OFF":
+                return false;
+            default:
+                error ??= $"{name} must be on or off, not {value}.";
+                return false;
+        }
     }
 
     private static ChannelMode Channel(string name, string value, ref string? error)

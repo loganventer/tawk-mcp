@@ -7,14 +7,18 @@ using Tawk.Mcp.Managers;
 
 namespace Tawk.Mcp.Clients.Channels;
 
-/// <summary>Pushes new WhatsApp messages into connected Claude Code sessions as channel events.</summary>
+/// <summary>
+/// Pushes new WhatsApp messages into connected Claude Code sessions as channel events: what other people
+/// send, and what the user sends too when that is asked for.
+/// </summary>
 public sealed class ChannelEventSink(ChannelOptions options, IClientSessionRegistry sessions, IWorkflowCadence cadence) : IEventSink
 {
     public async Task OnUpdateAsync(LiveUpdate update, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(update);
         if (options.Mode == ChannelMode.Off
-            || update.Event is not MessageEvent { Message.FromMe: false } message
+            || update.Event is not MessageEvent message
+            || (message.Message.FromMe && !options.OwnMessages)
             || update.ModelText is null)
         {
             return;
@@ -33,6 +37,7 @@ public sealed class ChannelEventSink(ChannelOptions options, IClientSessionRegis
                     ["sender"] = message.Message.SenderName ?? message.Message.Sender ?? string.Empty,
                     ["ts"] = message.Message.Ts.ToString(CultureInfo.InvariantCulture),
                     ["type"] = message.Message.Type,
+                    ["from_me"] = message.Message.FromMe ? "true" : "false",
                 },
             };
             try

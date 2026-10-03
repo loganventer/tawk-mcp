@@ -39,6 +39,9 @@ public sealed record TawkMcpOptions
 
     public ChannelMode Channel { get; init; } = ChannelMode.Auto;
 
+    /// <summary>Also push the messages the user sends themselves as channel events. Off by default.</summary>
+    public bool ChannelOwn { get; init; }
+
     /// <summary>Scheduled messages are moved by a random amount up to this many seconds either way. 0 turns it off.</summary>
     public int ScheduleJitterS { get; init; } = 60;
 

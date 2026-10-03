@@ -11,7 +11,7 @@ public sealed partial class NotificationFormatter : INotificationFormatter
     {
         ArgumentNullException.ThrowIfNull(chat);
         ArgumentNullException.ThrowIfNull(message);
-        var sender = message.FromMe ? "you" : Name(message.SenderName ?? message.Sender ?? "someone");
+        var sender = message.FromMe ? "the user (sent from their own account)" : Name(message.SenderName ?? message.Sender ?? "someone");
         return $"New WhatsApp message from {sender} in \"{Name(chat.Name)}\" (id {message.Id}):";
     }
 

@@ -35,7 +35,7 @@ public class ChannelEventSinkTests
             Assert.That((string?)parameters["content"], Does.Contain("UNTRUSTED CHAT DATA"));
             Assert.That((string?)meta["chat_jid"], Is.EqualTo(Samples.MomJid));
             Assert.That((string?)meta["message_id"], Is.EqualTo("3EB0C2A1F0"));
-            Assert.That(meta.Select(p => p.Key), Is.EquivalentTo(new[] { "chat_jid", "chat_name", "message_id", "sender", "ts", "type" }));
+            Assert.That(meta.Select(p => p.Key), Is.EquivalentTo(new[] { "chat_jid", "chat_name", "message_id", "sender", "ts", "type", "from_me" }));
             Assert.That(meta.Select(p => p.Key), Has.All.Match("^[A-Za-z0-9_]+$"));
             Assert.That(_other.Sent, Is.Empty);
         });
@@ -55,6 +55,18 @@ public class ChannelEventSinkTests
         await new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence).OnUpdateAsync(Update(), CancellationToken.None);
 
         Assert.That(_other.Sent, Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public async Task The_users_own_messages_are_pushed_when_asked_for_and_marked()
+    {
+        var sink = new ChannelEventSink(new ChannelOptions(ChannelMode.On, OwnMessages: true), _sessions, _cadence);
+
+        await sink.OnUpdateAsync(Update(fromMe: true), CancellationToken.None);
+        await sink.OnUpdateAsync(Update(), CancellationToken.None);
+
+        var marks = _claude.Sent.Select(sent => (string?)sent.Parameters!["meta"]!["from_me"]).ToList();
+        Assert.That(marks, Is.EqualTo(new[] { "true", "false" }));
     }
 
     [Test]

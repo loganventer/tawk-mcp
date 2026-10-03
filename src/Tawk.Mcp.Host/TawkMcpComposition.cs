@@ -120,7 +120,7 @@ public static class TawkMcpComposition
         var sessions = new ClientSessionRegistry(subscriptions.RemoveSession);
         services.AddSingleton<IClientSessionRegistry>(sessions);
         services.AddSingleton<IResourceSubscriptionRegistry>(subscriptions);
-        services.AddSingleton(new ChannelOptions(options.Channel));
+        services.AddSingleton(new ChannelOptions(options.Channel, options.ChannelOwn));
         services.AddSingleton<EventStreamHub>();
         services.AddSingleton<IEventStreamHub>(sp => sp.GetRequiredService<EventStreamHub>());
         services.AddSingleton<IEventSink, ResourceUpdatePump>();
@@ -137,6 +137,7 @@ public static class TawkMcpComposition
                     + (workflow.Enabled ? TawkServerInstructions.Workflow : string.Empty)
                     + (admin.Enabled ? TawkServerInstructions.Admin : string.Empty)
                     + (options.Channel == ChannelMode.Off ? string.Empty : TawkServerInstructions.Channel)
+                    + (options.Channel != ChannelMode.Off && options.ChannelOwn ? TawkServerInstructions.ChannelOwn : string.Empty)
                     + TawkServerInstructions.FromUser(options.UserInstructions);
                 if (options.Channel != ChannelMode.Off)
                 {

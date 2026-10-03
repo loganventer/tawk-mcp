@@ -22,6 +22,7 @@ public static class HelpText
           --stdio | --http              transport, http by default     TAWKMCP_TRANSPORT
           --token-file PATH             bearer token file              TAWKMCP_TOKEN_FILE (or TAWKMCP_TOKEN)
           --channel auto|on|off         Claude Code channel events     TAWKMCP_CHANNEL
+          --channel-own on|off          also the messages you send     TAWKMCP_CHANNEL_OWN (off)
           --memory write|read|off       voices, contacts, templates    TAWKMCP_MEMORY (write)
           --data-file PATH              memory database                TAWKMCP_DATA_FILE
           --sync-repo OWNER/NAME        private repository for memory  TAWKMCP_SYNC_REPO
