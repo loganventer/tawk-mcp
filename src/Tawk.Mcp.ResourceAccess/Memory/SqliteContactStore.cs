@@ -12,7 +12,7 @@ public sealed class SqliteContactStore(ISqliteConnectionFactory connections, Okf
 {
 
     private const string ContactColumns = "SELECT c.jid, c.display_name, c.voice, c.updated FROM contact c";
-    private const string FactColumns = "SELECT jid, field, value, source, confidence, evidence, sensitive, updated, expires FROM contact_fact";
+    private const string FactColumns = "SELECT jid, field, value, source, confidence, evidence, sensitive, updated, expires, account FROM contact_fact";
 
     public async Task<ContactRecord?> GetAsync(string jid, CancellationToken cancellationToken)
     {
@@ -212,11 +212,11 @@ public sealed class SqliteContactStore(ISqliteConnectionFactory connections, Okf
         {
             await SqliteCommands.ExecuteAsync(
                 connection,
-                "INSERT INTO contact_fact (jid, field, value, source, confidence, evidence, sensitive, updated, expires) "
-                + "VALUES ($jid, $field, $value, $source, $confidence, $evidence, $sensitive, $updated, $expires) "
+                "INSERT INTO contact_fact (jid, field, value, source, confidence, evidence, sensitive, updated, expires, account) "
+                + "VALUES ($jid, $field, $value, $source, $confidence, $evidence, $sensitive, $updated, $expires, $account) "
                 + "ON CONFLICT (jid, field) DO UPDATE SET value = excluded.value, source = excluded.source, "
                 + "confidence = excluded.confidence, evidence = excluded.evidence, sensitive = excluded.sensitive, "
-                + "updated = excluded.updated, expires = excluded.expires",
+                + "updated = excluded.updated, expires = excluded.expires, account = excluded.account",
                 cancellationToken,
                 null,
                 ("$jid", fact.Jid),
@@ -227,7 +227,8 @@ public sealed class SqliteContactStore(ISqliteConnectionFactory connections, Okf
                 ("$evidence", fact.Evidence),
                 ("$sensitive", fact.Sensitive ? 1 : 0),
                 ("$updated", SqliteCommands.ToUnixMs(fact.Updated)),
-                ("$expires", fact.Expires is { } expires ? SqliteCommands.ToUnixMs(expires) : null)).ConfigureAwait(false);
+                ("$expires", fact.Expires is { } expires ? SqliteCommands.ToUnixMs(expires) : null),
+                ("$account", fact.Account)).ConfigureAwait(false);
             await Tombstones.ClearAsync(connection, null, Tombstones.ContactFact, Tombstones.Key(fact.Jid, fact.Field), cancellationToken).ConfigureAwait(false);
         }
     }
@@ -346,5 +347,8 @@ public sealed class SqliteContactStore(ISqliteConnectionFactory connections, Okf
         SqliteCommands.NullableString(r, 5),
         r.GetInt64(6) == 1,
         SqliteCommands.FromUnixMs(r.GetInt64(7)),
-        r.IsDBNull(8) ? null : SqliteCommands.FromUnixMs(r.GetInt64(8)));
+        r.IsDBNull(8) ? null : SqliteCommands.FromUnixMs(r.GetInt64(8)))
+    {
+        Account = SqliteCommands.NullableString(r, 9),
+    };
 }

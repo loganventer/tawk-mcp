@@ -13,4 +13,8 @@ public sealed record OkfLink(
     string? Note,
     FactSource Source,
     double Confidence,
-    DateTimeOffset Updated);
+    DateTimeOffset Updated)
+{
+    /// <summary>The jid of the user's account it was learnt through, or null when that is not known.</summary>
+    public string? Account { get; init; }
+}

@@ -83,6 +83,15 @@ public sealed class SqliteSchemaMigrator : ISchemaMigrator
         ALTER TABLE contact_note RENAME TO contact_note_v1_backup;
         PRAGMA user_version = 2;
         """,
+
+        // Step 3: which of the user's accounts a profile field or a relation was learnt through, as that
+        // account's jid. Keys stay as they are, so a person known on two numbers is still one profile.
+        // An observation keeps its tag among its producer keys, in extra. Rows from before are left untagged.
+        """
+        ALTER TABLE contact_fact ADD COLUMN account TEXT;
+        ALTER TABLE okf_link ADD COLUMN account TEXT;
+        PRAGMA user_version = 3;
+        """,
     ];
 
     public static int CurrentVersion => Steps.Length;

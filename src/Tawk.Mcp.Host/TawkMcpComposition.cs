@@ -64,6 +64,7 @@ public static class TawkMcpComposition
         services.AddSingleton<IDelay, TimeProviderDelay>();
         services.AddSingleton<UnixSocketTawkControl>();
         services.AddSingleton<IAccountScope, AmbientAccountScope>();
+        services.AddSingleton<IAccountTag, TawkAccountTag>();
         // Every request names the account of the tool call it is made in.
         services.AddSingleton<ITawkControl>(sp =>
             new AccountScopedTawkControl(sp.GetRequiredService<UnixSocketTawkControl>(), sp.GetRequiredService<IAccountScope>()));

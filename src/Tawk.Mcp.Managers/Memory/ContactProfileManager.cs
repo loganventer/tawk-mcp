@@ -19,7 +19,8 @@ public sealed class ContactProfileManager(
     IMemoryFormatter formatter,
     IUntrustedTextFence fence,
     IMemoryWriteGuard guard,
-    TimeProvider clock) : IContactProfileManager
+    TimeProvider clock,
+    IAccountTag? accountTag = null) : IContactProfileManager
 {
     private const string ProfileLabel = "a contact profile from tawk-mcp's memory, written by the user or by an agent that read their chats";
     private const int MaxNoteLength = 2000;
@@ -77,6 +78,7 @@ public sealed class ContactProfileManager(
         var now = clock.GetUtcNow();
         var existing = (await contacts.GetFactsAsync(target.Jid, cancellationToken).ConfigureAwait(false))
             .ToDictionary(f => f.Field, StringComparer.Ordinal);
+        var account = accountTag is null ? null : await accountTag.CurrentAsync(cancellationToken).ConfigureAwait(false);
         var saved = new List<string>();
         var kept = new List<string>();
         foreach (var (_, value, check) in checks)
@@ -90,7 +92,10 @@ public sealed class ContactProfileManager(
 
             var lifetime = field.Lifetime ?? (from is FactSource.Inferred or FactSource.Imported ? field.InferredLifetime : null);
             await contacts.UpsertFactAsync(
-                new ContactFact(target.Jid, field.Name, value.GetRawText(), from, sure, Trim(evidence), field.Sensitive, now, now + lifetime),
+                new ContactFact(target.Jid, field.Name, value.GetRawText(), from, sure, Trim(evidence), field.Sensitive, now, now + lifetime)
+                {
+                    Account = account,
+                },
                 cancellationToken).ConfigureAwait(false);
             saved.Add(field.Name);
         }
