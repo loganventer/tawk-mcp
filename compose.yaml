@@ -16,9 +16,11 @@ services:
       TAWKMCP_TOKEN_FILE: /data/token
       TAWKMCP_DATA_FILE: /data/memory.db
       TZ: "${TZ:-UTC}"
-      # Memory sync is off unless both are set. There is no default repository; use a private one of your own.
+      # Memory sync is off unless a repository is set. There is no default; use a private one of your own. It
+      # goes over SSH: put a private key that may write to it, and a known_hosts file, in ~/.config/tawk-mcp/ssh.
       TAWKMCP_SYNC_REPO: "${TAWKMCP_SYNC_REPO:-}"
-      TAWKMCP_SYNC_TOKEN: "${TAWKMCP_SYNC_TOKEN:-}"
+      TAWKMCP_SYNC_KEY: "${TAWKMCP_SYNC_KEY:-}"
+      GIT_SSH_COMMAND: "${TAWKMCP_SYNC_SSH:-}"
       # Approving its own sends is off unless this names tawk's admin token file, as seen inside the container
       # (/run/tawk/admin.token with the mount below). Never set by default; see CONFIGURATION.md.
       TAWKMCP_ADMIN_TOKEN_FILE: "${TAWKMCP_ADMIN_TOKEN_FILE:-}"

@@ -29,12 +29,13 @@ public static class HelpText
           --channel-scheduled on|off    also scheduled messages going  TAWKMCP_CHANNEL_SCHEDULED (off)
           --memory write|read|off       voices, contacts, templates    TAWKMCP_MEMORY (write)
           --data-file PATH              memory database                TAWKMCP_DATA_FILE
-          --sync-repo OWNER/NAME        private repository for memory  TAWKMCP_SYNC_REPO
+          --sync-repo ADDRESS           private repository for memory  TAWKMCP_SYNC_REPO
+                                        owner/name on GitHub, or an SSH address (git@host:owner/name.git)
+          --sync-key PATH               SSH private key to use         TAWKMCP_SYNC_KEY (SSH chooses by default)
           --sync-branch NAME            its branch, main               TAWKMCP_SYNC_BRANCH
           --sync-file PATH              the file in it, memory.db      TAWKMCP_SYNC_FILE
-          --sync-api URL                GitHub API address             TAWKMCP_SYNC_API (https://api.github.com)
           --sync-interval-minutes N     minutes between syncs, 120     TAWKMCP_SYNC_INTERVAL_MINUTES
-                                        sync runs only with a repository and a token in TAWKMCP_SYNC_TOKEN
+                                        sync runs only with a repository set; it uses git over SSH, no tokens
           --workflow-every N            rounds between workflow checks TAWKMCP_WORKFLOW_EVERY (20, 0 = off)
           --instructions-file PATH      your standing instructions     TAWKMCP_INSTRUCTIONS_FILE
           --admin-token-file PATH       tawk's admin token file        TAWKMCP_ADMIN_TOKEN_FILE

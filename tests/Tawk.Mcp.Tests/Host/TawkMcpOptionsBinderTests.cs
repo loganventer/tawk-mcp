@@ -127,29 +127,32 @@ public class TawkMcpOptionsBinderTests
     {
         var defaults = TawkMcpOptionsBinder.Bind([], Env());
         var fromEnv = TawkMcpOptionsBinder.Bind([], Env(
-            ("TAWKMCP_SYNC_TOKEN", "t"), ("TAWKMCP_SYNC_REPO", "me/mem"), ("TAWKMCP_SYNC_BRANCH", "trunk"),
+            ("TAWKMCP_SYNC_KEY", "/k/id"), ("TAWKMCP_SYNC_REPO", "me/mem"), ("TAWKMCP_SYNC_BRANCH", "trunk"),
             ("TAWKMCP_SYNC_INTERVAL_MINUTES", "30"), ("TAWKMCP_WORKFLOW_EVERY", "0"), ("TAWKMCP_INSTRUCTIONS_FILE", "/x/i.md")));
         var flags = TawkMcpOptionsBinder.Bind(
             ["export-okf", "/tmp/out", "--include-sensitive", "--sync-repo", "a/b", "--sync-interval-minutes", "5", "--workflow-every", "7"], Env());
 
         Assert.Multiple(() =>
         {
-            Assert.That((defaults.SyncToken, defaults.SyncRepository, defaults.SyncBranch, defaults.SyncIntervalMinutes, defaults.WorkflowEvery),
+            Assert.That((defaults.SyncKeyFile, defaults.SyncRepository, defaults.SyncBranch, defaults.SyncIntervalMinutes, defaults.WorkflowEvery),
                 Is.EqualTo(((string?)null, (string?)null, "main", 120, 20)));
-            Assert.That((fromEnv.SyncToken, fromEnv.SyncRepository, fromEnv.SyncBranch, fromEnv.SyncIntervalMinutes, fromEnv.WorkflowEvery, fromEnv.InstructionsFile),
-                Is.EqualTo(((string?)"t", (string?)"me/mem", "trunk", 30, 0, (string?)"/x/i.md")));
+            Assert.That((fromEnv.SyncKeyFile, fromEnv.SyncRepository, fromEnv.SyncBranch, fromEnv.SyncIntervalMinutes, fromEnv.WorkflowEvery, fromEnv.InstructionsFile),
+                Is.EqualTo(((string?)"/k/id", (string?)"git@github.com:me/mem.git", "trunk", 30, 0, (string?)"/x/i.md")));
             Assert.That((flags.Command, flags.BundlePath, flags.IncludeSensitive, flags.SyncRepository, flags.SyncIntervalMinutes, flags.WorkflowEvery),
-                Is.EqualTo((HostCommand.ExportOkf, (string?)"/tmp/out", true, (string?)"a/b", 5, 7)));
+                Is.EqualTo((HostCommand.ExportOkf, (string?)"/tmp/out", true, (string?)"git@github.com:a/b.git", 5, 7)));
             Assert.That(TawkMcpOptionsBinder.Bind(["import-okf", "/in"], Env()).Command, Is.EqualTo(HostCommand.ImportOkf));
             Assert.That(TawkMcpOptionsBinder.Bind(["sync"], Env()).Command, Is.EqualTo(HostCommand.Sync));
             Assert.That(TawkMcpOptionsBinder.Bind(["export-okf"], Env()).Error, Does.Contain("needs a value"));
-            Assert.That(TawkMcpOptionsBinder.Bind(["--sync-repo", "https://github.com/a/b"], Env()).Error, Does.Contain("owner/name"));
+            Assert.That(TawkMcpOptionsBinder.Bind(["--sync-repo", "https://github.com/a/b"], Env()).Error, Does.Contain("SSH address"));
+            Assert.That(TawkMcpOptionsBinder.Bind(["--sync-repo", "git@my-alias:a/b.git"], Env()).SyncRepository, Is.EqualTo("git@my-alias:a/b.git"));
+            Assert.That(TawkMcpOptionsBinder.Bind(["--sync-repo", "ssh://git@host.example/a/b.git"], Env()).Error, Is.Null);
+            Assert.That(TawkMcpOptionsBinder.Bind(["--sync-repo", "--upload-pack=x"], Env()).Error, Is.Not.Null);
             Assert.That(TawkMcpOptionsBinder.Bind(["--sync-token", "t"], Env()).Error, Does.Contain("Unknown argument"));
-            Assert.That((defaults.SyncFile, defaults.SyncApi), Is.EqualTo(("memory.db", "https://api.github.com/")));
-            var elsewhere = TawkMcpOptionsBinder.Bind(["--sync-file", "data/mem.db"], Env(("TAWKMCP_SYNC_API", "https://ghe.example.com/api/v3")));
-            Assert.That((elsewhere.Error, elsewhere.SyncFile, elsewhere.SyncApi), Is.EqualTo(((string?)null, "data/mem.db", "https://ghe.example.com/api/v3/")));
+            Assert.That(defaults.SyncFile, Is.EqualTo("memory.db"));
+            var elsewhere = TawkMcpOptionsBinder.Bind(["--sync-file", "data/mem.db", "--sync-key", "/k/other"], Env());
+            Assert.That((elsewhere.Error, elsewhere.SyncFile, elsewhere.SyncKeyFile), Is.EqualTo(((string?)null, "data/mem.db", (string?)"/k/other")));
             Assert.That(TawkMcpOptionsBinder.Bind(["--sync-file", "../memory.db"], Env()).Error, Does.Contain("inside the repository"));
-            Assert.That(TawkMcpOptionsBinder.Bind(["--sync-api", "http://plain.example.com"], Env()).Error, Does.Contain("https address"));
+            Assert.That(TawkMcpOptionsBinder.Bind(["--sync-api", "https://x.example"], Env()).Error, Does.Contain("Unknown argument"));
         });
     }
 

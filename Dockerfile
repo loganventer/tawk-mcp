@@ -19,6 +19,8 @@ RUN dotnet publish src/Tawk.Mcp.Host/Tawk.Mcp.Host.csproj -c Release -o /app --n
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=build /app .
+# Memory sync runs git over SSH.
+RUN apt-get update && apt-get install -y --no-install-recommends git openssh-client && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /data /run/tawk && chown "$APP_UID" /data && chmod 0700 /data
 ENV ASPNETCORE_URLS=http://0.0.0.0:8765 \
     HTTP_PORTS= \

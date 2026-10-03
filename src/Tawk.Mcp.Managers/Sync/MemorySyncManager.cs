@@ -24,7 +24,7 @@ public sealed class MemorySyncManager(
     {
         if (!options.Enabled)
         {
-            return new SyncReport(SyncOutcome.Disabled, "Memory sync is off: it needs a repository (TAWKMCP_SYNC_REPO) and a token (TAWKMCP_SYNC_TOKEN).");
+            return new SyncReport(SyncOutcome.Disabled, "Memory sync is off: it needs a repository (TAWKMCP_SYNC_REPO), reached over SSH with a key that may write to it.");
         }
 
         using var held = syncLock.TryAcquire();

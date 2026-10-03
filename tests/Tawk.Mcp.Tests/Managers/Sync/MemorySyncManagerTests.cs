@@ -200,7 +200,7 @@ public class MemorySyncManagerTests
     [Test]
     public async Task Sync_is_off_without_a_token_and_waits_its_turn()
     {
-        using var off = new SyncedMachine(_remote, token: null);
+        using var off = new SyncedMachine(_remote, repository: null);
         await _a.Parts.Profiles.AddNoteAsync("Anneke Venter", "One.", "user", default);
 
         using (_a.Lock.TryAcquire())

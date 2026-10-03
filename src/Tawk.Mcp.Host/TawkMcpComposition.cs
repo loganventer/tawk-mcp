@@ -110,7 +110,7 @@ public static class TawkMcpComposition
         var cadence = new WorkflowCadence(workflow);
         services.AddSingleton(workflow);
         services.AddSingleton<IWorkflowCadence>(cadence);
-        if (options.Memory == MemoryMode.Write && options.SyncToken is { Length: > 0 } && options.SyncRepository is { Length: > 0 })
+        if (options.Memory == MemoryMode.Write && options.SyncRepository is { Length: > 0 })
         {
             services.AddHostedService<MemorySyncService>();
         }
@@ -216,20 +216,22 @@ public static class TawkMcpComposition
         services.AddSingleton<ITemplateStore, SqliteTemplateStore>();
         services.AddSingleton<ITawkChatSource, TawkChatSource>();
 
-        // Sync. It has no default destination: without a repository and a token set on this machine, nothing syncs.
+        // Sync. It has no default destination: without a repository set on this machine, nothing syncs. It goes
+        // over SSH with the machine's own key; there are no tokens.
         // Everything it keeps on this machine sits beside the database.
         var sync = new SyncOptions
         {
-            Token = options.SyncToken,
             Repository = options.SyncRepository,
+            KeyFile = options.SyncKeyFile,
             Branch = options.SyncBranch,
             File = options.SyncFile,
-            Api = Uri.TryCreate(options.SyncApi, UriKind.Absolute, out var api) ? api : new Uri(SyncOptions.DefaultApi),
             Interval = TimeSpan.FromMinutes(options.SyncIntervalMinutes),
         };
         services.AddSingleton(sync);
         services.AddSingleton<IMemorySnapshotStore, SqliteMemorySnapshotStore>();
-        services.AddSingleton<IMemoryRemote>(_ => new GitHubMemoryRemote(new HttpClient { Timeout = TimeSpan.FromSeconds(100) }, sync, Version));
+        services.AddSingleton<IGitRunner>(new ProcessGitRunner(TimeSpan.FromSeconds(100)));
+        services.AddSingleton<IMemoryRemote>(sp => new GitMemoryRemote(
+            sp.GetRequiredService<IGitRunner>(), sync, path + ".sync.git", Environment.GetEnvironmentVariable));
         services.AddSingleton<ISyncStateStore>(new FileSyncStateStore(path + ".sync.json"));
         services.AddSingleton<ISyncLock>(new FileSyncLock(path + ".sync.lock"));
         services.AddSingleton<ISyncScratch, TempSyncScratch>();

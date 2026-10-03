@@ -63,17 +63,18 @@ public sealed record TawkMcpOptions
     /// <summary>Whether an export also holds what is marked sensitive.</summary>
     public bool IncludeSensitive { get; init; }
 
-    /// <summary>A token with contents read and write on the memory repository. Memory does not sync without it.</summary>
-    public string? SyncToken { get; init; }
-
-    /// <summary>The private GitHub repository that holds the memory database, as owner/name. Memory does not sync without it.</summary>
+    /// <summary>
+    /// The private git repository that holds the memory database, as an SSH address. Memory does not sync
+    /// without it. There is no default, and access is by SSH key, never a token.
+    /// </summary>
     public string? SyncRepository { get; init; }
+
+    /// <summary>A private key file for sync, when SSH should not pick one by itself.</summary>
+    public string? SyncKeyFile { get; init; }
 
     public string SyncBranch { get; init; } = SyncOptions.DefaultBranch;
 
     public string SyncFile { get; init; } = SyncOptions.DefaultFile;
-
-    public string SyncApi { get; init; } = SyncOptions.DefaultApi;
 
     public int SyncIntervalMinutes { get; init; } = SyncOptions.DefaultIntervalMinutes;
 

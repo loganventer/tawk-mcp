@@ -1,5 +1,6 @@
 using System.Globalization;
 using Tawk.Mcp.Clients.Channels;
+using Tawk.Mcp.Engines.Sync;
 using Tawk.Mcp.Core.Memory;
 
 namespace Tawk.Mcp.Host;
@@ -40,7 +41,7 @@ public static class TawkMcpOptionsBinder
                 "--sync-repo" => options with { SyncRepository = Repository(arg, Next(), ref error) },
                 "--sync-branch" => options with { SyncBranch = Next() },
                 "--sync-file" => options with { SyncFile = SyncFile(arg, Next(), ref error) },
-                "--sync-api" => options with { SyncApi = SyncApi(arg, Next(), ref error) },
+                "--sync-key" => options with { SyncKeyFile = Next() },
                 "--sync-interval-minutes" => options with { SyncIntervalMinutes = Int(arg, Next(), 1, 10_080, ref error) },
                 "--workflow-every" => options with { WorkflowEvery = Int(arg, Next(), 0, 10_000, ref error) },
                 "--instructions-file" => options with { InstructionsFile = Next() },
@@ -151,10 +152,9 @@ public static class TawkMcpOptionsBinder
             options = options with { ScheduleJitterS = Int("TAWKMCP_SCHEDULE_JITTER_S", jitter, 0, 3600, ref error) };
         }
 
-        // The sync token is read from the environment only, so it never shows in a process list.
-        if (env("TAWKMCP_SYNC_TOKEN") is { Length: > 0 } syncToken)
+        if (env("TAWKMCP_SYNC_KEY") is { Length: > 0 } syncKey)
         {
-            options = options with { SyncToken = syncToken };
+            options = options with { SyncKeyFile = syncKey };
         }
 
         if (env("TAWKMCP_SYNC_REPO") is { Length: > 0 } repository)
@@ -170,11 +170,6 @@ public static class TawkMcpOptionsBinder
         if (env("TAWKMCP_SYNC_FILE") is { Length: > 0 } syncFile)
         {
             options = options with { SyncFile = SyncFile("TAWKMCP_SYNC_FILE", syncFile, ref error) };
-        }
-
-        if (env("TAWKMCP_SYNC_API") is { Length: > 0 } syncApi)
-        {
-            options = options with { SyncApi = SyncApi("TAWKMCP_SYNC_API", syncApi, ref error) };
         }
 
         if (env("TAWKMCP_SYNC_INTERVAL_MINUTES") is { Length: > 0 } interval)
@@ -243,13 +238,13 @@ public static class TawkMcpOptionsBinder
 
     private static string Repository(string name, string value, ref string? error)
     {
-        var parts = value.Split('/');
-        if (parts.Length != 2 || parts.Any(part => part.Length == 0 || part.Any(c => !(char.IsAsciiLetterOrDigit(c) || c is '-' or '_' or '.'))))
+        var address = SyncRepositoryAddress.Normalise(value, out var why);
+        if (address is null)
         {
-            error ??= $"{name} must be a GitHub repository as owner/name, not {value}.";
+            error ??= $"{name} {why}.";
         }
 
-        return value;
+        return address ?? value;
     }
 
     private static string SyncFile(string name, string value, ref string? error)
@@ -261,17 +256,6 @@ public static class TawkMcpOptionsBinder
         }
 
         return value;
-    }
-
-    // The token goes to this address, so it has to be an encrypted one.
-    private static string SyncApi(string name, string value, ref string? error)
-    {
-        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
-        {
-            error ??= $"{name} must be an https address, such as https://api.github.com, not {value}.";
-        }
-
-        return value.EndsWith('/') ? value : value + "/";
     }
 
     private static bool OnOff(string name, string value, ref string? error)
