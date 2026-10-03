@@ -2,6 +2,8 @@
 
 Five minutes from nothing to asking your MCP client "what did I miss?". This uses Claude Code; the other clients are in [README.md](README.md#quick-setup).
 
+Having an AI agent do the setup for you? Point it at [AGENT_SETUP.md](AGENT_SETUP.md), which covers Windows, Linux and macOS step by step.
+
 ## 1. Have tawk running and linked
 
 Install [tawk](https://github.com/loganventer/tawk) and link it to your phone as its quickstart describes:

@@ -134,6 +134,7 @@ Resources: `tawk://chats`, `tawk://chat/{jid}`, `tawk://voices`, `tawk://voice/{
 | Document | What it covers |
 | --- | --- |
 | [QUICKSTART.md](QUICKSTART.md) | From nothing to asking "what did I miss?" in five minutes |
+| [AGENT_SETUP.md](AGENT_SETUP.md) | Instructions for an AI agent installing tawk-mcp and connecting a client, on Windows, Linux and macOS |
 | [MANUAL.md](MANUAL.md) | Every tool, resource and prompt, notifications, confirmations and troubleshooting |
 | [CONFIGURATION.md](CONFIGURATION.md) | Every environment variable and argument, and the tawk settings that matter |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | The layers and components |
