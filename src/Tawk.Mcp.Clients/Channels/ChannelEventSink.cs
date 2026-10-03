@@ -11,7 +11,8 @@ namespace Tawk.Mcp.Clients.Channels;
 /// Pushes new WhatsApp messages into connected Claude Code sessions as channel events: what other people
 /// send, and when asked for, what the user sends and who read the user's messages.
 /// </summary>
-public sealed class ChannelEventSink(ChannelOptions options, IClientSessionRegistry sessions, IWorkflowCadence cadence) : IEventSink
+public sealed class ChannelEventSink(
+    ChannelOptions options, IClientSessionRegistry sessions, IWorkflowCadence cadence, IChannelContextHints hints) : IEventSink
 {
     public async Task OnUpdateAsync(LiveUpdate update, CancellationToken cancellationToken)
     {
@@ -21,13 +22,17 @@ public sealed class ChannelEventSink(ChannelOptions options, IClientSessionRegis
             return;
         }
 
-        // The pointer to the chat's history goes after the fenced text, so nothing in a message can pose as it.
+        // The first event of a chat points at its history, in case the agent lacks it. The pointer goes after
+        // the fenced text, so nothing in a message can pose as it.
         var chat = (string?)meta["chat_jid"];
-        var content = string.IsNullOrEmpty(chat) ? update.ModelText : update.ModelText + "\n" + TawkServerInstructions.ChannelContext(chat);
+        var targets = sessions.Sessions.Where(Wants).ToList();
+        var content = targets.Count > 0 && !string.IsNullOrEmpty(chat) && hints.FirstEventOf(chat)
+            ? update.ModelText + "\n" + TawkServerInstructions.ChannelContext(chat)
+            : update.ModelText;
 
         // A message handed to the agent is a round, the same as a tool call; a read receipt is not.
         var round = update.Event is MessageEvent;
-        foreach (var session in sessions.Sessions.Where(Wants))
+        foreach (var session in targets)
         {
             var parameters = new JsonObject { ["content"] = content, ["meta"] = meta.DeepClone() };
             try

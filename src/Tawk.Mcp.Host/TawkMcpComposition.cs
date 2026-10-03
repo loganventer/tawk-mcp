@@ -125,6 +125,7 @@ public static class TawkMcpComposition
         services.AddSingleton<EventStreamHub>();
         services.AddSingleton<IEventStreamHub>(sp => sp.GetRequiredService<EventStreamHub>());
         services.AddSingleton<IEventSink, ResourceUpdatePump>();
+        services.AddSingleton<IChannelContextHints>(new ChannelContextHints());
         services.AddSingleton<IEventSink, ChannelEventSink>();
         services.AddSingleton<IEventSink>(sp => sp.GetRequiredService<EventStreamHub>());
         services.AddHostedService<NotificationDispatcher>();

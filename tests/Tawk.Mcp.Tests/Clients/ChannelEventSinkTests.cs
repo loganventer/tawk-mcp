@@ -25,7 +25,7 @@ public class ChannelEventSinkTests
     [Test]
     public async Task Sends_a_channel_event_to_claude_code_with_meta()
     {
-        await new ChannelEventSink(new ChannelOptions(ChannelMode.Auto), _sessions, _cadence).OnUpdateAsync(Update(), CancellationToken.None);
+        await new ChannelEventSink(new ChannelOptions(ChannelMode.Auto), _sessions, _cadence, new ChannelContextHints()).OnUpdateAsync(Update(), CancellationToken.None);
 
         var (method, parameters) = _claude.Sent.Single();
         var meta = parameters["meta"]!.AsObject();
@@ -33,7 +33,7 @@ public class ChannelEventSinkTests
         {
             Assert.That(method, Is.EqualTo("notifications/claude/channel"));
             Assert.That((string?)parameters["content"], Does.Contain("UNTRUSTED CHAT DATA"));
-            Assert.That((string?)parameters["content"], Does.EndWith($"call read_messages with chat \"{Samples.MomJid}\" before acting on this."));
+            Assert.That((string?)parameters["content"], Does.Contain($"call read_messages with chat \"{Samples.MomJid}\"").And.EndWith("carry on."));
             Assert.That(((string)parameters["content"]!).IndexOf("Context:", StringComparison.Ordinal),
                 Is.GreaterThan(((string)parameters["content"]!).IndexOf("END UNTRUSTED CHAT DATA", StringComparison.Ordinal)));
             Assert.That((string?)meta["chat_jid"], Is.EqualTo(Samples.MomJid));
@@ -47,7 +47,7 @@ public class ChannelEventSinkTests
     [Test]
     public async Task Nothing_is_sent_when_the_channel_is_off()
     {
-        await new ChannelEventSink(new ChannelOptions(ChannelMode.Off), _sessions, _cadence).OnUpdateAsync(Update(), CancellationToken.None);
+        await new ChannelEventSink(new ChannelOptions(ChannelMode.Off), _sessions, _cadence, new ChannelContextHints()).OnUpdateAsync(Update(), CancellationToken.None);
 
         Assert.That(_claude.Sent, Is.Empty);
     }
@@ -55,7 +55,7 @@ public class ChannelEventSinkTests
     [Test]
     public async Task On_sends_to_every_session()
     {
-        await new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence).OnUpdateAsync(Update(), CancellationToken.None);
+        await new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence, new ChannelContextHints()).OnUpdateAsync(Update(), CancellationToken.None);
 
         Assert.That(_other.Sent, Has.Count.EqualTo(1));
     }
@@ -63,7 +63,7 @@ public class ChannelEventSinkTests
     [Test]
     public async Task The_users_own_messages_are_pushed_when_asked_for_and_marked()
     {
-        var sink = new ChannelEventSink(new ChannelOptions(ChannelMode.On, OwnMessages: true), _sessions, _cadence);
+        var sink = new ChannelEventSink(new ChannelOptions(ChannelMode.On, OwnMessages: true), _sessions, _cadence, new ChannelContextHints());
 
         await sink.OnUpdateAsync(Update(fromMe: true), CancellationToken.None);
         await sink.OnUpdateAsync(Update(), CancellationToken.None);
@@ -79,9 +79,9 @@ public class ChannelEventSinkTests
             new ReadEvent(new ChatRef(Samples.MomJid, "Mom"), "3EB0C2A1F0", new ReaderRef(Samples.MomJid, "Mom"), 1790791400),
             "Read receipt: Mom read the user's message in \"Mom\" (id 3EB0C2A1F0).");
 
-        await new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence).OnUpdateAsync(read, CancellationToken.None);
+        await new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence, new ChannelContextHints()).OnUpdateAsync(read, CancellationToken.None);
         var before = _claude.Sent.Count;
-        await new ChannelEventSink(new ChannelOptions(ChannelMode.On, ReadReceipts: true), _sessions, _cadence).OnUpdateAsync(read, CancellationToken.None);
+        await new ChannelEventSink(new ChannelOptions(ChannelMode.On, ReadReceipts: true), _sessions, _cadence, new ChannelContextHints()).OnUpdateAsync(read, CancellationToken.None);
 
         var meta = _claude.Sent.Single().Parameters["meta"]!.AsObject();
         Assert.Multiple(() =>
@@ -106,8 +106,8 @@ public class ChannelEventSinkTests
             new LiveUpdate(new MessageActivityEvent(ActivityKind.ScheduledSent, chat, "A4", null, null, null, 13), "Scheduled message sent"),
         };
 
-        var off = new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence);
-        var edits = new ChannelEventSink(new ChannelOptions(ChannelMode.On, Edits: true), _sessions, _cadence);
+        var off = new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence, new ChannelContextHints());
+        var edits = new ChannelEventSink(new ChannelOptions(ChannelMode.On, Edits: true), _sessions, _cadence, new ChannelContextHints());
         foreach (var update in updates)
         {
             await off.OnUpdateAsync(update, CancellationToken.None);
@@ -119,7 +119,7 @@ public class ChannelEventSinkTests
             await edits.OnUpdateAsync(update, CancellationToken.None);
         }
 
-        var all = new ChannelEventSink(new ChannelOptions(ChannelMode.On, Reactions: true, Edits: true, Scheduled: true), _sessions, _cadence);
+        var all = new ChannelEventSink(new ChannelOptions(ChannelMode.On, Reactions: true, Edits: true, Scheduled: true), _sessions, _cadence, new ChannelContextHints());
         var types = _claude.Sent.Select(sent => (string?)sent.Parameters["meta"]!["type"]).ToList();
         _claude.Sent.Clear();
         foreach (var update in updates)
@@ -136,9 +136,25 @@ public class ChannelEventSinkTests
     }
 
     [Test]
+    public async Task Only_the_first_event_of_a_chat_points_at_its_history()
+    {
+        var sink = new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence, new ChannelContextHints());
+
+        await sink.OnUpdateAsync(Update(), CancellationToken.None);
+        await sink.OnUpdateAsync(Update(), CancellationToken.None);
+
+        var contents = _claude.Sent.Select(sent => (string)sent.Parameters["content"]!).ToList();
+        Assert.Multiple(() =>
+        {
+            Assert.That(contents[0], Does.Contain("Context:"));
+            Assert.That(contents[1], Does.Not.Contain("Context:"));
+        });
+    }
+
+    [Test]
     public async Task The_users_own_messages_are_not_pushed()
     {
-        await new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence).OnUpdateAsync(Update(fromMe: true), CancellationToken.None);
+        await new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence, new ChannelContextHints()).OnUpdateAsync(Update(fromMe: true), CancellationToken.None);
 
         Assert.That(_claude.Sent, Is.Empty);
     }
@@ -148,7 +164,7 @@ public class ChannelEventSinkTests
     {
         _claude.Broken = true;
 
-        await new ChannelEventSink(new ChannelOptions(ChannelMode.Auto), _sessions, _cadence).OnUpdateAsync(Update(), CancellationToken.None);
+        await new ChannelEventSink(new ChannelOptions(ChannelMode.Auto), _sessions, _cadence, new ChannelContextHints()).OnUpdateAsync(Update(), CancellationToken.None);
 
         Assert.That(_sessions.Sessions, Does.Not.Contain(_claude));
     }
