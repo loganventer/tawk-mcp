@@ -136,11 +136,14 @@ public class ChannelEventSinkTests
     }
 
     [Test]
-    public async Task Only_the_first_event_of_a_chat_points_at_its_history()
+    public async Task Each_session_is_pointed_at_a_chats_history_on_its_first_event_from_it()
     {
         var sink = new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence, new ChannelContextHints());
 
         await sink.OnUpdateAsync(Update(), CancellationToken.None);
+        await sink.OnUpdateAsync(Update(), CancellationToken.None);
+        var later = new FakeClientSession();
+        _sessions.Add(later);
         await sink.OnUpdateAsync(Update(), CancellationToken.None);
 
         var contents = _claude.Sent.Select(sent => (string)sent.Parameters["content"]!).ToList();
@@ -148,6 +151,8 @@ public class ChannelEventSinkTests
         {
             Assert.That(contents[0], Does.Contain("Context:"));
             Assert.That(contents[1], Does.Not.Contain("Context:"));
+            Assert.That(contents[2], Does.Not.Contain("Context:"));
+            Assert.That((string)later.Sent.Single().Parameters["content"]!, Does.Contain("first event from this chat in this session"));
         });
     }
 

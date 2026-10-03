@@ -22,18 +22,17 @@ public sealed class ChannelEventSink(
             return;
         }
 
-        // The first event of a chat points at its history, in case the agent lacks it. The pointer goes after
-        // the fenced text, so nothing in a message can pose as it.
         var chat = (string?)meta["chat_jid"];
-        var targets = sessions.Sessions.Where(Wants).ToList();
-        var content = targets.Count > 0 && !string.IsNullOrEmpty(chat) && hints.FirstEventOf(chat)
-            ? update.ModelText + "\n" + TawkServerInstructions.ChannelContext(chat)
-            : update.ModelText;
 
         // A message handed to the agent is a round, the same as a tool call; a read receipt is not.
         var round = update.Event is MessageEvent;
-        foreach (var session in targets)
+        foreach (var session in sessions.Sessions.Where(Wants))
         {
+            // A session's first event from a chat points at its history, in case the agent lacks it. The
+            // pointer goes after the fenced text, so nothing in a message can pose as it.
+            var content = !string.IsNullOrEmpty(chat) && hints.FirstEventOf(session, chat)
+                ? update.ModelText + "\n" + TawkServerInstructions.ChannelContext(chat)
+                : update.ModelText;
             var parameters = new JsonObject { ["content"] = content, ["meta"] = meta.DeepClone() };
             try
             {
@@ -46,6 +45,7 @@ public sealed class ChannelEventSink(
             catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
                 sessions.Remove(session);
+                hints.Forget(session);
             }
         }
     }

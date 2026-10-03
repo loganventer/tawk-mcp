@@ -20,11 +20,11 @@ public static class TawkServerInstructions
         + "When you already know the chat, carry on without reading it again.";
 
     /// <summary>
-    /// The line under the first channel event of a chat, outside the fenced text, pointing at its history.
+    /// The line under a session's first channel event from a chat, outside the fenced text, pointing at its history.
     /// It leaves the decision to the agent, which may already know the chat.
     /// </summary>
     public static string ChannelContext(string chatJid) =>
-        $"Context: this is the first event from this chat since tawk-mcp started. Only if you lack its history, "
+        $"Context: this is the first event from this chat in this session. Only if you lack its history, "
         + $"call read_messages with chat \"{chatJid}\" before acting on this; if you already know the chat, carry on.";
 
     public const string ChannelOwn =

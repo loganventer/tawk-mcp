@@ -117,7 +117,12 @@ public static class TawkMcpComposition
 
         // A session that is let go takes its resource subscriptions with it.
         var subscriptions = new ResourceSubscriptionRegistry();
-        var sessions = new ClientSessionRegistry(subscriptions.RemoveSession);
+        var hints = new ChannelContextHints();
+        var sessions = new ClientSessionRegistry(gone =>
+        {
+            subscriptions.RemoveSession(gone);
+            hints.Forget(gone);
+        });
         services.AddSingleton<IClientSessionRegistry>(sessions);
         services.AddSingleton<IResourceSubscriptionRegistry>(subscriptions);
         services.AddSingleton(new ChannelOptions(
@@ -125,7 +130,7 @@ public static class TawkMcpComposition
         services.AddSingleton<EventStreamHub>();
         services.AddSingleton<IEventStreamHub>(sp => sp.GetRequiredService<EventStreamHub>());
         services.AddSingleton<IEventSink, ResourceUpdatePump>();
-        services.AddSingleton<IChannelContextHints>(new ChannelContextHints());
+        services.AddSingleton<IChannelContextHints>(hints);
         services.AddSingleton<IEventSink, ChannelEventSink>();
         services.AddSingleton<IEventSink>(sp => sp.GetRequiredService<EventStreamHub>());
         services.AddHostedService<NotificationDispatcher>();
