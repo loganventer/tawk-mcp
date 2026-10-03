@@ -393,7 +393,9 @@ By default only messages from other people arrive. Set `TAWKMCP_CHANNEL_OWN=on` 
 
 Set `TAWKMCP_CHANNEL_READ=on` (or `--channel-read on`) and read receipts arrive as well: an event with `type="read"` saying who read which of your messages. The agent is told these are information only. They do not count as rounds for the memory workflow.
 
-tawk has its own switches for all three, under Settings, Agent events: **Push received messages**, **Push messages you send** and **Push read receipts** (the last is off by default). With one off, tawk does not hand those messages to tawk-mcp at all, so nothing here can turn them back on. A kind reaches the agent only when both sides have it on: tawk's switch, and for your own messages `TAWKMCP_CHANNEL_OWN`, for read receipts `TAWKMCP_CHANNEL_READ`.
+Three more kinds work the same way, each with its own option and each off by default: `TAWKMCP_CHANNEL_REACTIONS` (someone reacted to a message you sent, or took it back), `TAWKMCP_CHANNEL_EDITS` (someone changed or deleted a message they sent; an edit carries the new words, fenced as untrusted) and `TAWKMCP_CHANNEL_SCHEDULED` (a message you scheduled went out).
+
+tawk has its own switch for every kind, under Settings, Agent events. Received and sent messages are on by default there; read receipts, reactions, edits and deletes, and scheduled sends are off. With one off, tawk does not hand those messages to tawk-mcp at all, so nothing here can turn them back on. A kind reaches the agent only when both sides have it on: tawk's switch for it, and the matching `TAWKMCP_CHANNEL_…` option here.
 
 Anyone who can message you can put text in front of the model this way. Keep `access = read` if you only want to be told, and remember every write still needs your approval in tawk.
 

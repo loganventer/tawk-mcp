@@ -58,6 +58,9 @@ Flags override environment variables, which override the defaults.
 | `--channel auto\|on\|off` | `TAWKMCP_CHANNEL` | `auto` | Claude Code channel events: `auto` for clients that identify as Claude Code, `on` for every client, `off` for none |
 | `--channel-own on\|off` | `TAWKMCP_CHANNEL_OWN` | `off` | Also send the messages you send yourself as channel events, marked `from_me`. Off, only what other people send arrives |
 | `--channel-read on\|off` | `TAWKMCP_CHANNEL_READ` | `off` | Also send read receipts for the messages you sent as channel events, with `type="read"`. tawk's **Push read receipts** must be on too |
+| `--channel-reactions on\|off` | `TAWKMCP_CHANNEL_REACTIONS` | `off` | Also send reactions to your messages as channel events (`type="reaction"`). tawk's **Push reactions** must be on too |
+| `--channel-edits on\|off` | `TAWKMCP_CHANNEL_EDITS` | `off` | Also send other people's edits and deletes (`type="edit"`, `type="delete"`). tawk's **Push edits and deletes** must be on too |
+| `--channel-scheduled on\|off` | `TAWKMCP_CHANNEL_SCHEDULED` | `off` | Also send an event when a message you scheduled goes out (`type="scheduled_sent"`). tawk's **Push scheduled sends** must be on too |
 | `--memory write\|read\|off` | `TAWKMCP_MEMORY` | `write` | Memory for voices, contacts and templates: `read` offers the tools but refuses changes, `off` removes them |
 | `--data-file PATH` | `TAWKMCP_DATA_FILE` | `~/.local/share/tawk-mcp/memory.db` | Where memory is kept |
 | `--sync-repo OWNER/NAME` | `TAWKMCP_SYNC_REPO` | none | The private GitHub repository that holds the memory file. See [Memory sync](#memory-sync) |

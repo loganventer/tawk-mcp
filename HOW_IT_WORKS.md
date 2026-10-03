@@ -201,7 +201,7 @@ sequenceDiagram
 
 Unread count changes (`{"evt":"chat"}`) update resources and go to `/events` as `event: chat`. Sessions that have gone away are dropped when a notification to them fails.
 
-Which messages reach the channel is decided in two places. tawk sends a message event only when its push setting for that kind is on (received, or sent by the user). `ChannelEventSink` then passes on what other people sent, and what the user sent only when `TAWKMCP_CHANNEL_OWN` is on, marking each event with `from_me`. Read receipts follow the same two steps with their own switches, and are never counted as a workflow round.
+Which messages reach the channel is decided in two places. tawk sends a message event only when its push setting for that kind is on (received, or sent by the user). `ChannelEventSink` then passes on what other people sent, and what the user sent only when `TAWKMCP_CHANNEL_OWN` is on, marking each event with `from_me`. Read receipts, reactions, edits and deletes, and scheduled sends follow the same two steps, each with its own switch in tawk and its own option here, and none of them counts as a workflow round.
 
 ```mermaid
 flowchart LR
