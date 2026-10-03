@@ -32,6 +32,8 @@ public static class HelpText
                                         sync runs only with a repository and a token in TAWKMCP_SYNC_TOKEN
           --workflow-every N            rounds between workflow checks TAWKMCP_WORKFLOW_EVERY (20, 0 = off)
           --instructions-file PATH      your standing instructions     TAWKMCP_INSTRUCTIONS_FILE
+          --admin-token-file PATH       tawk's admin token file        TAWKMCP_ADMIN_TOKEN_FILE
+                                        no default: only with it may this instance approve its own sends
           --schedule-jitter-s N         random +/- shift on schedules  TAWKMCP_SCHEDULE_JITTER_S (60, 0 = off)
           --backoff-initial-ms N        first retry wait, 500          TAWKMCP_BACKOFF_INITIAL_MS
           --backoff-max-ms N            longest retry wait, 30000      TAWKMCP_BACKOFF_MAX_MS

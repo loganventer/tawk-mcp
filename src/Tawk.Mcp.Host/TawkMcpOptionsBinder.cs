@@ -44,6 +44,7 @@ public static class TawkMcpOptionsBinder
                 "--sync-interval-minutes" => options with { SyncIntervalMinutes = Int(arg, Next(), 1, 10_080, ref error) },
                 "--workflow-every" => options with { WorkflowEvery = Int(arg, Next(), 0, 10_000, ref error) },
                 "--instructions-file" => options with { InstructionsFile = Next() },
+                "--admin-token-file" => options with { AdminTokenFile = Next() },
                 "--version" or "-v" => options with { Command = HostCommand.Version },
                 "--help" or "-h" => options with { Command = HostCommand.Help },
                 "--http" => options with { Transport = TransportKind.Http },
@@ -179,6 +180,11 @@ public static class TawkMcpOptionsBinder
         if (env("TAWKMCP_WORKFLOW_EVERY") is { Length: > 0 } every)
         {
             options = options with { WorkflowEvery = Int("TAWKMCP_WORKFLOW_EVERY", every, 0, 10_000, ref error) };
+        }
+
+        if (env("TAWKMCP_ADMIN_TOKEN_FILE") is { Length: > 0 } adminToken)
+        {
+            options = options with { AdminTokenFile = adminToken };
         }
 
         if (env("TAWKMCP_INSTRUCTIONS_FILE") is { Length: > 0 } instructions)

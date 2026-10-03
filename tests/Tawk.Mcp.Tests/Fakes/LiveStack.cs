@@ -7,7 +7,7 @@ namespace Tawk.Mcp.Tests.Fakes;
 /// <summary>The real control, supervisor, breaker and watcher pointed at a socket path, with short timings.</summary>
 public sealed class LiveStack : IAsyncDisposable
 {
-    public LiveStack(string socketPath, TimeSpan? connectWait = null, TimeSpan? requestTimeout = null, int breakerThreshold = 50)
+    public LiveStack(string socketPath, TimeSpan? connectWait = null, TimeSpan? requestTimeout = null, int breakerThreshold = 50, bool parkWaitingWrites = false)
     {
         Breaker = new CircuitBreaker(breakerThreshold, TimeSpan.FromSeconds(60), TimeProvider.System);
         Control = new UnixSocketTawkControl(
@@ -18,6 +18,7 @@ public sealed class LiveStack : IAsyncDisposable
                 ConnectWait = connectWait ?? TimeSpan.FromSeconds(2),
                 RequestTimeout = requestTimeout ?? TimeSpan.FromSeconds(10),
                 HelloTimeout = TimeSpan.FromSeconds(2),
+                ParkWaitingWrites = parkWaitingWrites,
             },
             Breaker,
             Signal,

@@ -34,7 +34,7 @@ public sealed class McpHarness : IAsyncDisposable
 
     public async Task StartAsync(
         bool elicitation = true, bool? accept = true, string clientName = "claude-code", string? protocolVersion = null, MemoryMode memory = MemoryMode.Write,
-        int workflowEvery = 0, string? userInstructions = null)
+        int workflowEvery = 0, string? userInstructions = null, string? adminTokenFile = null)
     {
         Server.Start();
         var options = new TawkMcpOptions
@@ -46,6 +46,7 @@ public sealed class McpHarness : IAsyncDisposable
             Memory = memory,
             WorkflowEvery = workflowEvery,
             UserInstructions = userInstructions,
+            AdminTokenFile = adminTokenFile,
         };
         var builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true });
         builder.Logging.ClearProviders();

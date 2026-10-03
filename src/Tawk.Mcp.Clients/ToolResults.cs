@@ -26,6 +26,10 @@ public static class ToolResults
         {
             return Text(await action().ConfigureAwait(false));
         }
+        catch (ApprovalWaitingException ex)
+        {
+            return Text(TawkServerInstructions.Waiting(ex.RequestId, ex.Op));
+        }
         catch (TawkControlException ex)
         {
             return Error(ControlErrorMessages.Describe(ex));

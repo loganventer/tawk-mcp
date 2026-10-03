@@ -22,6 +22,7 @@ using Tawk.Mcp.Engines.Knowledge;
 using Tawk.Mcp.Engines.Memory;
 using Tawk.Mcp.Engines.Sync;
 using Tawk.Mcp.Managers;
+using Tawk.Mcp.Managers.Approvals;
 using Tawk.Mcp.Managers.Knowledge;
 using Tawk.Mcp.Managers.Memory;
 using Tawk.Mcp.Managers.Sync;
@@ -49,10 +50,14 @@ public static class TawkMcpComposition
         // Resource access.
         services.AddSingleton<IControlSocketLocator>(new ControlSocketLocator(options.SocketPath, Environment.GetEnvironmentVariable, home));
         services.AddSingleton<ControlLineCodec>();
+        // Answering its own requests is set per instance and never by default: no admin token file, no admin.
+        var admin = new AdminOptions(options.AdminTokenFile);
+        services.AddSingleton(admin);
         services.AddSingleton(new TawkControlOptions
         {
             Version = Version,
             RequestTimeout = TimeSpan.FromSeconds(options.RequestTimeoutS),
+            ParkWaitingWrites = admin.Enabled,
         });
         services.AddSingleton<ConnectSignal>();
         services.AddSingleton<ISocketFileWatcher, SocketFileWatcher>();
@@ -60,6 +65,8 @@ public static class TawkMcpComposition
         services.AddSingleton<UnixSocketTawkControl>();
         services.AddSingleton<ITawkControl>(sp => sp.GetRequiredService<UnixSocketTawkControl>());
         services.AddSingleton<ITawkConnector>(sp => sp.GetRequiredService<UnixSocketTawkControl>());
+        services.AddSingleton<ITawkApprovals>(sp => sp.GetRequiredService<UnixSocketTawkControl>());
+        services.AddSingleton<IAdminTokenSource, FileAdminTokenSource>();
         services.AddSingleton<IConfirmationGate, ConfirmationGate>();
         services.AddHostedService<TawkConnectionSupervisor>();
 
@@ -87,6 +94,7 @@ public static class TawkMcpComposition
         services.AddSingleton<ISettingsManager, SettingsManager>();
         services.AddSingleton<IAppManager, AppManager>();
         services.AddSingleton<ILiveUpdatesManager, LiveUpdatesManager>();
+        services.AddSingleton<IApprovalManager, ApprovalManager>();
 
         if (options.Memory == MemoryMode.Off)
         {
@@ -127,6 +135,7 @@ public static class TawkMcpComposition
                 server.ServerInstructions = TawkServerInstructions.Text
                     + (options.Memory == MemoryMode.Off ? string.Empty : TawkServerInstructions.Memory)
                     + (workflow.Enabled ? TawkServerInstructions.Workflow : string.Empty)
+                    + (admin.Enabled ? TawkServerInstructions.Admin : string.Empty)
                     + (options.Channel == ChannelMode.Off ? string.Empty : TawkServerInstructions.Channel)
                     + TawkServerInstructions.FromUser(options.UserInstructions);
                 if (options.Channel != ChannelMode.Off)
@@ -151,6 +160,7 @@ public static class TawkMcpComposition
                 .AddIncomingFilter(ProtocolRevisionFilter.Filter())
                 .AddIncomingFilter(SessionTracking.Filter(sessions)))
             .WithRequestFilters(filters => filters.AddCallToolFilter(WorkflowReminder.Filter(cadence, workflow)))
+            .WithAdmin(admin)
             .WithMemory(options.Memory, workflow);
     }
 
@@ -163,6 +173,9 @@ public static class TawkMcpComposition
         AddMemory(services, options, Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
         return services.BuildServiceProvider();
     }
+
+    private static IMcpServerBuilder WithAdmin(this IMcpServerBuilder builder, AdminOptions admin) =>
+        admin.Enabled ? builder.WithTools<ApprovalTools>() : builder;
 
     private static IMcpServerBuilder WithMemory(this IMcpServerBuilder builder, MemoryMode mode, WorkflowOptions workflow) =>
         mode == MemoryMode.Off

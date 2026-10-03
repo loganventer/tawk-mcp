@@ -9,7 +9,7 @@ namespace Tawk.Mcp.ResourceAccess;
 /// Talks to tawk over its Unix control socket. <see cref="TawkConnectionSupervisor"/> owns connecting;
 /// requests use the current connection, wait briefly for one in progress, and never hang when tawk is down.
 /// </summary>
-public sealed class UnixSocketTawkControl : ITawkControl, ITawkConnector, IAsyncDisposable
+public sealed class UnixSocketTawkControl : ITawkControl, ITawkApprovals, ITawkConnector, IAsyncDisposable
 {
     // Writes may wait for the user to approve them in tawk, so they have no answer timeout.
     private static readonly HashSet<string> WriteOps = new(StringComparer.Ordinal)
@@ -29,6 +29,7 @@ public sealed class UnixSocketTawkControl : ITawkControl, ITawkConnector, IAsync
     private readonly ConnectSignal _signal;
     private readonly TimeProvider _clock;
     private readonly EventBroadcaster _events = new();
+    private readonly ParkedRequests _parked;
     private readonly SemaphoreSlim _connectLock = new(1, 1);
     private readonly Lock _stateGate = new();
     private ControlConnection? _connection;
@@ -56,6 +57,7 @@ public sealed class UnixSocketTawkControl : ITawkControl, ITawkConnector, IAsync
         _breaker = breaker;
         _signal = signal;
         _clock = clock;
+        _parked = new ParkedRequests(clock);
     }
 
     public string SocketPath => _locator.Locate();
@@ -78,10 +80,39 @@ public sealed class UnixSocketTawkControl : ITawkControl, ITawkConnector, IAsync
     {
         ArgumentException.ThrowIfNullOrEmpty(op);
         var connection = await GetConnectionAsync(cancellationToken).ConfigureAwait(false);
-        TimeSpan? timeout = WriteOps.Contains(op) ? null : _options.RequestTimeout;
+        var write = WriteOps.Contains(op);
+        if (write && _options.ParkWaitingWrites)
+        {
+            return await SendOrParkAsync(connection, op, args, onApprovalWaiting, cancellationToken).ConfigureAwait(false);
+        }
+
+        TimeSpan? timeout = write ? null : _options.RequestTimeout;
         return await connection.SendAsync(
             NextId(), op, args, onApprovalWaiting, timeout, () => DropHung(connection), cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    public IReadOnlyList<WaitingRequest> TakeWaiting() => _parked.Take();
+
+    public async Task<JsonElement> ApproveAsync(string requestId, string adminToken, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(requestId);
+        ArgumentException.ThrowIfNullOrEmpty(adminToken);
+        var answer = _parked.AnswerOf(requestId)
+            ?? throw new TawkControlException(ControlErrorCode.NotFound, "No request with that id is waiting.");
+        var connection = await GetConnectionAsync(cancellationToken).ConfigureAwait(false);
+        var args = new JsonObject { ["id"] = requestId, ["admin_token"] = adminToken };
+        await connection.SendAsync(
+            NextId(), "approve", args, null, _options.RequestTimeout, () => DropHung(connection), cancellationToken)
+            .ConfigureAwait(false);
+        try
+        {
+            return await answer.WaitAsync(_options.RequestTimeout, _clock, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _parked.Forget(requestId);
+        }
     }
 
     public async Task<HelloInfo> ConnectOnceAsync(CancellationToken cancellationToken)
@@ -151,6 +182,49 @@ public sealed class UnixSocketTawkControl : ITawkControl, ITawkConnector, IAsync
         }
 
         _connectLock.Dispose();
+    }
+
+    /// <summary>
+    /// Sends a write and returns its answer, unless tawk queues it for an answer first: then the request is
+    /// kept under its id and the caller is told, so it can be approved without holding the call open.
+    /// </summary>
+    private async Task<JsonElement> SendOrParkAsync(
+        ControlConnection connection, string op, JsonObject? args, Action? onApprovalWaiting, CancellationToken cancellationToken)
+    {
+        var id = NextId();
+        var queued = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var answer = connection.SendAsync(
+            id,
+            op,
+            args,
+            () =>
+            {
+                onApprovalWaiting?.Invoke();
+                queued.TrySetResult();
+            },
+            null,
+            null,
+            CancellationToken.None);
+        Task first;
+        try
+        {
+            first = await Task.WhenAny(answer, queued.Task).WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // tawk may still answer; nobody is left to hear it.
+            _ = answer.ContinueWith(
+                done => _ = done.Exception, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+            throw;
+        }
+
+        if (first == answer)
+        {
+            return await answer.ConfigureAwait(false);
+        }
+
+        _parked.Park(id, op, answer);
+        throw new ApprovalWaitingException(id, op);
     }
 
     private static TaskCompletionSource<ControlConnection> NewConnectedSource() =>

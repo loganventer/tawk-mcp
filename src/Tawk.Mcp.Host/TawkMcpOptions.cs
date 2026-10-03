@@ -68,6 +68,12 @@ public sealed record TawkMcpOptions
     /// <summary>A text file of the user's own standing instructions for agents. Defaults to ~/.config/tawk-mcp/instructions.md.</summary>
     public string? InstructionsFile { get; init; }
 
+    /// <summary>
+    /// tawk's admin token file. Set per instance and never by default: with it, this instance may answer its
+    /// own waiting sends while tawk's access is admin; without it, every write waits for the user.
+    /// </summary>
+    public string? AdminTokenFile { get; init; }
+
     /// <summary>What that file held when the server started.</summary>
     public string? UserInstructions { get; init; }
 

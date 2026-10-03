@@ -17,4 +17,10 @@ public sealed record TawkControlOptions
 
     /// <summary>How long a request waits for a connect in progress when tawk is not connected.</summary>
     public TimeSpan ConnectWait { get; init; } = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    /// Hand a write back to its caller as soon as tawk queues it for an answer, instead of waiting for the
+    /// user. Only for an instance that may answer its own requests; off, writes wait as they always did.
+    /// </summary>
+    public bool ParkWaitingWrites { get; init; }
 }

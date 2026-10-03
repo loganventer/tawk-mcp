@@ -75,6 +75,89 @@ public class UnixSocketTawkControlTests
     }
 
     [Test]
+    public async Task An_admin_instance_gets_a_waiting_write_back_and_approves_it_itself()
+    {
+        _server.Hold("send_message").Hold("approve").Start();
+        await using var stack = new LiveStack(_server.SocketPath, parkWaitingWrites: true);
+        await stack.StartAsync();
+        await stack.WaitUntilConnectedAsync();
+
+        var send = stack.Control.RequestAsync("send_message", new JsonObject { ["chat"] = "Mom", ["text"] = "hi" }, null, CancellationToken.None);
+        var id = (string)(await _server.WaitForAsync("send_message"))["id"]!;
+        await _server.SendAsync($$$"""{"evt":"approval","id":"{{{id}}}","state":"waiting"}""");
+        var parked = Assert.ThrowsAsync<ApprovalWaitingException>(async () => await send);
+        var waiting = stack.Control.TakeWaiting();
+
+        var approve = stack.Control.ApproveAsync(id, "secret", CancellationToken.None);
+        var asked = await _server.WaitForAsync("approve");
+        await _server.SendAsync($$$"""{"id":"{{{id}}}","ok":true,"result":{"id":"3EB0D41C22"}}""");
+        await _server.SendAsync($$$"""{"id":"{{{(string)asked["id"]!}}}","ok":true,"result":{"approved":true}}""");
+        var result = await approve;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(parked!.RequestId, Is.EqualTo(id));
+            Assert.That(parked.Op, Is.EqualTo("send_message"));
+            Assert.That(waiting, Has.Count.EqualTo(1));
+            Assert.That(waiting[0].Outcome, Is.Null);
+            Assert.That((string?)asked["args"]!["id"], Is.EqualTo(id));
+            Assert.That((string?)asked["args"]!["admin_token"], Is.EqualTo("secret"));
+            Assert.That(result.GetProperty("id").GetString(), Is.EqualTo("3EB0D41C22"));
+            Assert.That(stack.Control.TakeWaiting(), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task A_refused_approval_leaves_the_request_waiting_and_an_answer_in_tawk_is_reported_once()
+    {
+        _server.Hold("send_message").Hold("approve").Start();
+        await using var stack = new LiveStack(_server.SocketPath, parkWaitingWrites: true);
+        await stack.StartAsync();
+        await stack.WaitUntilConnectedAsync();
+
+        var send = stack.Control.RequestAsync("send_message", new JsonObject { ["chat"] = "Mom", ["text"] = "hi" }, null, CancellationToken.None);
+        var id = (string)(await _server.WaitForAsync("send_message"))["id"]!;
+        await _server.SendAsync($$$"""{"evt":"approval","id":"{{{id}}}","state":"waiting"}""");
+        Assert.ThrowsAsync<ApprovalWaitingException>(async () => await send);
+
+        var approve = stack.Control.ApproveAsync(id, "wrong", CancellationToken.None);
+        var asked = await _server.WaitForAsync("approve");
+        await _server.SendAsync($$$"""{"id":"{{{(string)asked["id"]!}}}","ok":false,"error":{"code":"bad_token","message":"The admin token is wrong or out of date"}}""");
+        var refused = Assert.ThrowsAsync<TawkControlException>(async () => await approve);
+        var stillWaiting = stack.Control.TakeWaiting();
+
+        await _server.SendAsync($$$"""{"id":"{{{id}}}","ok":false,"error":{"code":"declined","message":"Declined in tawk"}}""");
+        await Task.Delay(200);
+        var answered = stack.Control.TakeWaiting();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(refused!.Code, Is.EqualTo(ControlErrorCode.BadToken));
+            Assert.That(stillWaiting, Has.Count.EqualTo(1));
+            Assert.That(answered, Has.Count.EqualTo(1));
+            Assert.That(answered[0].Outcome, Is.EqualTo("declined"));
+            Assert.That(stack.Control.TakeWaiting(), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task A_write_answered_at_once_is_not_parked()
+    {
+        _server.Answer("react", """{"ok":true}""").Start();
+        await using var stack = new LiveStack(_server.SocketPath, parkWaitingWrites: true);
+        await stack.StartAsync();
+        await stack.WaitUntilConnectedAsync();
+
+        var result = await stack.Control.RequestAsync("react", new JsonObject { ["message_id"] = "M1", ["emoji"] = "+" }, null, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.GetProperty("ok").GetBoolean(), Is.True);
+            Assert.That(stack.Control.TakeWaiting(), Is.Empty);
+        });
+    }
+
+    [Test]
     public async Task Reports_the_approval_wait_and_then_takes_a_late_answer()
     {
         _server.Hold("send_message").Start();
