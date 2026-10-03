@@ -37,7 +37,7 @@ public class MessageToolsTests
     [Test]
     public async Task Send_message_says_when_tawk_added_the_ai_disclaimer()
     {
-        _parts.Control.Answer("send_message", """{"id":"3EB0","disclaimer":true,"text":"On my way\n\nSent by my AI assistant"}""");
+        _parts.Control.Answer("send_message", """{"id":"3EB0","disclaimer":true,"text":"On my way\n\nCreated with my AI assistant"}""");
 
         var text = ToolOutput.Text(await _tools.SendMessageAsync("Mom", "On my way"));
 
