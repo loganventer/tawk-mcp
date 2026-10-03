@@ -7,7 +7,7 @@
 
 # tawk-mcp
 
-> **Disclaimer.** tawk-mcp and tawk are independent projects and are not affiliated with, endorsed by or connected to WhatsApp or Meta. tawk reaches WhatsApp through unofficial protocol libraries; use both at your own risk and in line with WhatsApp's terms of service.
+> **Disclaimer.** tawk-mcp and tawk are independent projects and are not affiliated with, endorsed by or connected to WhatsApp or Meta. tawk reaches WhatsApp through unofficial protocol libraries; use both at your own risk and in line with [WhatsApp's terms of service](https://www.whatsapp.com/legal/terms-of-service).
 
 tawk-mcp is the MCP server for [tawk](https://github.com/loganventer/tawk), a WhatsApp client for the terminal.
 
