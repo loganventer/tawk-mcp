@@ -7,6 +7,8 @@
 
 # tawk-mcp
 
+> **Disclaimer.** tawk-mcp and tawk are independent projects and are not affiliated with, endorsed by or connected to WhatsApp or Meta. tawk reaches WhatsApp through unofficial protocol libraries; use both at your own risk and in line with WhatsApp's terms of service.
+
 tawk-mcp is the MCP server for [tawk](https://github.com/loganventer/tawk), a WhatsApp client for the terminal.
 
 It lets MCP clients such as Claude Code, Claude Desktop and VS Code read your WhatsApp chats through a running tawk and, when you allow it in tawk, send messages and manage tawk for you. Every send waits for your approval in tawk, and anything destructive needs two separate yeses from you, one of which the model can never give.
