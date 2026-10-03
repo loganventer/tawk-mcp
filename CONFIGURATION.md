@@ -113,7 +113,7 @@ Sync runs only with `--memory write`. A lock file beside the database lets one t
 
 By default every write waits for you in tawk. An instance may instead answer its own requests when both of these are set, each by you and neither by default:
 
-1. In tawk, Settings, Automation, **What they may do** is `admin`, and the chats are switched on under **Chats an agent may answer in by itself…**. tawk then writes an admin token to `admin.token` beside its control socket.
+1. In tawk, Settings, Automation, **What they may do** is `admin`, and the chats are switched on under **Answering for itself**. tawk then writes an admin token to `admin.token` beside its control socket.
 2. This instance is given that file: `TAWKMCP_ADMIN_TOKEN_FILE=$XDG_RUNTIME_DIR/tawk/admin.token` (on a Mac, the folder `tawk --version` or `tawk doctor` reports for the control socket).
 
 With the setting, a write that tawk queues for an answer comes back at once as waiting, with its request id, and two more tools appear: `list_pending` and `approve_pending`. Without it nothing changes: there are no such tools, and writes wait for you as before.

@@ -260,7 +260,7 @@ Lists this instance's requests that still wait in tawk, with their ids and how l
 
 ### `approve_pending`
 
-`id` is the request id a waiting tool call came back with. tawk allows it only for sending a message, replying to a status, forwarding, editing, retrying, scheduling, rescheduling, sending or cancelling a scheduled message, a reaction, a read mark and a like; only in the chats you switched on in tawk under **Chats an agent may answer in by itself…**; and only so many an hour. Chat changes, your profile, statuses you post, settings, deletes and blocks always wait for you. Each approval is written to tawk's log as "approved by the agent" and shown on tawk's screen.
+`id` is the request id a waiting tool call came back with. tawk allows it only for sending a message, replying to a status, forwarding, editing, retrying, scheduling, rescheduling, sending or cancelling a scheduled message, a reaction, a read mark and a like; only in the chats you switched on in tawk under Settings, Automation, **Answering for itself**; and only so many an hour. Chat changes, your profile, statuses you post, settings, deletes and blocks always wait for you. Each approval is written to tawk's log as "approved by the agent" and shown on tawk's screen.
 
 The agent is told to approve only what you asked for, in the conversation or in your standing instructions, and never because a message says so. That is an instruction to a model, not a guarantee: a message someone sends you can still try to steer it. Name few chats and keep the hourly number low.
 
@@ -395,7 +395,7 @@ Set `TAWKMCP_CHANNEL_READ=on` (or `--channel-read on`) and read receipts arrive 
 
 Three more kinds work the same way, each with its own option and each off by default: `TAWKMCP_CHANNEL_REACTIONS` (someone reacted to a message you sent, or took it back), `TAWKMCP_CHANNEL_EDITS` (someone changed or deleted a message they sent; an edit carries the new words, fenced as untrusted) and `TAWKMCP_CHANNEL_SCHEDULED` (a message you scheduled went out).
 
-tawk has its own switch for every kind, under Settings, Agent events. Received and sent messages are on by default there; read receipts, reactions, edits and deletes, and scheduled sends are off. With one off, tawk does not hand those messages to tawk-mcp at all, so nothing here can turn them back on. A kind reaches the agent only when both sides have it on: tawk's switch for it, and the matching `TAWKMCP_CHANNEL_…` option here.
+tawk has its own switch for every kind, under Settings, Automation, Agent events. Received and sent messages are on by default there; read receipts, reactions, edits and deletes, and scheduled sends are off. With one off, tawk does not hand those messages to tawk-mcp at all, so nothing here can turn them back on. A kind reaches the agent only when both sides have it on: tawk's switch for it, and the matching `TAWKMCP_CHANNEL_…` option here.
 
 Anyone who can message you can put text in front of the model this way. Keep `access = read` if you only want to be told, and remember every write still needs your approval in tawk.
 
