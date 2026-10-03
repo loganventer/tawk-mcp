@@ -35,6 +35,16 @@ public class MessageToolsTests
     }
 
     [Test]
+    public async Task Send_message_says_when_tawk_added_the_ai_disclaimer()
+    {
+        _parts.Control.Answer("send_message", """{"id":"3EB0","disclaimer":true,"text":"On my way\n\nSent by my AI assistant"}""");
+
+        var text = ToolOutput.Text(await _tools.SendMessageAsync("Mom", "On my way"));
+
+        Assert.That(text, Does.StartWith("Approved in tawk").And.Contain("AI disclaimer").And.Contain("Do not add one yourself"));
+    }
+
+    [Test]
     public async Task Send_message_shows_the_final_wording_when_the_user_edited_it()
     {
         _parts.Control.Answer("send_message", """{"id":"3EB0","edited":true,"text":"On my way, 10 minutes"}""");

@@ -29,9 +29,10 @@ public sealed class MessageSendingManager : IMessageSendingManager
 
         var sent = await _control.RequestAsync<SentMessage>("send_message", args, onApprovalWaiting, cancellationToken)
             .ConfigureAwait(false);
-        return sent.Edited
+        return (sent.Edited
             ? $"Sent after you edited it in tawk (message id {sent.Id}). The final text was:\n{sent.Text}"
-            : $"Approved in tawk and queued to send (message id {sent.Id}). It goes out like any message sent from tawk.";
+            : $"Approved in tawk and queued to send (message id {sent.Id}). It goes out like any message sent from tawk.")
+            + DisclaimerNote(sent.Disclaimer);
     }
 
     public async Task<string> ReactAsync(string messageId, string emoji, Action? onApprovalWaiting, CancellationToken cancellationToken)
@@ -58,10 +59,15 @@ public sealed class MessageSendingManager : IMessageSendingManager
         }
 
         var due = _transcript.FormatTimestamp(scheduled.DueAt);
-        return scheduled.Edited
+        return (scheduled.Edited
             ? $"Scheduled for {due} (id {scheduled.Id}) after you edited it in tawk.{ScheduleNudges.Describe(nudge)} The final text is:\n{scheduled.Text}"
-            : $"Scheduled for {due} (id {scheduled.Id}).{ScheduleNudges.Describe(nudge)}";
+            : $"Scheduled for {due} (id {scheduled.Id}).{ScheduleNudges.Describe(nudge)}")
+            + DisclaimerNote(scheduled.Disclaimer);
     }
+
+    // The user turned this on in tawk, so the model must not add a line of its own on top.
+    private static string DisclaimerNote(bool added) =>
+        added ? "\ntawk added the user's AI disclaimer line under it. Do not add one yourself." : string.Empty;
 
     private Task<ScheduledMessage> ScheduleAsync(string chat, string when, string text, Action? onApprovalWaiting, CancellationToken cancellationToken) =>
         _control.RequestAsync<ScheduledMessage>(
