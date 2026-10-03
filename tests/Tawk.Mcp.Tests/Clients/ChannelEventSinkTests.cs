@@ -70,6 +70,27 @@ public class ChannelEventSinkTests
     }
 
     [Test]
+    public async Task A_read_receipt_is_pushed_only_when_asked_for_and_is_not_a_round()
+    {
+        var read = new LiveUpdate(
+            new ReadEvent(new ChatRef(Samples.MomJid, "Mom"), "3EB0C2A1F0", new ReaderRef(Samples.MomJid, "Mom"), 1790791400),
+            "Read receipt: Mom read the user's message in \"Mom\" (id 3EB0C2A1F0).");
+
+        await new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence).OnUpdateAsync(read, CancellationToken.None);
+        var before = _claude.Sent.Count;
+        await new ChannelEventSink(new ChannelOptions(ChannelMode.On, ReadReceipts: true), _sessions, _cadence).OnUpdateAsync(read, CancellationToken.None);
+
+        var meta = _claude.Sent.Single().Parameters["meta"]!.AsObject();
+        Assert.Multiple(() =>
+        {
+            Assert.That(before, Is.Zero);
+            Assert.That((string?)meta["type"], Is.EqualTo("read"));
+            Assert.That((string?)meta["message_id"], Is.EqualTo("3EB0C2A1F0"));
+            Assert.That((string?)meta["ts"], Is.EqualTo("1790791400"));
+        });
+    }
+
+    [Test]
     public async Task The_users_own_messages_are_not_pushed()
     {
         await new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence).OnUpdateAsync(Update(fromMe: true), CancellationToken.None);

@@ -6,4 +6,7 @@ namespace Tawk.Mcp.Engines;
 public interface INotificationFormatter
 {
     string Header(ChatRef chat, ChatMessage message);
+
+    /// <summary>One line saying who read which of the user's messages.</summary>
+    string Read(ChatRef chat, string messageId, ReaderRef reader);
 }

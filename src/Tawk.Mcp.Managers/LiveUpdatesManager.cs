@@ -42,7 +42,12 @@ public sealed partial class LiveUpdatesManager : ILiveUpdatesManager
                 await SubscribeAllAsync(cancellationToken).ConfigureAwait(false);
             }
 
-            var update = new LiveUpdate(tawkEvent, tawkEvent is MessageEvent message ? Describe(message) : null);
+            var update = new LiveUpdate(tawkEvent, tawkEvent switch
+            {
+                MessageEvent message => Describe(message),
+                ReadEvent read => _notification.Read(read.Chat, read.MessageId, read.Reader),
+                _ => null,
+            });
             foreach (var sink in _sinks)
             {
                 try

@@ -9,43 +9,30 @@ namespace Tawk.Mcp.Clients.Channels;
 
 /// <summary>
 /// Pushes new WhatsApp messages into connected Claude Code sessions as channel events: what other people
-/// send, and what the user sends too when that is asked for.
+/// send, and when asked for, what the user sends and who read the user's messages.
 /// </summary>
 public sealed class ChannelEventSink(ChannelOptions options, IClientSessionRegistry sessions, IWorkflowCadence cadence) : IEventSink
 {
     public async Task OnUpdateAsync(LiveUpdate update, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(update);
-        if (options.Mode == ChannelMode.Off
-            || update.Event is not MessageEvent message
-            || (message.Message.FromMe && !options.OwnMessages)
-            || update.ModelText is null)
+        if (options.Mode == ChannelMode.Off || update.ModelText is null || Meta(update.Event) is not { } meta)
         {
             return;
         }
 
+        // A message handed to the agent is a round, the same as a tool call; a read receipt is not.
+        var round = update.Event is MessageEvent;
         foreach (var session in sessions.Sessions.Where(Wants))
         {
-            var parameters = new JsonObject
-            {
-                ["content"] = update.ModelText,
-                ["meta"] = new JsonObject
-                {
-                    ["chat_jid"] = message.Chat.Jid,
-                    ["chat_name"] = message.Chat.Name,
-                    ["message_id"] = message.Message.Id,
-                    ["sender"] = message.Message.SenderName ?? message.Message.Sender ?? string.Empty,
-                    ["ts"] = message.Message.Ts.ToString(CultureInfo.InvariantCulture),
-                    ["type"] = message.Message.Type,
-                    ["from_me"] = message.Message.FromMe ? "true" : "false",
-                },
-            };
+            var parameters = new JsonObject { ["content"] = update.ModelText, ["meta"] = meta.DeepClone() };
             try
             {
                 await session.SendNotificationAsync(ChannelOptions.Method, parameters, cancellationToken).ConfigureAwait(false);
-
-                // A message handed to the agent is a round, the same as a tool call.
-                cadence.Round();
+                if (round)
+                {
+                    cadence.Round();
+                }
             }
             catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
@@ -53,6 +40,32 @@ public sealed class ChannelEventSink(ChannelOptions options, IClientSessionRegis
             }
         }
     }
+
+    /// <summary>The tag attributes for an event this channel carries, or null when it does not carry it.</summary>
+    private JsonObject? Meta(TawkEvent tawkEvent) => tawkEvent switch
+    {
+        MessageEvent message when !message.Message.FromMe || options.OwnMessages => new JsonObject
+        {
+            ["chat_jid"] = message.Chat.Jid,
+            ["chat_name"] = message.Chat.Name,
+            ["message_id"] = message.Message.Id,
+            ["sender"] = message.Message.SenderName ?? message.Message.Sender ?? string.Empty,
+            ["ts"] = message.Message.Ts.ToString(CultureInfo.InvariantCulture),
+            ["type"] = message.Message.Type,
+            ["from_me"] = message.Message.FromMe ? "true" : "false",
+        },
+        ReadEvent read when options.ReadReceipts => new JsonObject
+        {
+            ["chat_jid"] = read.Chat.Jid,
+            ["chat_name"] = read.Chat.Name,
+            ["message_id"] = read.MessageId,
+            ["sender"] = read.Reader.Name ?? read.Reader.Jid,
+            ["ts"] = read.At.ToString(CultureInfo.InvariantCulture),
+            ["type"] = "read",
+            ["from_me"] = "false",
+        },
+        _ => null,
+    };
 
     private bool Wants(IClientSession session) =>
         options.Mode == ChannelMode.On

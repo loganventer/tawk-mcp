@@ -78,6 +78,11 @@ public sealed class ControlLineCodec
         "message" => new MessageEvent(
             Property<ChatRef>(root, "chat"),
             Property<ChatMessage>(root, "message")),
+        "read" => new ReadEvent(
+            Property<ChatRef>(root, "chat"),
+            root.TryGetProperty("message_id", out var read) ? read.GetString() ?? string.Empty : string.Empty,
+            Property<ReaderRef>(root, "reader"),
+            root.TryGetProperty("at", out var at) && at.TryGetInt64(out var seconds) ? seconds : 0),
         "chat" => new ChatUpdatedEvent(Property<ChatSummary>(root, "chat")),
         "bye" => new ByeEvent(),
         "approval" => new ApprovalEvent(

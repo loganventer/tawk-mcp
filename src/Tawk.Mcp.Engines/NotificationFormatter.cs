@@ -15,6 +15,14 @@ public sealed partial class NotificationFormatter : INotificationFormatter
         return $"New WhatsApp message from {sender} in \"{Name(chat.Name)}\" (id {message.Id}):";
     }
 
+    public string Read(ChatRef chat, string messageId, ReaderRef reader)
+    {
+        ArgumentNullException.ThrowIfNull(chat);
+        ArgumentNullException.ThrowIfNull(reader);
+        var who = Name(string.IsNullOrWhiteSpace(reader.Name) ? reader.Jid : reader.Name);
+        return $"Read receipt: {who} read the user's message in \"{Name(chat.Name)}\" (id {Name(messageId)}).";
+    }
+
     // Names are chosen by other people too, so they are shortened and kept to one plain line.
     private static string Name(string name)
     {

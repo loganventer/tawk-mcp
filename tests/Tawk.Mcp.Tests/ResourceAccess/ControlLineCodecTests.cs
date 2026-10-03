@@ -162,4 +162,20 @@ public class ControlLineCodecTests
     {
         Assert.That(_codec.Decode("[1,2]"), Is.Null);
     }
+
+    [Test]
+    public void Reads_a_read_receipt_event()
+    {
+        var frame = new ControlLineCodec().Decode(
+            """{"evt":"read","chat":{"jid":"27820000000@s.whatsapp.net","name":"Mom"},"message_id":"3EB0","reader":{"jid":"27820000000@s.whatsapp.net","name":"Mom"},"at":1790791400}""");
+
+        var read = (ReadEvent)((ControlEventFrame)frame!).Event;
+        Assert.Multiple(() =>
+        {
+            Assert.That(read.Chat.Name, Is.EqualTo("Mom"));
+            Assert.That(read.MessageId, Is.EqualTo("3EB0"));
+            Assert.That(read.Reader.Name, Is.EqualTo("Mom"));
+            Assert.That(read.At, Is.EqualTo(1790791400));
+        });
+    }
 }
