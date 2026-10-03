@@ -119,7 +119,7 @@ scripts/docker-run.sh               # builds, runs as you, prints the token and 
 | Statuses | `list_statuses`, `status_viewers`, `list_backgrounds` | `post_status`, `reply_status`, `like_status` |
 | Profile | `get_profile` | `set_profile`, `set_profile_photo`, `remove_profile_photo` |
 | Settings | `get_settings`, `list_themes` | `set_setting` |
-| tawk itself | `app_status` | `reconnect`, `decline_call` |
+| tawk itself | `app_status`, `list_accounts` | `reconnect`, `decline_call` |
 | Your own waiting requests (only with an admin token file) | `list_pending` | `approve_pending` |
 | Audience categories | `list_categories` | `set_category`, `delete_category` |
 | Voices | `list_voices`, `get_voice`, `export_voice`, `check_voice` | `set_voice`, `set_voice_variant`, `import_voice`, `learn_voice`, `delete_voice` |
@@ -129,7 +129,9 @@ scripts/docker-run.sh               # builds, runs as you, prints the token and 
 
 The last five areas are tawk-mcp's own memory and never touch WhatsApp, except `draft_template`, which puts text into tawk's input box like `draft_message`.
 
-Resources: `tawk://chats`, `tawk://chat/{jid}`, `tawk://voices`, `tawk://voice/{name}`, `tawk://contact/{jid}` and `tawk://templates`. Prompts: `catch_up` and `draft_reply`. Every tool is described in [MANUAL.md](MANUAL.md).
+With several WhatsApp accounts in tawk, the tools that reach WhatsApp take an optional `account`, and each account has its own level for agents, set in tawk. See [Accounts](MANUAL.md#accounts).
+
+Resources: `tawk://chats`, `tawk://chat/{jid}`, `tawk://account/{account}/chats`, `tawk://account/{account}/chat/{jid}`, `tawk://voices`, `tawk://voice/{name}`, `tawk://contact/{jid}` and `tawk://templates`. Prompts: `catch_up` and `draft_reply`. Every tool is described in [MANUAL.md](MANUAL.md).
 
 ## Documentation
 

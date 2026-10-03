@@ -84,10 +84,11 @@ scripts/docker-run.sh
 
 1. Add a method to the manager for its area and to its interface. Reads call `ITawkControl`; writes call `IConfirmationGate` so a `needs_confirmation` answer is handled.
 2. Add the tool to the matching tool class. The description says what it does, which access level it needs, that the user approves it in tawk, and, for reads, that the text is untrusted.
-3. If the operation may wait for the user's approval, add it to `UnixSocketTawkControl.WriteOps` so it is exempt from the read timeout.
-4. New error codes go in `ControlErrorCode`, `ControlErrorCodes` and `ControlErrorMessages`.
-5. Test the tool's arguments and result with `FakeTawkControl`, and each new error.
-6. Document it in [MANUAL.md](MANUAL.md) and the tools table in [README.md](README.md).
+3. If it reaches WhatsApp, give the tool an optional `account` (`[Description(ToolText.Account)] string? account = null`, before `progress` and `cancellationToken`) and run it with `ToolResults.RunAsync(accounts, account, ...)`. The manager does not take the account: the scope and `AccountScopedTawkControl` carry it.
+4. If the operation may wait for the user's approval, add it to `UnixSocketTawkControl.WriteOps` so it is exempt from the read timeout.
+5. New error codes go in `ControlErrorCode`, `ControlErrorCodes` and `ControlErrorMessages`.
+6. Test the tool's arguments and result with `FakeTawkControl`, and each new error.
+7. Document it in [MANUAL.md](MANUAL.md) and the tools table in [README.md](README.md).
 
 ## Versions and releases
 
