@@ -63,11 +63,10 @@ Flags override environment variables, which override the defaults.
 | `--channel-scheduled on\|off` | `TAWKMCP_CHANNEL_SCHEDULED` | `off` | Also send an event when a message you scheduled goes out (`type="scheduled_sent"`). tawk's **Push scheduled sends** must be on too |
 | `--memory write\|read\|off` | `TAWKMCP_MEMORY` | `write` | Memory for voices, contacts and templates: `read` offers the tools but refuses changes, `off` removes them |
 | `--data-file PATH` | `TAWKMCP_DATA_FILE` | `~/.local/share/tawk-mcp/memory.db` | Where memory is kept |
-| `--sync-repo OWNER/NAME` | `TAWKMCP_SYNC_REPO` | none | The private GitHub repository that holds the memory file. See [Memory sync](#memory-sync) |
-| | `TAWKMCP_SYNC_TOKEN` | none | A token for that repository. Environment only, so it never shows in a process list |
+| `--sync-repo ADDRESS` | `TAWKMCP_SYNC_REPO` | none | The private git repository that holds the memory file: `owner/name` for one on GitHub, or an SSH address such as `git@github.com:owner/name.git` or `git@my-alias:owner/name.git`. See [Memory sync](#memory-sync) |
+| `--sync-key PATH` | `TAWKMCP_SYNC_KEY` | none | An SSH private key to use for sync. Without it SSH picks a key the usual way (your agent, `~/.ssh/config`, the default key files) |
 | `--sync-branch NAME` | `TAWKMCP_SYNC_BRANCH` | `main` | The branch |
 | `--sync-file PATH` | `TAWKMCP_SYNC_FILE` | `memory.db` | The file's path inside the repository |
-| `--sync-api URL` | `TAWKMCP_SYNC_API` | `https://api.github.com` | The GitHub API address; another one serves a GitHub Enterprise server. Must be https |
 | `--sync-interval-minutes N` | `TAWKMCP_SYNC_INTERVAL_MINUTES` | `120` | Minutes between syncs (1 to 10080) |
 | `--workflow-every N` | `TAWKMCP_WORKFLOW_EVERY` | `20` | Rounds between memory workflow checks (0 to 10000, 0 turns them off). See [Instructions for agents](#instructions-for-agents) |
 | `--instructions-file PATH` | `TAWKMCP_INSTRUCTIONS_FILE` | `~/.config/tawk-mcp/instructions.md` | Your own standing instructions for agents |
@@ -99,13 +98,29 @@ A value out of range or a flag tawk-mcp does not know stops it at start with a m
 
 ## Memory sync
 
-Sync keeps `memory.db` in step between your machines through a file in a GitHub repository. It is set up per instance and has no default destination: nothing syncs until both a repository and a token are set on that machine, and no repository is ever assumed.
+Sync keeps `memory.db` in step between your machines through a file in a git repository, using git over SSH. It is set up per instance and has no default destination: nothing syncs until a repository is set on that machine, and no repository is ever assumed. There are no tokens: access is by an SSH key that may write to the repository.
 
 1. Create a **private** repository. Memory holds profiles of real people.
-2. Create a fine-grained personal access token with **Contents: read and write** on that repository only.
-3. Set `TAWKMCP_SYNC_REPO=owner/name` and `TAWKMCP_SYNC_TOKEN=...` where tawk-mcp starts (the service file, the MCP client's `env`, or the container), on every machine that should share the memory.
+2. On each machine, make an SSH key and allow it to write. On GitHub the narrowest way is a deploy key, which reaches that one repository only:
+   ```sh
+   ssh-keygen -t ed25519 -N "" -f ~/.ssh/tawk_memory_ed25519
+   gh repo deploy-key add ~/.ssh/tawk_memory_ed25519.pub -R owner/name --allow-write --title "tawk memory (this machine)"
+   ```
+   Without `gh`, paste the `.pub` file into the repository's Settings, Deploy keys, and tick "Allow write access".
+3. Tell SSH to use that key for the repository, with a host alias in `~/.ssh/config`:
+   ```
+   Host github-tawk-memory
+       HostName github.com
+       User git
+       IdentityFile ~/.ssh/tawk_memory_ed25519
+       IdentitiesOnly yes
+   ```
+   and make sure the host is known: `ssh -T git@github-tawk-memory` should greet you by the repository's name.
+4. Set `TAWKMCP_SYNC_REPO=git@github-tawk-memory:owner/name.git` where tawk-mcp starts (the service file, the MCP client's `env`, or the container), on every machine that should share the memory. Instead of the alias you can set `TAWKMCP_SYNC_REPO=owner/name` and `TAWKMCP_SYNC_KEY=~/.ssh/tawk_memory_ed25519`.
 
-A cycle runs when the server starts and then every `TAWKMCP_SYNC_INTERVAL_MINUTES`; `tawk-mcp sync` runs one by hand. Each cycle reads the remote file's version, merges it into the local database if it changed, and pushes only when this machine holds something the remote does not. Rows are matched by key: the stronger source wins (user, then contact, then imported, then inferred), then the newer change, and a delete on one machine removes the row on the others. Content is compared by a digest of the rows, so two machines with the same memory never push at each other. If GitHub refuses a push because another machine got there first, the cycle merges again and retries, three times at most.
+tawk-mcp needs `git` and `ssh` on the PATH. It never prompts: a key with a passphrase works only through an SSH agent, and a host that is not in `known_hosts` is refused. Beside the database it keeps `memory.db.sync.git`, a small bare repository holding what it last fetched.
+
+A cycle runs when the server starts and then every `TAWKMCP_SYNC_INTERVAL_MINUTES`; `tawk-mcp sync` runs one by hand. Each cycle looks up the branch's newest commit, fetches it and merges its file into the local database if it changed, and pushes only when this machine holds something the remote does not. Rows are matched by key: the stronger source wins (user, then contact, then imported, then inferred), then the newer change, and a delete on one machine removes the row on the others. Content is compared by a digest of the rows, so two machines with the same memory never push at each other. A push is never forced: if another machine got there first, the repository refuses it, and the cycle merges again and retries, three times at most. Other files in the repository are left as they are.
 
 Sync runs only with `--memory write`. A lock file beside the database lets one tawk-mcp per machine sync at a time. A remote written by a newer tawk-mcp is left alone until this machine is updated. The first machine to sync creates the file.
 
@@ -171,7 +186,7 @@ The image sets:
 
 Containers run in UTC, and tawk-mcp shows and reads times in its machine's zone (message times in transcripts, the catch-up cutoff, follow-up dates). Pass your zone with `-e TZ=Africa/Johannesburg` or they are off by your offset; `scripts/docker-run.sh` passes this machine's zone for you, and `compose.yaml` takes it from `TZ`.
 
-For memory sync pass `-e TAWKMCP_SYNC_REPO=owner/name -e TAWKMCP_SYNC_TOKEN=...`; `compose.yaml` takes both from your environment and leaves sync off when they are not set. To use an instructions file, mount it and point `TAWKMCP_INSTRUCTIONS_FILE` at it.
+For memory sync the image has `git` and an SSH client. Mount a folder holding the private key and a `known_hosts` file, and pass `-e TAWKMCP_SYNC_REPO=git@github.com:owner/name.git -e TAWKMCP_SYNC_KEY=/ssh/id_ed25519 -e GIT_SSH_COMMAND="ssh -i /ssh/id_ed25519 -o IdentitiesOnly=yes -o BatchMode=yes -o UserKnownHostsFile=/ssh/known_hosts"`. `compose.yaml` takes the repository from your environment and leaves sync off when it is not set. To use an instructions file, mount it and point `TAWKMCP_INSTRUCTIONS_FILE` at it.
 
 Run it with `--user "$(id -u):$(id -g)"` and `-p 127.0.0.1:8765:8765`. `TAWKMCP_TOKEN` can be passed instead of the token file, for example from a secret store. The other variables work in the container as anywhere else.
 

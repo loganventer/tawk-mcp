@@ -295,25 +295,27 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    START["Start, then every interval"] --> SET{"Repository and token set?"}
+    START["Start, then every interval"] --> SET{"Repository set?"}
     SET -- no --> OFF["No sync"]
     SET -- yes --> LOCK{"Lock file free?"}
     LOCK -- no --> SKIP["Skip this cycle"]
-    LOCK -- yes --> HEAD["Read the remote file's version"]
+    LOCK -- yes --> HEAD["Ask the repository for the branch's newest commit<br/>(git ls-remote over SSH)"]
     HEAD --> SAME{"Same version as last time,<br/>and local content unchanged?"}
     SAME -- yes --> DONE["Up to date"]
     SAME -- no --> CHANGED{"Remote version changed?"}
-    CHANGED -- yes --> MERGE["Download it, bring it to this schema,<br/>merge it into the local database"]
+    CHANGED -- yes --> MERGE["Fetch it, read the file out of it, bring it to this schema,<br/>merge it into the local database"]
     CHANGED -- no --> DIGEST
     MERGE --> DIGEST{"Local digest equals remote digest?"}
     DIGEST -- yes --> DONE
-    DIGEST -- no --> PUSH["Copy the database and push it,<br/>naming the version it replaces"]
+    DIGEST -- no --> PUSH["Copy the database, build a commit on the one it replaces,<br/>and push without force"]
     PUSH --> OK{"Accepted?"}
     OK -- yes --> DONE
     OK -- "no, the remote moved (3 tries)" --> HEAD
 ```
 
 The merge takes each table in turn and matches rows by key. Where both sides have a row, the stronger source wins (user, contact, imported, inferred), then the newer `updated`, and an exact tie is settled by the row's content so both machines choose the same one. A delete leaves a tombstone: one newer than the winning row removes it everywhere, and a row changed after its tombstone survives and clears it. Rows that have lapsed are dropped before the merge and never brought back. Deleting a contact takes its fields, categories and observations with it on every machine.
+
+The remote side is git over SSH. A version is the commit that holds the file. `GitMemoryRemote` keeps a bare repository beside the database, fetches only the newest commit into it, and builds the next commit there without a working copy, so the other files in the repository are carried along untouched. The push is a plain one: when another machine pushed first it is not a fast-forward, the repository refuses it, and the cycle starts again from the new commit.
 
 The digest is a SHA-256 over the rows and tombstones in a fixed order, not over the file's bytes, so two machines holding the same memory compare equal and neither pushes.
 

@@ -335,7 +335,7 @@ The interval is `TAWKMCP_WORKFLOW_EVERY` (0 turns it off). Your own standing ins
 
 ## Memory sync
 
-Memory can be kept in step between your machines through a private GitHub repository of your own. It is off until you set a repository and a token on a machine; there is no default destination. [CONFIGURATION.md](CONFIGURATION.md#memory-sync) has the setup and the merge rules. `tawk-mcp sync` runs one cycle and says what happened.
+Memory can be kept in step between your machines through a private git repository of your own, using git over SSH with a key on each machine. It is off until you set a repository on a machine; there is no default destination, and there are no tokens. [CONFIGURATION.md](CONFIGURATION.md#memory-sync) has the setup and the merge rules. `tawk-mcp sync` runs one cycle and says what happened.
 
 ## Resources
 

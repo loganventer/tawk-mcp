@@ -22,7 +22,7 @@ tawk-mcp talks to tawk over tawk's control socket, described in tawk's [CONTROL.
 - **Live updates**: resource subscriptions, Claude Code channel events, and a server-sent event stream at `/events`.
 - **Memory for writing like you** (on by default, `--memory off` to drop it): voices tuned per audience with a `check_voice` scorer, contact profiles with a source and confidence on every field, and reply templates. Kept on your computer, in a private SQLite file.
 - **Knowledge in the Open Knowledge Format**: observations about people and topics and the relations between them, held as [OKF 0.2](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) concepts in the same file, and exported or imported as a bundle of Markdown files.
-- **Memory sync between your machines** (off until you set it up): the memory file is merged row by row with a copy in a private GitHub repository of yours. There is no default destination.
+- **Memory sync between your machines** (off until you set it up): the memory file is merged row by row with a copy in a private git repository of yours, over SSH with your own key. There is no default destination and no token.
 - **It instructs the agent itself**: every client that connects gets the working rules as server instructions, a memory workflow is handed to the agent every 20 rounds so profiles and voices stay current, and your own standing instructions come from a text file you write.
 - **Natural-looking schedules**: scheduled messages move by a random amount up to 60 seconds either way, so they do not land on the exact minute.
 - **Prompts**: `catch_up` and `draft_reply`, which brings in your voice for the chat when memory knows it.
