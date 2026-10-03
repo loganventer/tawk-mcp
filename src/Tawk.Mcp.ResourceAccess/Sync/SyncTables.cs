@@ -18,14 +18,14 @@ internal static class SyncTables
         new("contact_category", ["jid", "category"], ["jid", "category", "updated"],
             ParentTable: "contact", ParentKey: "jid", ParentColumn: "jid"),
         new("contact_fact", ["jid", "field"],
-            ["jid", "field", "value", "source", "confidence", "evidence", "sensitive", "updated", "expires"],
+            ["jid", "field", "value", "source", "confidence", "evidence", "sensitive", "updated", "expires", "account"],
             SourceSql: "source", ExpiresColumn: "expires", ParentTable: "contact", ParentKey: "jid", ParentColumn: "jid"),
         new("response_template", ["name"], ["name", "description", "category", "voice", "language", "body", "updated"]),
         new("okf_concept", ["id"],
             ["id", "type", "title", "description", "resource", "tags", "generated_by", "generated_at", "verified", "status",
              "stale_after", "sources", "extra", "body", "updated"],
             SourceSql: ConceptSource),
-        new("okf_link", ["from_id", "to_id", "label"], ["from_id", "to_id", "label", "note", "source", "confidence", "updated"],
+        new("okf_link", ["from_id", "to_id", "label"], ["from_id", "to_id", "label", "note", "source", "confidence", "updated", "account"],
             SourceSql: "source", ParentTable: "okf_concept", ParentKey: "id", ParentColumn: "from_id"),
     ];
 }

@@ -10,7 +10,7 @@ internal static class OkfRows
         "SELECT c.id, c.type, c.title, c.description, c.resource, c.tags, c.generated_by, c.generated_at, c.verified, "
         + "c.status, c.stale_after, c.sources, c.extra, c.body, c.updated FROM okf_concept c";
 
-    public const string LinkColumns = "SELECT from_id, to_id, label, note, source, confidence, updated FROM okf_link";
+    public const string LinkColumns = "SELECT from_id, to_id, label, note, source, confidence, updated, account FROM okf_link";
 
     private const string UpsertConceptSql =
         "INSERT INTO okf_concept (id, type, title, description, resource, tags, generated_by, generated_at, verified, status, "
@@ -23,10 +23,10 @@ internal static class OkfRows
         + "updated = excluded.updated";
 
     private const string UpsertLinkSql =
-        "INSERT INTO okf_link (from_id, to_id, label, note, source, confidence, updated) "
-        + "VALUES ($from, $to, $label, $note, $source, $confidence, $updated) "
+        "INSERT INTO okf_link (from_id, to_id, label, note, source, confidence, updated, account) "
+        + "VALUES ($from, $to, $label, $note, $source, $confidence, $updated, $account) "
         + "ON CONFLICT (from_id, to_id, label) DO UPDATE SET note = excluded.note, source = excluded.source, "
-        + "confidence = excluded.confidence, updated = excluded.updated";
+        + "confidence = excluded.confidence, updated = excluded.updated, account = excluded.account";
 
     public static async Task UpsertConceptAsync(
         SqliteConnection connection, SqliteTransaction? transaction, OkfConcept concept, CancellationToken cancellationToken)
@@ -68,7 +68,8 @@ internal static class OkfRows
             ("$note", link.Note),
             ("$source", SourceNames.ToName(link.Source)),
             ("$confidence", link.Confidence),
-            ("$updated", SqliteCommands.ToUnixMs(link.Updated))).ConfigureAwait(false);
+            ("$updated", SqliteCommands.ToUnixMs(link.Updated)),
+            ("$account", link.Account)).ConfigureAwait(false);
         await Tombstones.ClearAsync(
             connection, transaction, Tombstones.Link, Tombstones.LinkKey(link.FromId, link.ToId, link.Label), cancellationToken).ConfigureAwait(false);
     }
@@ -97,7 +98,10 @@ internal static class OkfRows
         SqliteCommands.NullableString(r, 3),
         SourceNames.FromName(r.GetString(4)),
         r.GetDouble(5),
-        SqliteCommands.FromUnixMs(r.GetInt64(6)));
+        SqliteCommands.FromUnixMs(r.GetInt64(6)))
+    {
+        Account = SqliteCommands.NullableString(r, 7),
+    };
 
     public static string StatusName(OkfStatus status) => status switch
     {
