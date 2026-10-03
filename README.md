@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo-lockup-dark.png">
+    <img src="docs/images/logo-lockup.png" alt="tawk" height="96">
+  </picture>
+</p>
+
 # tawk-mcp
 
 tawk-mcp is the MCP server for [tawk](https://github.com/loganventer/tawk), a WhatsApp client for the terminal.
