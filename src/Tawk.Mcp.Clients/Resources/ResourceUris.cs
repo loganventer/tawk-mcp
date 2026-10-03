@@ -6,6 +6,10 @@ public static class ResourceUris
     public const string ChatPrefix = "tawk://chat/";
     public const string ChatTemplate = "tawk://chat/{jid}";
 
+    // The same two for one of the user's accounts, by label or id. The forms above mean the default account.
+    public const string AccountChatsTemplate = "tawk://account/{account}/chats";
+    public const string AccountChatTemplate = "tawk://account/{account}/chat/{jid}";
+
     public static string Chat(string jid) => ChatPrefix + jid;
 
     /// <summary>Returns "chats" for the chat list, the unescaped jid for one chat, or null for anything else.</summary>
