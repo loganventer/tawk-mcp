@@ -21,6 +21,11 @@ public sealed class ApprovalManager(ITawkApprovals approvals, IAdminTokenSource 
         {
             var seconds = Math.Max(0, (int)(now - request.Since).TotalSeconds);
             text.Append(CultureInfo.InvariantCulture, $"- request {request.Id}: {request.Op}, ");
+            if (request.Account is { Length: > 0 } account)
+            {
+                text.Append(CultureInfo.InvariantCulture, $"account {account}, ");
+            }
+
             text.Append(request.Outcome is null
                 ? string.Create(CultureInfo.InvariantCulture, $"waiting for {seconds} s")
                 : "answered in tawk meanwhile: " + request.Outcome);

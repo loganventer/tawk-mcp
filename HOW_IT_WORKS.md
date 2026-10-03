@@ -5,6 +5,7 @@
 - [Start-up](#start-up)
 - [Connecting to tawk](#connecting-to-tawk)
 - [A read](#a-read)
+- [A call for one account](#a-call-for-one-account)
 - [A send with approval](#a-send-with-approval)
 - [A send the agent approves itself](#a-send-the-agent-approves-itself)
 - [A destructive request in two steps](#a-destructive-request-in-two-steps)
@@ -69,6 +70,17 @@ sequenceDiagram
 ```
 
 If tawk answers with an error, `ControlConnection` completes the request with a `TawkControlException`, and the tool turns it into an error result with a plain explanation, for example the candidates for an `ambiguous` name. Reading never marks anything as read.
+
+## A call for one account
+
+1. The model calls `send_message` with `account: "work"`.
+2. `ToolResults.RunAsync` opens the account scope with `work` and runs the use case inside it.
+3. The manager builds its request as always and hands it to `ITawkControl`, which is the `AccountScopedTawkControl` decorator.
+4. The decorator reads the scope. With no account it passes the request on unchanged. With one, it looks at tawk's `hello`: if tawk did not say `multi_account`, the call is refused there and nothing is sent, because that tawk would act on its one number. Otherwise it adds `"account":"work"` to the arguments.
+5. tawk serves the request from that account, under that account's level, and answers. An account closed to agents answers `not_found`.
+6. The scope closes when the call ends. Work outside a tool call, such as the subscription to live events, has no scope and names no account.
+
+Events come back the other way with `account` on them. `ControlLineCodec` puts it on the `TawkEvent`, and the notification text, the channel tag and the event stream each carry it from there.
 
 ## A send with approval
 

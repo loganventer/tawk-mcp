@@ -58,8 +58,9 @@ public sealed class FakeTawkControl : ITawkControl
 
     public RecordedRequest Last(string op) => Requests.Last(r => r.Op == op);
 
-    public Task<HelloInfo> ConnectAsync(CancellationToken cancellationToken) =>
-        Task.FromResult(new HelloInfo(1, "0.6.4", "manage", new AccountInfo("27830000000@s.whatsapp.net", "Logan"), true));
+    public HelloInfo Hello { get; set; } = new(1, "0.6.4", "manage", new AccountInfo("27830000000@s.whatsapp.net", "Logan"), true);
+
+    public Task<HelloInfo> ConnectAsync(CancellationToken cancellationToken) => Task.FromResult(Hello);
 
     public Task<JsonElement> RequestAsync(string op, JsonObject? args, Action? onApprovalWaiting, CancellationToken cancellationToken)
     {

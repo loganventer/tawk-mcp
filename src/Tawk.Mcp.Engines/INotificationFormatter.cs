@@ -12,4 +12,7 @@ public interface INotificationFormatter
 
     /// <summary>One line saying what happened to a message: a reaction, an edit, a delete or a scheduled send.</summary>
     string Activity(MessageActivityEvent activity);
+
+    /// <summary>The line that says which of the user's accounts an event is about. The label is the user's own text and is flattened like a name.</summary>
+    string Account(AccountRef account);
 }

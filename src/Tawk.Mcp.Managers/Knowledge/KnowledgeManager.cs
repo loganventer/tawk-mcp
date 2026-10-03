@@ -15,7 +15,8 @@ public sealed class KnowledgeManager(
     IUntrustedTextFence fence,
     IMemoryWriteGuard guard,
     OkfProducer producer,
-    TimeProvider clock) : IKnowledgeManager
+    TimeProvider clock,
+    IAccountTag? accountTag = null) : IKnowledgeManager
 {
     private const string Label = "knowledge from tawk-mcp's memory, written by the user or by an agent that read their chats";
     private const int MaxTextLength = 2000;
@@ -58,14 +59,15 @@ public sealed class KnowledgeManager(
             id = OkfIds.ObservationAbout(subject.Id, now);
         }
 
+        var account = accountTag is null ? null : await accountTag.CurrentAsync(cancellationToken).ConfigureAwait(false);
         var lifetime = staleAfterDays is { } days ? TimeSpan.FromDays(days) : from == FactSource.Inferred ? InferredLifetime : (TimeSpan?)null;
         await knowledge.UpsertAsync(
             new OkfConcept(
                 id, OkfTypes.Observation, null, null, null, labels, OkfActors.For(from, OkfIds.JidOf(subject.Id), producer.Version), now,
                 from == FactSource.User ? [new OkfVerification(OkfActors.Self, now)] : [], OkfStatus.Stable, now + lifetime, [],
-                OkfExtras.Write(new ObservationDetails(from, sure, sensitive, Trim(evidence))), text.Trim(), now),
+                OkfExtras.Write(new ObservationDetails(from, sure, sensitive, Trim(evidence)) { Account = account }), text.Trim(), now),
             cancellationToken).ConfigureAwait(false);
-        await knowledge.UpsertLinkAsync(new OkfLink(id, subject.Id, OkfIds.About, null, from, sure, now), cancellationToken).ConfigureAwait(false);
+        await knowledge.UpsertLinkAsync(new OkfLink(id, subject.Id, OkfIds.About, null, from, sure, now) { Account = account }, cancellationToken).ConfigureAwait(false);
         return $"Observation {id} recorded about {subject.Name}.";
     }
 
@@ -105,7 +107,9 @@ public sealed class KnowledgeManager(
                 + "An inference never replaces what someone stated.";
         }
 
-        await knowledge.UpsertLinkAsync(new OkfLink(start.Id, end.Id, kind, Trim(note), by, sure, clock.GetUtcNow()), cancellationToken).ConfigureAwait(false);
+        var account = accountTag is null ? null : await accountTag.CurrentAsync(cancellationToken).ConfigureAwait(false);
+        await knowledge.UpsertLinkAsync(
+            new OkfLink(start.Id, end.Id, kind, Trim(note), by, sure, clock.GetUtcNow()) { Account = account }, cancellationToken).ConfigureAwait(false);
         return $"Recorded: {start.Name} is {kind} {end.Name}.";
     }
 

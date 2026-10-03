@@ -42,13 +42,17 @@ public sealed partial class LiveUpdatesManager : ILiveUpdatesManager
                 await SubscribeAllAsync(cancellationToken).ConfigureAwait(false);
             }
 
-            var update = new LiveUpdate(tawkEvent, tawkEvent switch
+            var text = tawkEvent switch
             {
                 MessageEvent message => Describe(message),
                 ReadEvent read => _notification.Read(read.Chat, read.MessageId, read.Reader),
                 MessageActivityEvent activity => Describe(activity),
                 _ => null,
-            });
+            };
+
+            // The account goes first, outside the fenced text, so nothing in a message can pose as it.
+            var update = new LiveUpdate(
+                tawkEvent, text is not null && tawkEvent.Account is { } account ? _notification.Account(account) + "\n" + text : text);
             foreach (var sink in _sinks)
             {
                 try

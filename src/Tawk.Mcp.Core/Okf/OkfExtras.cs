@@ -26,6 +26,11 @@ public static class OkfExtras
             extra["evidence"] = details.Evidence;
         }
 
+        if (!string.IsNullOrWhiteSpace(details.Account))
+        {
+            extra["account"] = details.Account;
+        }
+
         return extra.ToJsonString();
     }
 
@@ -37,6 +42,7 @@ public static class OkfExtras
         var confidence = 1.0;
         var sensitive = false;
         string? evidence = null;
+        string? account = null;
         try
         {
             using var document = JsonDocument.Parse(concept.ExtraJson);
@@ -56,6 +62,7 @@ public static class OkfExtras
 
                 sensitive = root.TryGetProperty("sensitive", out var flag) && flag.ValueKind == JsonValueKind.True;
                 evidence = root.TryGetProperty("evidence", out var e) && e.ValueKind == JsonValueKind.String ? e.GetString() : null;
+                account = root.TryGetProperty("account", out var a) && a.ValueKind == JsonValueKind.String ? a.GetString() : null;
             }
         }
         catch (JsonException)
@@ -63,7 +70,7 @@ public static class OkfExtras
             // Producer keys that do not parse are treated as absent.
         }
 
-        return new ObservationDetails(source, confidence, sensitive, evidence);
+        return new ObservationDetails(source, confidence, sensitive, evidence) { Account = account };
     }
 
     public static string SourceName(FactSource source) => source switch

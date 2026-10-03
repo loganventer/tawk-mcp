@@ -10,14 +10,14 @@ internal sealed class ParkedRequests(TimeProvider clock)
     private const int Capacity = 64;
     private readonly ConcurrentDictionary<string, Entry> _entries = new(StringComparer.Ordinal);
 
-    public void Park(string id, string op, Task<JsonElement> answer)
+    public void Park(string id, string op, string? account, Task<JsonElement> answer)
     {
         if (_entries.Count >= Capacity)
         {
             Evict();
         }
 
-        var entry = new Entry(op, clock.GetUtcNow(), answer);
+        var entry = new Entry(op, account, clock.GetUtcNow(), answer);
         _entries[id] = entry;
 
         // Observed here so an answer nobody collects is never an unobserved failure.
@@ -38,7 +38,7 @@ internal sealed class ParkedRequests(TimeProvider clock)
         var list = new List<WaitingRequest>();
         foreach (var (id, entry) in _entries.OrderBy(pair => pair.Value.Since))
         {
-            list.Add(new WaitingRequest(id, entry.Op, entry.Since, entry.Outcome));
+            list.Add(new WaitingRequest(id, entry.Op, entry.Since, entry.Outcome) { Account = entry.Account });
             if (entry.Outcome is not null)
             {
                 _entries.TryRemove(id, out _);
@@ -66,9 +66,11 @@ internal sealed class ParkedRequests(TimeProvider clock)
         }
     }
 
-    private sealed class Entry(string op, DateTimeOffset since, Task<JsonElement> answer)
+    private sealed class Entry(string op, string? account, DateTimeOffset since, Task<JsonElement> answer)
     {
         public string Op { get; } = op;
+
+        public string? Account { get; } = account;
 
         public DateTimeOffset Since { get; } = since;
 

@@ -5,6 +5,7 @@
 - [How to read this manual](#how-to-read-this-manual)
 - [Installing](#installing)
 - [Naming chats](#naming-chats)
+- [Accounts](#accounts)
 - [What the model sees](#what-the-model-sees)
 - [Reading tools](#reading-tools)
 - [Sending tools](#sending-tools)
@@ -76,6 +77,22 @@ Options go after `bash -s --` when the script is piped: `curl -fsSL .../install.
 Wherever a tool takes `chat`, you can give the chat's JID (`27820000000@s.whatsapp.net`, `1203...@g.us` for a group) or its name. A name matches case-insensitively, first exactly and then as the start of a word, so `mom` finds "Mom" and `book` finds "Book club". When a name matches more than one chat the tool answers with the candidates and their JIDs, and the model should ask you which one you mean.
 
 Locked and hidden chats, and chats outside tawk's `chats` setting, are never shown and are reported as not found.
+
+## Accounts
+
+tawk can hold several WhatsApp numbers. You decide in tawk, for each one, whether agents may use it and how far: off, read, send, manage or admin (Settings, Account, Accounts…). An account you add starts off, and tawk-mcp is not told it exists.
+
+- **`list_accounts`** shows the accounts open to agents: id, label, number, what may be done in each, and which is the default.
+- **`account`** is an optional argument on every tool that reaches WhatsApp, and on the memory tools that take a `chat`. Give an account's label or id. Without it the tool uses the default account: your primary one if agents may use it, else the first they may.
+- A chat belongs to one account. The same person on two of your numbers is two chats, and `chat` is looked up inside the account you named.
+- What a tool may do is decided by that account's level. A send from an account at read is refused, whatever your other accounts allow.
+- An account that is closed or does not exist answers "No such account" either way.
+
+The model is told to pass the account an event arrived with when it acts on that event, and never to move a conversation to another of your numbers unless you ask: the other person would see a different sender.
+
+**An older tawk.** A tawk from before accounts would ignore the argument and act on its one number. tawk-mcp checks what tawk said when it connected, and refuses a call that names an account instead of sending it. Calls without `account` work as before.
+
+**Memory.** Memory is shared across your accounts: a person known on two numbers has one profile. Each profile field, observation and relation records the account it was learnt through, as that account's JID.
 
 ## What the model sees
 
@@ -343,12 +360,14 @@ Memory can be kept in step between your machines through a private git repositor
 | --- | --- |
 | `tawk://chats` | Your chat list, as `list_chats` shows it |
 | `tawk://chat/{jid}` | The 30 most recent messages of one chat |
+| `tawk://account/{account}/chats` | The chat list of one account, by its label or id |
+| `tawk://account/{account}/chat/{jid}` | The 30 most recent messages of one chat of that account |
 | `tawk://voices` | The voices in memory |
 | `tawk://voice/{name}` | One voice with its rules and variants |
 | `tawk://contact/{jid}` | One contact's profile, without sensitive fields |
 | `tawk://templates` | The reply templates in memory |
 
-Clients may subscribe to both. A subscribed client is told (`notifications/resources/updated`) when a chat gets a new message or its unread count changes, and the chat list resource changes with every chat. After tawk-mcp reconnects to tawk it tells subscribed clients about every subscribed resource, and sends `notifications/resources/list_changed`, since messages may have arrived while it was away.
+The first two mean the default account. Clients may subscribe to those two; the per-account forms are read on request and send no update notifications yet. A subscribed client is told (`notifications/resources/updated`) when a chat gets a new message or its unread count changes, and the chat list resource changes with every chat. After tawk-mcp reconnects to tawk it tells subscribed clients about every subscribed resource, and sends `notifications/resources/list_changed`, since messages may have arrived while it was away.
 
 ## Prompts
 
@@ -357,6 +376,8 @@ Clients may subscribe to both. A subscribed client is told (`notifications/resou
 A short catch-up on unread messages. It fetches the unread summary, lists the chats, and tells the model to read each one and summarise, chats that mention you first. `since` limits it to chats active since then: `30m`, `2h`, `1d`, `1w`, or an ISO date or time such as `2026-09-30T08:00`.
 
 In Claude Code: `/mcp__tawk__catch_up` or `/mcp__tawk__catch_up 2h`.
+
+Both prompts take an optional `account`, a label or id, and then tell the model to pass that account to every tool it calls.
 
 ### `draft_reply`
 
@@ -410,6 +431,18 @@ Three more kinds work the same way, each with its own option and each off by def
 tawk has its own switch for every kind, under Settings, Automation, Agent events. Received and sent messages are on by default there; read receipts, reactions, edits and deletes, and scheduled sends are off. With one off, tawk does not hand those messages to tawk-mcp at all, so nothing here can turn them back on. A kind reaches the agent only when both sides have it on: tawk's switch for it, and the matching `TAWKMCP_CHANNEL_…` option here.
 
 Anyone who can message you can put text in front of the model this way. Keep `access = read` if you only want to be told, and remember every write still needs your approval in tawk.
+
+### Events and accounts
+
+When tawk has several accounts open to agents, each event says which one it is about. The tag gains `account` (the label) and `account_id`, and the text starts with a line naming the account, outside the fenced block:
+
+```text
+<channel source="tawk" chat_jid="27820000000@s.whatsapp.net" chat_name="Mom" ... account="work" account_id="2">
+On the user's account "work" (account 2); pass that account when you act on this.
+New WhatsApp message from Mom in "Mom" (id 3EB0C2A1F0):
+```
+
+The label is your own text, and is flattened to one plain line like a name. Messages that reach an account closed to agents are never pushed. Events in the event stream carry the same `account` object.
 
 ## The event stream
 

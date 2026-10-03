@@ -18,6 +18,16 @@ public static class ToolResults
         IsError = true,
     };
 
+    /// <summary>Runs a use case for one of the user's accounts: every request to tawk made inside names it.</summary>
+    public static async Task<CallToolResult> RunAsync(IAccountScope accounts, string? account, Func<Task<string>> action)
+    {
+        ArgumentNullException.ThrowIfNull(accounts);
+        using (accounts.Use(account))
+        {
+            return await RunAsync(action).ConfigureAwait(false);
+        }
+    }
+
     /// <summary>Runs a use case and turns tawk's errors into tool error results instead of exceptions.</summary>
     public static async Task<CallToolResult> RunAsync(Func<Task<string>> action)
     {

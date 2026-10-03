@@ -63,7 +63,11 @@ public static class TawkMcpComposition
         services.AddSingleton<ISocketFileWatcher, SocketFileWatcher>();
         services.AddSingleton<IDelay, TimeProviderDelay>();
         services.AddSingleton<UnixSocketTawkControl>();
-        services.AddSingleton<ITawkControl>(sp => sp.GetRequiredService<UnixSocketTawkControl>());
+        services.AddSingleton<IAccountScope, AmbientAccountScope>();
+        services.AddSingleton<IAccountTag, TawkAccountTag>();
+        // Every request names the account of the tool call it is made in.
+        services.AddSingleton<ITawkControl>(sp =>
+            new AccountScopedTawkControl(sp.GetRequiredService<UnixSocketTawkControl>(), sp.GetRequiredService<IAccountScope>()));
         services.AddSingleton<ITawkConnector>(sp => sp.GetRequiredService<UnixSocketTawkControl>());
         services.AddSingleton<ITawkApprovals>(sp => sp.GetRequiredService<UnixSocketTawkControl>());
         services.AddSingleton<IAdminTokenSource, FileAdminTokenSource>();
@@ -140,6 +144,7 @@ public static class TawkMcpComposition
             {
                 server.ServerInfo = new Implementation { Name = "tawk-mcp", Title = "tawk", Version = Version };
                 server.ServerInstructions = TawkServerInstructions.Text
+                    + TawkServerInstructions.Accounts
                     + (options.Memory == MemoryMode.Off ? string.Empty : TawkServerInstructions.Memory)
                     + (workflow.Enabled ? TawkServerInstructions.Workflow : string.Empty)
                     + (admin.Enabled ? TawkServerInstructions.Admin : string.Empty)

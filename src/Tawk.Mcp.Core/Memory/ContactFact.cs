@@ -10,4 +10,8 @@ public sealed record ContactFact(
     string? Evidence,
     bool Sensitive,
     DateTimeOffset Updated,
-    DateTimeOffset? Expires);
+    DateTimeOffset? Expires)
+{
+    /// <summary>The jid of the user's account it was learnt through, or null when that is not known.</summary>
+    public string? Account { get; init; }
+}

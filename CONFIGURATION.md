@@ -43,6 +43,12 @@ What a client may see and do is decided in tawk, under `[automation]` in `~/.con
 
 tawk-mcp cannot change any of these. What agents ask for and do is listed in tawk's Agentic tab (**🤖 Agentic** in the header, or F3).
 
+### Accounts
+
+tawk-mcp has no setting for accounts. Which of your WhatsApp numbers agents may use, and what they may do in each, is set in tawk under Settings, Account, Accounts…, and tawk-mcp follows it. tawk's `[automation] access` is the level of an account set to follow it, which is the first account unless you change it.
+
+Memory moves to schema 3 the first time this version opens it: profile fields and relations gain a nullable `account`. Every computer that shares memory through sync needs this version or newer; an older one refuses a newer memory file and leaves its own untouched.
+
 ## Arguments and environment variables
 
 Flags override environment variables, which override the defaults.

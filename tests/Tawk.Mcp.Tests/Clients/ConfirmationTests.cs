@@ -4,6 +4,7 @@ using Tawk.Mcp.Clients.Tools;
 using Tawk.Mcp.Core;
 using Tawk.Mcp.Managers;
 using Tawk.Mcp.Tests.Fakes;
+using Tawk.Mcp.ResourceAccess;
 
 namespace Tawk.Mcp.Tests.Clients;
 
@@ -57,7 +58,7 @@ public class ConfirmationTests
     [Test]
     public async Task A_client_that_cannot_ask_is_refused_and_the_request_cancelled()
     {
-        var result = await new ChatTools(_parts.Reading, _parts.Chats).DeleteChatAsync(null, "Mom");
+        var result = await new ChatTools(_parts.Reading, _parts.Chats, new AmbientAccountScope()).DeleteChatAsync(null, "Mom");
 
         Assert.Multiple(() =>
         {
@@ -74,7 +75,7 @@ public class ConfirmationTests
         var error = Assert.ThrowsAsync<TawkControlException>(() => DeleteWith(ConfirmationAnswer.Accepted))!;
 
         Assert.That(error.Code, Is.EqualTo(ControlErrorCode.Declined));
-        var result = await new ChatTools(_parts.Reading, _parts.Chats).DeleteChatAsync(null, "Mom");
+        var result = await new ChatTools(_parts.Reading, _parts.Chats, new AmbientAccountScope()).DeleteChatAsync(null, "Mom");
         Assert.That(result.IsError, Is.False);
     }
 
@@ -104,7 +105,7 @@ public class ConfirmationTests
         using var cts = new CancellationTokenSource();
         var running = live.RunAsync(cts.Token);
         var confirmation = new FakeUserConfirmation(answer);
-        var tools = new ChatTools(_parts.Reading, _parts.Chats);
+        var tools = new ChatTools(_parts.Reading, _parts.Chats, new AmbientAccountScope());
 
         var outputs = new List<string>
         {
