@@ -389,6 +389,14 @@ The stdio instance connects to tawk by itself, next to any HTTP instance you run
 
 Claude Code shows a warning about development channels first; choose to continue. Your own messages are not pushed. On Team and Enterprise plans an admin must enable channels.
 
+An event shows one moment of a chat, so tawk-mcp tells the agent to get the rest first. The server instructions say to read the chat's recent history with `read_messages`, and the person's profile and knowledge when memory is on, before judging, summarising or drafting from an event, once per chat. Each event also ends with a line that names the chat to read:
+
+```
+Context: if this chat's history is not already in your context, call read_messages with chat "27820000000@s.whatsapp.net" before acting on this.
+```
+
+The line comes after the fenced message text, so nothing a sender writes can pose as it. It is on every event because tawk-mcp cannot know what the agent still has in context.
+
 `TAWKMCP_CHANNEL` (or `--channel`) controls it: `auto` (the default) sends to clients that identify as Claude Code, `on` sends to every connected client, `off` sends nothing and stops declaring the capability.
 
 By default only messages from other people arrive. Set `TAWKMCP_CHANNEL_OWN=on` (or `--channel-own on`) and the messages you send yourself arrive too, from tawk or from your phone, each marked `from_me="true"` in the tag. The agent is told they show what you said and how you write, and are never a request to reply. This is useful when the agent keeps your voice and your contacts' profiles up to date; leave it off if you would rather it saw your side only when it reads a chat.
