@@ -7,6 +7,7 @@
 - [What there is to protect](#what-there-is-to-protect)
 - [Who might attack](#who-might-attack)
 - [Controls](#controls)
+- [Accounts](#accounts)
 - [Prompt injection](#prompt-injection)
 - [Approving its own sends](#approving-its-own-sends)
 - [Memory](#memory)
@@ -62,6 +63,16 @@ Only the latest release gets security fixes.
 | Contacts are looked up through tawk, so hidden, locked and excluded chats cannot be profiled | tawk and tawk-mcp | Profiling chats you have hidden |
 | Sensitive fields only from you, hidden unless asked for; stated facts beat inferences; inferences lapse | tawk-mcp | Wrong or intrusive guesses about people |
 | Deleting memory asks you by elicitation | tawk-mcp | A model wiping what you saved |
+
+## Accounts
+
+Which accounts an agent may use, and how far, is decided in tawk, for each account, and enforced by tawk. tawk-mcp cannot widen it: it only names the account a call is for.
+
+- An account that is closed to agents is not listed to tawk-mcp, and naming it reads the same as naming one that does not exist.
+- A tawk from before accounts ignores the `account` argument. tawk-mcp refuses a call that names an account to such a tawk, since it would otherwise go out from the wrong number.
+- An event names its account in a line outside the fenced text, and the label is flattened to one plain line, so neither a message nor a label can pose as an instruction.
+- The model is told never to move a conversation to another of the user's numbers unasked. This is an instruction to the model and can fail like any other; the approval in tawk, which names the account, is the control.
+- Memory is shared across accounts. A fact learnt through one account can be read while working in another.
 
 ## Prompt injection
 

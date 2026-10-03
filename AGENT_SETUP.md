@@ -81,6 +81,10 @@ Tell the person all of this before asking the question. Do not summarise it as "
 - **A work number is separately excluded.** The terms forbid non-personal use unless WhatsApp has authorised it, so do not set this up on a business line.
 - **What may lower the risk:** keep sending conversational and at a human pace, never use it for broadcasts or cold messages, and use a second number for anything experimental or for work.
 
+### More than one number
+
+tawk can link several WhatsApp numbers, and each one carries the risk above in full. An account the person adds is closed to agents until they open it themselves in tawk (Settings, Account, Accounts…). Do not ask them to link another number or to open one for you. If they have several, `list_accounts` shows the ones you may use; pass `account` when you act in one that is not the default, and never move a conversation to another of their numbers unless they ask.
+
 ## Rules for the agent
 
 1. **The disclaimer comes first.** Nothing below happens until the person has seen it and said yes; see the section above.
