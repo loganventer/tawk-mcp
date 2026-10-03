@@ -111,6 +111,7 @@ scripts/docker-run.sh               # builds, runs as you, prints the token and 
 | Profile | `get_profile` | `set_profile`, `set_profile_photo`, `remove_profile_photo` |
 | Settings | `get_settings`, `list_themes` | `set_setting` |
 | tawk itself | `app_status` | `reconnect`, `decline_call` |
+| Your own waiting requests (only with an admin token file) | `list_pending` | `approve_pending` |
 | Audience categories | `list_categories` | `set_category`, `delete_category` |
 | Voices | `list_voices`, `get_voice`, `export_voice`, `check_voice` | `set_voice`, `set_voice_variant`, `import_voice`, `learn_voice`, `delete_voice` |
 | Contact profiles | `list_contact_fields`, `get_contact`, `list_contacts`, `due_follow_ups` | `set_contact_fields`, `add_contact_note`, `forget_contact_field`, `set_contact_categories`, `delete_contact` |

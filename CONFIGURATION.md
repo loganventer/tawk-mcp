@@ -36,7 +36,7 @@ What a client may see and do is decided in tawk, under `[automation]` in `~/.con
 | Key | Values | Meaning |
 | --- | --- | --- |
 | `control_socket` | `on`, `off` | The socket itself (Settings > Automation > Control socket). Off by default |
-| `access` | `read`, `send`, `manage` | What clients may do (Settings > Automation > Agent access). `read` by default |
+| `access` | `read`, `send`, `manage`, `admin` | What clients may do (Settings > Automation > Agent access). `read` by default |
 | `chats` | a comma separated list | When set, only these chats are visible to clients |
 | `confirm_cli` | `on`, `off` | Also ask before writes from your own tawk commands. Writes from tawk-mcp always ask |
 | `writes_per_minute` | 1 to 60 | How many writes clients may make per minute |
@@ -66,6 +66,7 @@ Flags override environment variables, which override the defaults.
 | `--sync-interval-minutes N` | `TAWKMCP_SYNC_INTERVAL_MINUTES` | `120` | Minutes between syncs (1 to 10080) |
 | `--workflow-every N` | `TAWKMCP_WORKFLOW_EVERY` | `20` | Rounds between memory workflow checks (0 to 10000, 0 turns them off). See [Instructions for agents](#instructions-for-agents) |
 | `--instructions-file PATH` | `TAWKMCP_INSTRUCTIONS_FILE` | `~/.config/tawk-mcp/instructions.md` | Your own standing instructions for agents |
+| `--admin-token-file PATH` | `TAWKMCP_ADMIN_TOKEN_FILE` | none | tawk's admin token file. Set per instance, never by default: with it this instance may approve its own queued sends while tawk's access is `admin`. See [Approving its own sends](#approving-its-own-sends) |
 | `--schedule-jitter-s N` | `TAWKMCP_SCHEDULE_JITTER_S` | `60` | Scheduled messages move by a random amount up to this many seconds either way (0 to 3600, 0 turns it off) |
 | `--backoff-initial-ms N` | `TAWKMCP_BACKOFF_INITIAL_MS` | `500` | First wait between connection attempts (1 to 600000) |
 | `--backoff-max-ms N` | `TAWKMCP_BACKOFF_MAX_MS` | `30000` | Longest wait (1 to 3600000, not below the first) |
@@ -102,6 +103,19 @@ Sync keeps `memory.db` in step between your machines through a file in a GitHub 
 A cycle runs when the server starts and then every `TAWKMCP_SYNC_INTERVAL_MINUTES`; `tawk-mcp sync` runs one by hand. Each cycle reads the remote file's version, merges it into the local database if it changed, and pushes only when this machine holds something the remote does not. Rows are matched by key: the stronger source wins (user, then contact, then imported, then inferred), then the newer change, and a delete on one machine removes the row on the others. Content is compared by a digest of the rows, so two machines with the same memory never push at each other. If GitHub refuses a push because another machine got there first, the cycle merges again and retries, three times at most.
 
 Sync runs only with `--memory write`. A lock file beside the database lets one tawk-mcp per machine sync at a time. A remote written by a newer tawk-mcp is left alone until this machine is updated. The first machine to sync creates the file.
+
+## Approving its own sends
+
+By default every write waits for you in tawk. An instance may instead answer its own requests when both of these are set, each by you and neither by default:
+
+1. In tawk, Settings, Automation, **What they may do** is `admin`, and **Chats they may use** names the chats. tawk then writes an admin token to `admin.token` beside its control socket.
+2. This instance is given that file: `TAWKMCP_ADMIN_TOKEN_FILE=$XDG_RUNTIME_DIR/tawk/admin.token` (on a Mac, the folder `tawk --version` or `tawk doctor` reports for the control socket).
+
+With the setting, a write that tawk queues for an answer comes back at once as waiting, with its request id, and two more tools appear: `list_pending` and `approve_pending`. Without it nothing changes: there are no such tools, and writes wait for you as before.
+
+tawk decides what may be approved this way, not tawk-mcp: sends and small things only, in the chats you named, a limited number an hour, each logged and shown to you. See tawk's manual, "Letting an agent answer for itself".
+
+An instance with this setting can send as you without you seeing the message first. Give the file to one instance you trust, never to a shared or public one, and never commit a path to it into anything others run.
 
 ## Instructions for agents
 

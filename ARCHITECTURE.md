@@ -83,16 +83,19 @@ flowchart LR
         READ["ChatReadingManager"]
         SEND["MessageSendingManager"]
         MANAGE["Management managers"]
+        APPROVE["ApprovalManager"]
         LIVE["LiveUpdatesManager"]
     end
     subgraph ResourceAccess
         GATE["ConfirmationGate"]
+        PARK["ParkedRequests"]
+        TOKEN["FileAdminTokenSource"]
         CTRL["UnixSocketTawkControl"]
         CONN["ControlConnection"]
         SUP["TawkConnectionSupervisor"]
         WATCH["SocketFileWatcher"]
     end
-    TOOLS --> READ & SEND & MANAGE
+    TOOLS --> READ & SEND & MANAGE & APPROVE
     TOOLS -.-> ELIC
     RES & PR --> READ
     SUBH --> REG
@@ -106,6 +109,9 @@ flowchart LR
     GATE -.-> ELIC
     SUP --> CTRL
     SUP --> WATCH
+    APPROVE --> CTRL
+    APPROVE --> TOKEN
+    CTRL --> PARK
     CTRL --> CONN
 ```
 
@@ -124,6 +130,7 @@ Records mirror tawk's values in [CONTROL.md](https://github.com/loganventer/tawk
 - `UnixSocketTawkControl` implements `ITawkControl` for the managers and `ITawkConnector` for the supervisor. A request uses the current connection, waits up to 2 seconds for one in progress, or fails at once while the circuit is open. It publishes events to every reader through `EventBroadcaster`, which also hands the latest connection state to a reader that starts late.
 - `TawkConnectionSupervisor` is a hosted service that keeps connecting: backoff between attempts, the circuit breaker around them, and an immediate attempt when `SocketFileWatcher` sees `control.sock` appear or a request is waiting (`ConnectSignal`).
 - `ConfirmationGate` runs writes. When tawk answers `needs_confirmation`, it keeps the token in a local variable, asks the user through `IUserConfirmation`, and calls `confirm` or `cancel_confirmation`. The token never leaves it.
+- `UnixSocketTawkControl` also implements `ITawkApprovals`. With `ParkWaitingWrites` on (an admin token file is configured), a write that tawk queues for an answer is kept in `ParkedRequests` under its request id and its caller gets `ApprovalWaitingException` instead of waiting; `ApproveAsync` sends `approve` with the admin token and returns the parked request's own answer. `FileAdminTokenSource` (`IAdminTokenSource`) reads the token from tawk's file each time, since tawk replaces it.
 - `ControlSocketLocator` finds the socket (flag, `TAWK_CONTROL_SOCKET`, `$XDG_RUNTIME_DIR`, `~/.local/state`).
 - `TawkChatSource` (`ITawkChatSource`) is what memory needs from tawk: which chat a name means, through `chat_info` so tawk's visibility rules apply, and the text of the user's own recent messages for `learn_voice`.
 - In `Memory`, `SqliteConnectionFactory` owns the database path, creates the file 0600 in a 0700 folder on first use, turns on WAL and runs `SqliteSchemaMigrator`, which applies numbered steps recorded in `PRAGMA user_version`. `ICategoryStore`, `IVoiceStore`, `IContactStore`, `ITemplateStore` and `IOkfStore` are the repositories: each persists one kind of memory with parameterised SQL through `Microsoft.Data.Sqlite`, and no SQL exists outside them. `IOkfStore` holds Open Knowledge Format concepts and links; `SqliteContactStore` keeps each contact's concept in step and serves notes from observation concepts. Every delete writes a row to `sync_tombstone` through `Tombstones`, and every write clears it. `IOkfBundleFiles` reads and writes a bundle folder on disk.
@@ -145,11 +152,13 @@ Each manager is one area of use cases and returns model-ready text. The reading 
 
 The memory managers (`CategoryManager`, `VoiceManager`, `ContactProfileManager`, `TemplateManager`) call the stores and memory engines, and fence what they return. They share two small helpers rather than calling each other: `CategoryEnsurer` creates a category the first time it is named, and `VoiceSelector` picks the voice and variant for a chat or category. `VoiceManager` also implements `IDraftGuidance` for the `draft_reply` prompt; with memory off, `NoDraftGuidance` takes its place. Deletions ask the user through `IUserConfirmation` and throw `MemoryException` if they do not agree.
 
+`ApprovalManager` lists this instance's waiting requests and approves one with the admin token, turning tawk's refusals into plain text that says the request still waits for the user.
+
 `KnowledgeManager` records and shows observations and relations, with `KnowledgeSubjects` working out which concept a tool argument means. `OkfBundleManager` exports and imports bundles. `MemorySyncManager` runs one sync cycle: lock, read the remote version, merge, compare digests, push, retry on a lost race.
 
 ### Clients
 
-- Thirteen tool classes (`[McpServerToolType]`) hold the 76 tools; the memory tool classes and `MemoryResources` are left out when memory is off, leaving 42. Each tool calls one manager and turns `TawkControlException` into a tool error result through `ControlErrorMessages`, and `MemoryException` into one with its own message, so nothing crashes the call. `draft_template` is the one tool that uses two managers, filling the template and then drafting it. Write tools take `IProgress<ProgressNotificationValue>` and report "Waiting for approval in tawk". Tools that may need confirmation take the request's `McpServer` and build an `ElicitationConfirmation` from it.
+- Thirteen tool classes (`[McpServerToolType]`) hold the 76 tools, and `ApprovalTools` adds `list_pending` and `approve_pending` only when an admin token file is configured; the memory tool classes and `MemoryResources` are left out when memory is off, leaving 42. Each tool calls one manager and turns `TawkControlException` into a tool error result through `ControlErrorMessages`, and `MemoryException` into one with its own message, so nothing crashes the call. `draft_template` is the one tool that uses two managers, filling the template and then drafting it. Write tools take `IProgress<ProgressNotificationValue>` and report "Waiting for approval in tawk". Tools that may need confirmation take the request's `McpServer` and build an `ElicitationConfirmation` from it.
 - `ChatResources` (`[McpServerResourceType]`) serves `tawk://chats` and `tawk://chat/{jid}`; `ResourceSubscriptionHandlers`, `ResourceSubscriptionRegistry` and `ResourceUpdatePump` handle subscriptions.
 - `TawkPrompts` (`[McpServerPromptType]`) serves `catch_up` and `draft_reply`.
 - `ChannelEventSink` sends `notifications/claude/channel`; `EventStreamHub` keeps the last 200 events for `/events`; `ClientSessionRegistry` and `SessionTracking` remember connected sessions; `ProtocolRevisionFilter` keeps clients on the initialize handshake.

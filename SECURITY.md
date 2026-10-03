@@ -8,6 +8,7 @@
 - [Who might attack](#who-might-attack)
 - [Controls](#controls)
 - [Prompt injection](#prompt-injection)
+- [Approving its own sends](#approving-its-own-sends)
 - [Memory](#memory)
 - [The confirmation token](#the-confirmation-token)
 - [HTTP mode](#http-mode)
@@ -46,10 +47,11 @@ Only the latest release gets security fixes.
 
 | Control | Where | Against |
 | --- | --- | --- |
-| tawk decides access (`read`, `send`, `manage`), visible chats (`chats`) and `writes_per_minute` | tawk | Everything a client might try |
+| tawk decides access (`read`, `send`, `manage`, `admin`), visible chats (`chats`) and `writes_per_minute` | tawk | Everything a client might try |
 | Origin `mcp` in hello: tawk asks you before every write | tawk | A misled model sending on its own |
 | Two confirmations for destructive operations, one by elicitation, one in tawk | tawk-mcp and tawk | A misled model deleting or blocking |
 | No confirm tool; the token never leaves the confirmation gate | tawk-mcp | A model confirming for you |
+| Approving its own sends is off unless the instance is given tawk's admin token file; tawk limits it to sends and small things, named chats and an hourly number, and logs and shows each one | tawk-mcp and tawk | A misled model sending without you |
 | Fencing of other people's text, and the tool descriptions saying it is untrusted | tawk-mcp | Prompt injection |
 | Locked, hidden and excluded chats are never returned | tawk | Leaking chats you have hidden |
 | Loopback bind by default, bearer token always, constant-time compare | tawk-mcp | Other users and programs on the network |
@@ -72,6 +74,18 @@ Message text, chat names, previews, about texts and status text are written by o
 - says in every tool description and in its server instructions that this text is untrusted.
 
 These reduce the risk; they cannot remove it, because a model may still be persuaded. What limits the harm is that nothing happens to your account without you: every send waits for your approval in tawk, destructive operations need two confirmations, and with `access = read` nothing can be written at all. Channel events put incoming messages in front of the model without you asking, so leave `TAWKMCP_CHANNEL=off` or `access = read` if that worries you.
+
+## Approving its own sends
+
+With `TAWKMCP_ADMIN_TOKEN_FILE` set and tawk's access at `admin`, the model can carry out its own sends through `approve_pending`. That removes the check that otherwise stops a misled model: you no longer see a message before it goes. What remains is narrower:
+
+- It is off by default on both sides, and there is no default path to the token file. An instance without the file has no such tools.
+- tawk-mcp reads the token from the file each time and passes it to tawk; it is never returned to the model, logged or stored.
+- tawk enforces the limits, so a model cannot argue its way past them: its own requests only, sends and small things only, chats you named only (an empty list allows none), a number an hour.
+- Deletes, blocks, chat and profile changes and settings still need you, and destructive requests still need the two confirmations.
+- Every approval is in tawk's log as "approved by the agent" and appears on tawk's screen.
+
+Do not set it on an instance that reads chats from people you do not trust, and do not set it on one that is reachable by anything but your own agent.
 
 ## Memory
 

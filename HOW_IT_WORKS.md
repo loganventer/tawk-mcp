@@ -6,6 +6,7 @@
 - [Connecting to tawk](#connecting-to-tawk)
 - [A read](#a-read)
 - [A send with approval](#a-send-with-approval)
+- [A send the agent approves itself](#a-send-the-agent-approves-itself)
 - [A destructive request in two steps](#a-destructive-request-in-two-steps)
 - [New messages](#new-messages)
 - [Reconnecting](#reconnecting)
@@ -93,6 +94,47 @@ sequenceDiagram
 ```
 
 A write has no timeout on tawk-mcp's side while it waits for you; tawk answers `timed_out` after 2 minutes. If you decline, tawk answers `declined` and the tool says so. If tawk quits while the request waits, the request fails with a message saying the send may or may not have gone.
+
+## A send the agent approves itself
+
+Only when the instance was started with an admin token file and tawk's access is `admin`. The write tool no longer holds the call open: the request is parked under its id, and a second tool answers it.
+
+```mermaid
+sequenceDiagram
+    participant M as MCP client
+    participant T as MessageTools
+    participant C as UnixSocketTawkControl
+    participant P as ParkedRequests
+    participant A as ApprovalTools and ApprovalManager
+    participant F as FileAdminTokenSource
+    participant K as tawk
+
+    M->>T: tools/call send_message
+    T->>C: send_message {"chat":"Mom","text":"On my way"}
+    C->>K: {"id":"3","op":"send_message",...}
+    K-->>C: {"evt":"approval","id":"3","state":"waiting"}
+    C->>P: park request 3
+    C-->>T: ApprovalWaitingException (3, send_message)
+    T-->>M: "Not done yet: tawk queued this send_message as request 3 ..."
+    M->>A: tools/call approve_pending {"id":"3"}
+    A->>F: read the token tawk wrote
+    A->>C: ApproveAsync(3, token)
+    C->>K: {"id":"4","op":"approve","args":{"id":"3","admin_token":"..."}}
+    alt tawk allows it
+        K-->>C: {"id":"3","ok":true,"result":{"id":"3EB0D41C22"}}
+        K-->>C: {"id":"4","ok":true,"result":{"approved":true}}
+        C->>P: forget request 3
+        C-->>A: the send's own result
+        A-->>M: "Approved by you as admin, and tawk carried it out ..."
+    else tawk refuses (not admin, wrong token, chat not named, not a send, hourly number used up)
+        K-->>C: {"id":"4","ok":false,"error":{...}}
+        C-->>A: TawkControlException
+        A-->>M: "tawk did not let you approve this, so it still waits for the user in tawk ..."
+        Note over K: request 3 stays in tawk's queue for you
+    end
+```
+
+A write that tawk answers at once (your own "for this session" allowance, say) is never parked. A parked request that you answer in tawk, or that times out, is reported once by `list_pending` and then let go. At most 64 are kept.
 
 ## A destructive request in two steps
 

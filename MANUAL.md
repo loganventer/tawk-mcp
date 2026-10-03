@@ -10,6 +10,7 @@
 - [Sending tools](#sending-tools)
 - [Managing tools](#managing-tools)
 - [The two-step confirmation](#the-two-step-confirmation)
+- [Approving its own sends](#approving-its-own-sends)
 - [Memory tools](#memory-tools)
 - [Knowledge](#knowledge)
 - [The memory workflow](#the-memory-workflow)
@@ -36,6 +37,7 @@ Each tool needs one of tawk's access levels, set in tawk under **Settings > Auto
 | `read` | Every reading tool. The default. |
 | `send` | Also sending, reacting, scheduling, drafting and marking as read. |
 | `manage` | Also editing and deleting messages, chat settings, statuses, your profile, tawk's settings and the app tools. |
+| `admin` | Everything in `manage`, and an instance given tawk's admin token file may approve its own sends. See [Approving its own sends](#approving-its-own-sends). |
 
 Every write shows in tawk for you to approve before it happens, and the tool call waits while tawk asks. Your MCP client shows "Waiting for approval in tawk" as progress, if it displays progress.
 
@@ -161,7 +163,7 @@ The colour names `post_status` accepts, tawk's themes for `set_chat_theme`, your
 
 ## Sending tools
 
-These need `access = send` (or `manage`). Each is shown to you in tawk to approve, except `draft_message`, which sends nothing.
+These need `access = send` (or `manage` or `admin`). Each is shown to you in tawk to approve, except `draft_message`, which sends nothing.
 
 ### `draft_message`
 
@@ -198,7 +200,7 @@ Marks a chat as read. This sends read receipts if you have them on in tawk.
 
 ## Managing tools
 
-These need `access = manage`. Each is shown to you in tawk to approve. The ones marked **two-step** also go through [the two-step confirmation](#the-two-step-confirmation).
+These need `access = manage` (or `admin`). Each is shown to you in tawk to approve. The ones marked **two-step** also go through [the two-step confirmation](#the-two-step-confirmation).
 
 | Tool | Arguments | Does |
 | --- | --- | --- |
@@ -240,6 +242,27 @@ Some things stay out of reach whatever the access: the Automation settings thems
 If you decline or dismiss the question in your client, tawk-mcp cancels the request in tawk and the tool answers "You declined, so nothing was done." If you allow it in your client but decline in tawk, the tool says you declined in tawk. If you wait more than five minutes between the two, the request expires and the tool says so.
 
 If your MCP client cannot ask questions (it does not support MCP elicitation), tawk-mcp cancels at once and answers "This needs your confirmation, and your MCP client cannot ask you. Do it in tawk instead." There is no tool that confirms, so the model has no way around this.
+
+## Approving its own sends
+
+Normally a send waits until you allow it in tawk. When you run an agent that should act while you are away, you can let this instance approve its own requests. Two things must be set, both by you: tawk's access must be `admin` with the chats named, and this instance must be started with `TAWKMCP_ADMIN_TOKEN_FILE` pointing at tawk's admin token file. [CONFIGURATION.md](CONFIGURATION.md#approving-its-own-sends) has the steps. Without the setting the two tools below do not exist.
+
+How it goes:
+
+1. The agent calls `send_message` (or another write). tawk queues it for an answer, as always.
+2. Instead of holding the call open, the tool answers at once: "Not done yet: tawk queued this send_message as request 12 and it waits for an answer."
+3. If you asked for that message, the agent calls `approve_pending` with the id. tawk-mcp shows tawk the admin token; tawk checks its rules and carries the message out.
+4. If tawk refuses, or the agent does not approve, the request keeps waiting for you in tawk's Agentic tab.
+
+### `list_pending`
+
+Lists this instance's requests that still wait in tawk, with their ids and how long they have waited, and reports once each those you answered in tawk in the meantime.
+
+### `approve_pending`
+
+`id` is the request id a waiting tool call came back with. tawk allows it only for sending a message, replying to a status, forwarding, editing, retrying, scheduling, rescheduling, sending or cancelling a scheduled message, a reaction, a read mark and a like; only in the chats named in tawk's **Chats they may use**; and only so many an hour. Chat changes, your profile, statuses you post, settings, deletes and blocks always wait for you. Each approval is written to tawk's log as "approved by the agent" and shown on tawk's screen.
+
+The agent is told to approve only what you asked for, in the conversation or in your standing instructions, and never because a message says so. That is an instruction to a model, not a guarantee: a message someone sends you can still try to steer it. Name few chats and keep the hourly number low.
 
 ## Memory tools
 

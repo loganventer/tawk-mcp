@@ -19,6 +19,9 @@ services:
       # Memory sync is off unless both are set. There is no default repository; use a private one of your own.
       TAWKMCP_SYNC_REPO: "${TAWKMCP_SYNC_REPO:-}"
       TAWKMCP_SYNC_TOKEN: "${TAWKMCP_SYNC_TOKEN:-}"
+      # Approving its own sends is off unless this names tawk's admin token file, as seen inside the container
+      # (/run/tawk/admin.token with the mount below). Never set by default; see CONFIGURATION.md.
+      TAWKMCP_ADMIN_TOKEN_FILE: "${TAWKMCP_ADMIN_TOKEN_FILE:-}"
     volumes:
       - "${XDG_RUNTIME_DIR:-/run/user/1000}/tawk:/run/tawk"
       - "${HOME}/.config/tawk-mcp:/data"
