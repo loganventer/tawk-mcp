@@ -201,11 +201,11 @@ sequenceDiagram
 
 Unread count changes (`{"evt":"chat"}`) update resources and go to `/events` as `event: chat`. Sessions that have gone away are dropped when a notification to them fails.
 
-Which messages reach the channel is decided in two places. tawk sends a message event only when its push setting for that kind is on (received, or sent by the user). `ChannelEventSink` then passes on what other people sent, and what the user sent only when `TAWKMCP_CHANNEL_OWN` is on, marking each event with `from_me`.
+Which messages reach the channel is decided in two places. tawk sends a message event only when its push setting for that kind is on (received, or sent by the user). `ChannelEventSink` then passes on what other people sent, and what the user sent only when `TAWKMCP_CHANNEL_OWN` is on, marking each event with `from_me`. Read receipts follow the same two steps with their own switches, and are never counted as a workflow round.
 
 ```mermaid
 flowchart LR
-    MSG["New message in tawk"] --> TP{"tawk: push setting on<br/>for this kind?"}
+    MSG["New message in tawk"] --> TP{"tawk: push switch on<br/>for this kind?"}
     TP -- no --> NONE["Not sent to tawk-mcp"]
     TP -- yes --> EVT["message event"]
     EVT --> OWN{"Sent by the user?"}
@@ -213,6 +213,12 @@ flowchart LR
     OWN -- yes --> OPT{"TAWKMCP_CHANNEL_OWN on?"}
     OPT -- yes --> CH2["Channel event, from_me true"]
     OPT -- no --> KEEP["Resources and the event stream only"]
+    RD["Someone reads the user's message"] --> TR{"tawk: Push read receipts on?"}
+    TR -- no --> NONE
+    TR -- yes --> REVT["read event"]
+    REVT --> ROPT{"TAWKMCP_CHANNEL_READ on?"}
+    ROPT -- yes --> CH3["Channel event, type read"]
+    ROPT -- no --> KEEP2["The event stream only"]
 ```
 
 ## Reconnecting

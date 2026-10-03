@@ -57,6 +57,7 @@ Flags override environment variables, which override the defaults.
 | `--socket PATH` | `TAWK_CONTROL_SOCKET` | see [The control socket](#the-control-socket) | tawk's control socket |
 | `--channel auto\|on\|off` | `TAWKMCP_CHANNEL` | `auto` | Claude Code channel events: `auto` for clients that identify as Claude Code, `on` for every client, `off` for none |
 | `--channel-own on\|off` | `TAWKMCP_CHANNEL_OWN` | `off` | Also send the messages you send yourself as channel events, marked `from_me`. Off, only what other people send arrives |
+| `--channel-read on\|off` | `TAWKMCP_CHANNEL_READ` | `off` | Also send read receipts for the messages you sent as channel events, with `type="read"`. tawk's **Push read receipts** must be on too |
 | `--memory write\|read\|off` | `TAWKMCP_MEMORY` | `write` | Memory for voices, contacts and templates: `read` offers the tools but refuses changes, `off` removes them |
 | `--data-file PATH` | `TAWKMCP_DATA_FILE` | `~/.local/share/tawk-mcp/memory.db` | Where memory is kept |
 | `--sync-repo OWNER/NAME` | `TAWKMCP_SYNC_REPO` | none | The private GitHub repository that holds the memory file. See [Memory sync](#memory-sync) |
@@ -109,12 +110,12 @@ Sync runs only with `--memory write`. A lock file beside the database lets one t
 
 By default every write waits for you in tawk. An instance may instead answer its own requests when both of these are set, each by you and neither by default:
 
-1. In tawk, Settings, Automation, **What they may do** is `admin`, and **Chats they may use** names the chats. tawk then writes an admin token to `admin.token` beside its control socket.
+1. In tawk, Settings, Automation, **What they may do** is `admin`, and the chats are switched on under **Chats an agent may answer in by itself…**. tawk then writes an admin token to `admin.token` beside its control socket.
 2. This instance is given that file: `TAWKMCP_ADMIN_TOKEN_FILE=$XDG_RUNTIME_DIR/tawk/admin.token` (on a Mac, the folder `tawk --version` or `tawk doctor` reports for the control socket).
 
 With the setting, a write that tawk queues for an answer comes back at once as waiting, with its request id, and two more tools appear: `list_pending` and `approve_pending`. Without it nothing changes: there are no such tools, and writes wait for you as before.
 
-tawk decides what may be approved this way, not tawk-mcp: sends and small things only, in the chats you named, a limited number an hour, each logged and shown to you. See tawk's manual, "Letting an agent answer for itself".
+tawk decides what may be approved this way, not tawk-mcp: sends and small things only, in the chats you switched on for it, a limited number an hour, each logged and shown to you. See tawk's manual, "Letting an agent answer for itself".
 
 An instance with this setting can send as you without you seeing the message first. Give the file to one instance you trust, never to a shared or public one, and never commit a path to it into anything others run.
 

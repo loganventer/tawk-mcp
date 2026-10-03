@@ -81,7 +81,7 @@ With `TAWKMCP_ADMIN_TOKEN_FILE` set and tawk's access at `admin`, the model can 
 
 - It is off by default on both sides, and there is no default path to the token file. An instance without the file has no such tools.
 - tawk-mcp reads the token from the file each time and passes it to tawk; it is never returned to the model, logged or stored.
-- tawk enforces the limits, so a model cannot argue its way past them: its own requests only, sends and small things only, chats you named only (an empty list allows none), a number an hour.
+- tawk enforces the limits, so a model cannot argue its way past them: its own requests only, sends and small things only, only chats you switched on for it in tawk (none by default), a number an hour.
 - Deletes, blocks, chat and profile changes and settings still need you, and destructive requests still need the two confirmations.
 - Every approval is in tawk's log as "approved by the agent" and appears on tawk's screen.
 
