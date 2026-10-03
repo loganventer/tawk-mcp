@@ -21,11 +21,15 @@ public sealed class ChannelEventSink(ChannelOptions options, IClientSessionRegis
             return;
         }
 
+        // The pointer to the chat's history goes after the fenced text, so nothing in a message can pose as it.
+        var chat = (string?)meta["chat_jid"];
+        var content = string.IsNullOrEmpty(chat) ? update.ModelText : update.ModelText + "\n" + TawkServerInstructions.ChannelContext(chat);
+
         // A message handed to the agent is a round, the same as a tool call; a read receipt is not.
         var round = update.Event is MessageEvent;
         foreach (var session in sessions.Sessions.Where(Wants))
         {
-            var parameters = new JsonObject { ["content"] = update.ModelText, ["meta"] = meta.DeepClone() };
+            var parameters = new JsonObject { ["content"] = content, ["meta"] = meta.DeepClone() };
             try
             {
                 await session.SendNotificationAsync(ChannelOptions.Method, parameters, cancellationToken).ConfigureAwait(false);

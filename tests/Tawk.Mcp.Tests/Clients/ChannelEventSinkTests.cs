@@ -33,6 +33,9 @@ public class ChannelEventSinkTests
         {
             Assert.That(method, Is.EqualTo("notifications/claude/channel"));
             Assert.That((string?)parameters["content"], Does.Contain("UNTRUSTED CHAT DATA"));
+            Assert.That((string?)parameters["content"], Does.EndWith($"call read_messages with chat \"{Samples.MomJid}\" before acting on this."));
+            Assert.That(((string)parameters["content"]!).IndexOf("Context:", StringComparison.Ordinal),
+                Is.GreaterThan(((string)parameters["content"]!).IndexOf("END UNTRUSTED CHAT DATA", StringComparison.Ordinal)));
             Assert.That((string?)meta["chat_jid"], Is.EqualTo(Samples.MomJid));
             Assert.That((string?)meta["message_id"], Is.EqualTo("3EB0C2A1F0"));
             Assert.That(meta.Select(p => p.Key), Is.EquivalentTo(new[] { "chat_jid", "chat_name", "message_id", "sender", "ts", "type", "from_me" }));
