@@ -1,5 +1,6 @@
 using Tawk.Mcp.Clients.Tools;
 using Tawk.Mcp.Tests.Fakes;
+using Tawk.Mcp.ResourceAccess;
 
 namespace Tawk.Mcp.Tests.Clients;
 
@@ -14,7 +15,7 @@ public class OtherToolsTests
             .Answer("list_scheduled", """{"scheduled":[{"id":"S1","chat":"27820000000@s.whatsapp.net","text":"Happy birthday","due_at":1790791320}]}""")
             .Answer("schedule_message", """{"id":"S2","due_at":1790791320}""")
             .Answer("reschedule", """{"due_at":1790791320}""");
-        var tools = new ScheduleTools(_parts.Reading, _parts.Sending, _parts.Schedule);
+        var tools = new ScheduleTools(_parts.Reading, _parts.Sending, _parts.Schedule, new AmbientAccountScope());
 
         var list = ToolOutput.Text(await tools.ListScheduledAsync());
         var scheduled = ToolOutput.Text(await tools.ScheduleMessageAsync("Mom", "18:02", "hi"));
@@ -100,7 +101,7 @@ public class OtherToolsTests
             .Answer("list_backgrounds", """{"backgrounds":["blue"]}""")
             .Answer("reply_status", """{"id":"R1"}""")
             .Answer("like_status", """{"how":"reply"}""");
-        var tools = new StatusTools(_parts.Reading, _parts.Statuses);
+        var tools = new StatusTools(_parts.Reading, _parts.Statuses, new AmbientAccountScope());
 
         Assert.Multiple(async () =>
         {
@@ -121,9 +122,9 @@ public class OtherToolsTests
             .Answer("get_profile", """{"jid":"27830000000@s.whatsapp.net","name":"Logan"}""")
             .Answer("set_setting", """{"value":"on"}""")
             .Answer("app_status", """{"tawk":"0.6.4","backend":"whatsmeow","connected":true,"state":"online","detail":"","ringing":false}""");
-        var profile = new ProfileTools(_parts.Profile);
+        var profile = new ProfileTools(_parts.Profile, new AmbientAccountScope());
         var settings = new SettingsTools(_parts.Settings);
-        var app = new AppTools(_parts.App);
+        var app = new AppTools(_parts.App, new AmbientAccountScope());
 
         Assert.Multiple(async () =>
         {

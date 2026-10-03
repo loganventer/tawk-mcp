@@ -23,6 +23,15 @@ public sealed class ChannelEventSink(
         }
 
         var chat = (string?)meta["chat_jid"];
+        var account = update.Event.Account;
+        if (account is not null)
+        {
+            meta["account"] = account.Label;
+            meta["account_id"] = account.Id.ToString(CultureInfo.InvariantCulture);
+        }
+
+        // The same contact on two accounts is two chats, each with its own history to point at.
+        var seenAs = account is null ? chat : string.Create(CultureInfo.InvariantCulture, $"{account.Id}/{chat}");
 
         // A message handed to the agent is a round, the same as a tool call; a read receipt is not.
         var round = update.Event is MessageEvent;
@@ -30,8 +39,8 @@ public sealed class ChannelEventSink(
         {
             // A session's first event from a chat points at its history, in case the agent lacks it. The
             // pointer goes after the fenced text, so nothing in a message can pose as it.
-            var content = !string.IsNullOrEmpty(chat) && hints.FirstEventOf(session, chat)
-                ? update.ModelText + "\n" + TawkServerInstructions.ChannelContext(chat)
+            var content = !string.IsNullOrEmpty(chat) && hints.FirstEventOf(session, seenAs!)
+                ? update.ModelText + "\n" + TawkServerInstructions.ChannelContext(chat, account?.Id)
                 : update.ModelText;
             var parameters = new JsonObject { ["content"] = content, ["meta"] = meta.DeepClone() };
             try

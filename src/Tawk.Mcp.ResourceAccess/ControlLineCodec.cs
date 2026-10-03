@@ -51,7 +51,11 @@ public sealed class ControlLineCodec
 
         if (root.TryGetProperty("evt", out var evt) && evt.ValueKind == JsonValueKind.String)
         {
-            return new ControlEventFrame(DecodeEvent(evt.GetString()!, root));
+            var decoded = DecodeEvent(evt.GetString()!, root);
+            return new ControlEventFrame(
+                root.TryGetProperty("account", out var account) && account.ValueKind == JsonValueKind.Object
+                    ? decoded with { Account = Deserialize<AccountRef>(account) }
+                    : decoded);
         }
 
         if (!root.TryGetProperty("id", out var id) || id.ValueKind != JsonValueKind.String)

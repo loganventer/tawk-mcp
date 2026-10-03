@@ -1,12 +1,13 @@
 using System.ComponentModel;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using Tawk.Mcp.Core;
 using Tawk.Mcp.Managers.Memory;
 
 namespace Tawk.Mcp.Clients.Tools;
 
 [McpServerToolType]
-public sealed class VoiceTools(IVoiceManager voices)
+public sealed class VoiceTools(IVoiceManager voices, IAccountScope accounts)
 {
     private const string Rules =
         "Checkable rules as JSON, every key optional: languages ([\"af\",\"en\",\"mix\"]), case (lower|sentence|any), max_words, max_emoji, "
@@ -25,8 +26,9 @@ public sealed class VoiceTools(IVoiceManager voices)
         [Description("A voice name. Leave it out for the contact's voice or the default.")] string? voice = null,
         [Description("An audience category, such as friends/close.")] string? audience = null,
         [Description("A chat's jid or name, to use that contact's categories.")] string? chat = null,
+        [Description(ToolText.Account)] string? account = null,
         CancellationToken cancellationToken = default) =>
-        ToolResults.RunAsync(() => voices.GetVoiceAsync(voice, audience, chat, cancellationToken));
+        ToolResults.RunAsync(accounts, account, () => voices.GetVoiceAsync(voice, audience, chat, cancellationToken));
 
     [McpServerTool(Name = "set_voice", Destructive = false, ReadOnly = false, Idempotent = true, OpenWorld = false)]
     [Description("Create a voice or change its guide, rules, description or default flag. The first voice becomes the default." + ToolText.Memory)]
@@ -86,8 +88,9 @@ public sealed class VoiceTools(IVoiceManager voices)
         [Description("The chat it is for (jid or name), to use that contact's categories.")] string? chat = null,
         [Description("An audience category, instead of a chat.")] string? audience = null,
         [Description("A voice name. Leave it out for the contact's voice or the default.")] string? voice = null,
+        [Description(ToolText.Account)] string? account = null,
         CancellationToken cancellationToken = default) =>
-        ToolResults.RunAsync(() => voices.CheckVoiceAsync(draft, chat, audience, voice, cancellationToken));
+        ToolResults.RunAsync(accounts, account, () => voices.CheckVoiceAsync(draft, chat, audience, voice, cancellationToken));
 
     [McpServerTool(Name = "learn_voice", Destructive = false, ReadOnly = false, Idempotent = true, OpenWorld = false)]
     [Description("Measure the user's own recent messages in some chats and store the averages (length, case, emoji) on a voice's audience variant, "

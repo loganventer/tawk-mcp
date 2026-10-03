@@ -1,6 +1,7 @@
 using Tawk.Mcp.Clients;
 using Tawk.Mcp.Clients.Tools;
 using Tawk.Mcp.Tests.Fakes;
+using Tawk.Mcp.ResourceAccess;
 
 namespace Tawk.Mcp.Tests.Clients;
 
@@ -13,7 +14,7 @@ public class MessageToolsTests
     public void SetUp()
     {
         _parts = new TestParts();
-        _tools = new MessageTools(_parts.Sending, _parts.Messages);
+        _tools = new MessageTools(_parts.Sending, _parts.Messages, new AmbientAccountScope());
     }
 
     [Test]
@@ -23,7 +24,7 @@ public class MessageToolsTests
         _parts.Control.AskForApproval.Add("send_message");
         var progress = new FakeProgress();
 
-        var result = await _tools.SendMessageAsync("Mom", "On my way", "3EB0AA", progress);
+        var result = await _tools.SendMessageAsync("Mom", "On my way", "3EB0AA", progress: progress);
 
         Assert.Multiple(() =>
         {

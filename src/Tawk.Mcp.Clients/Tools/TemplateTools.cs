@@ -1,13 +1,14 @@
 using System.ComponentModel;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using Tawk.Mcp.Core;
 using Tawk.Mcp.Managers;
 using Tawk.Mcp.Managers.Memory;
 
 namespace Tawk.Mcp.Clients.Tools;
 
 [McpServerToolType]
-public sealed class TemplateTools(ITemplateManager templates, IMessageSendingManager sending)
+public sealed class TemplateTools(ITemplateManager templates, IMessageSendingManager sending, IAccountScope accounts)
 {
     private const string Values = "Values for placeholders as a JSON object, such as {\"day\": \"Saturday\"}. They override values from the contact.";
 
@@ -52,8 +53,9 @@ public sealed class TemplateTools(ITemplateManager templates, IMessageSendingMan
         [Description("The template's name.")] string name,
         [Description("The chat it is for (jid or name), to fill {{contact.*}}.")] string? chat = null,
         [Description(Values)] string? values = null,
+        [Description(ToolText.Account)] string? account = null,
         CancellationToken cancellationToken = default) =>
-        ToolResults.RunAsync(() => templates.RenderAsync(name, chat, values, cancellationToken));
+        ToolResults.RunAsync(accounts, account, () => templates.RenderAsync(name, chat, values, cancellationToken));
 
     [McpServerTool(Name = "draft_template", Destructive = false, ReadOnly = false, Idempotent = false, OpenWorld = true)]
     [Description("Fill a template for a chat and put it into that chat's draft in tawk for the user to edit and send. Nothing is sent. "
@@ -62,8 +64,9 @@ public sealed class TemplateTools(ITemplateManager templates, IMessageSendingMan
         [Description("The template's name.")] string name,
         [Description("The chat's jid or name.")] string chat,
         [Description(Values)] string? values = null,
+        [Description(ToolText.Account)] string? account = null,
         CancellationToken cancellationToken = default) =>
-        ToolResults.RunAsync(async () =>
+        ToolResults.RunAsync(accounts, account, async () =>
         {
             var draft = await templates.PrepareDraftAsync(name, chat, values, cancellationToken).ConfigureAwait(false);
             return await sending.DraftMessageAsync(draft.Jid, draft.Text, cancellationToken).ConfigureAwait(false) + draft.Notes;

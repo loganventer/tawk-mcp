@@ -1,5 +1,6 @@
 using Tawk.Mcp.Clients.Tools;
 using Tawk.Mcp.Tests.Fakes;
+using Tawk.Mcp.ResourceAccess;
 
 namespace Tawk.Mcp.Tests.Clients;
 
@@ -12,7 +13,7 @@ public class ChatToolsTests
     public void SetUp()
     {
         _parts = new TestParts();
-        _tools = new ChatTools(_parts.Reading, _parts.Chats);
+        _tools = new ChatTools(_parts.Reading, _parts.Chats, new AmbientAccountScope());
     }
 
     [Test]
