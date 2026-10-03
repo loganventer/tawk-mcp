@@ -56,6 +56,7 @@ Flags override environment variables, which override the defaults.
 | | `TAWKMCP_TOKEN` | | Use this token and keep no file, for container secrets |
 | `--socket PATH` | `TAWK_CONTROL_SOCKET` | see [The control socket](#the-control-socket) | tawk's control socket |
 | `--channel auto\|on\|off` | `TAWKMCP_CHANNEL` | `auto` | Claude Code channel events: `auto` for clients that identify as Claude Code, `on` for every client, `off` for none |
+| `--channel-own on\|off` | `TAWKMCP_CHANNEL_OWN` | `off` | Also send the messages you send yourself as channel events, marked `from_me`. Off, only what other people send arrives |
 | `--memory write\|read\|off` | `TAWKMCP_MEMORY` | `write` | Memory for voices, contacts and templates: `read` offers the tools but refuses changes, `off` removes them |
 | `--data-file PATH` | `TAWKMCP_DATA_FILE` | `~/.local/share/tawk-mcp/memory.db` | Where memory is kept |
 | `--sync-repo OWNER/NAME` | `TAWKMCP_SYNC_REPO` | none | The private GitHub repository that holds the memory file. See [Memory sync](#memory-sync) |
