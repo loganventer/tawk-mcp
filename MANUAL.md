@@ -389,13 +389,15 @@ The stdio instance connects to tawk by itself, next to any HTTP instance you run
 
 Claude Code shows a warning about development channels first; choose to continue. Your own messages are not pushed. On Team and Enterprise plans an admin must enable channels.
 
-An event shows one moment of a chat, so tawk-mcp tells the agent to get the rest first. The server instructions say to read the chat's recent history with `read_messages`, and the person's profile and knowledge when memory is on, before judging, summarising or drafting from an event, once per chat. Each event also ends with a line that names the chat to read:
+An event shows one moment of a chat. An agent that already knows the chat needs nothing more; one that does not is told to get the rest first. The server instructions say that only when the context is missing should it read the chat's recent history with `read_messages`, and the person's profile and knowledge when memory is on, before judging, summarising or drafting from an event.
+
+The first event from each chat since tawk-mcp started also ends with a line naming the chat:
 
 ```
-Context: if this chat's history is not already in your context, call read_messages with chat "27820000000@s.whatsapp.net" before acting on this.
+Context: this is the first event from this chat since tawk-mcp started. Only if you lack its history, call read_messages with chat "27820000000@s.whatsapp.net" before acting on this; if you already know the chat, carry on.
 ```
 
-The line comes after the fenced message text, so nothing a sender writes can pose as it. It is on every event because tawk-mcp cannot know what the agent still has in context.
+Later events from the same chat carry no such line. The line comes after the fenced message text, so nothing a sender writes can pose as it.
 
 `TAWKMCP_CHANNEL` (or `--channel`) controls it: `auto` (the default) sends to clients that identify as Claude Code, `on` sends to every connected client, `off` sends nothing and stops declaring the capability.
 
