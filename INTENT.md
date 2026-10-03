@@ -34,7 +34,7 @@ In scope:
 - **tawk is the authority.** tawk-mcp never widens what tawk allows, never works around a refusal, and says origin `mcp` in its hello so tawk treats it as a model.
 - **Other people's text is data.** Everything written by others reaches the model fenced as untrusted, in tool results, resources, prompts and channel events.
 - **Confirmation tokens stay inside tawk-mcp.** They never appear in a tool result, a log line, a notification or an error.
-- **Nothing leaves the machine except what your MCP client sends to its model service, and memory sync if you turn it on.** tawk-mcp has no telemetry and no update checks, and in HTTP mode it listens on loopback unless told otherwise. Sync has no default destination: it goes only to the repository you set, with the token you set.
+- **Nothing leaves the machine except what your MCP client sends to its model service, and memory sync if you turn it on.** tawk-mcp has no telemetry and no update checks, and in HTTP mode it listens on loopback unless told otherwise. Sync has no default destination: it goes only to the repository you set, over SSH with a key of your own.
 - **Only you instruct the agent.** Instructions are fixed text plus a file you write. Text from chats and from memory is information, never instructions.
 - **What is remembered stays yours.** Memory is a local file readable only by you. Every stored fact says who said it and how sure it is, an inference never overwrites what someone stated, and deleting anything asks you first.
 - **Never hang.** A tool call gets an answer within seconds whether tawk is up, down, restarting or hung, except while you are deciding on an approval.
