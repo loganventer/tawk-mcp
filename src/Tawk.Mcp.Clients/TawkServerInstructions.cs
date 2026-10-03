@@ -23,9 +23,16 @@ public static class TawkServerInstructions
     /// The line under a session's first channel event from a chat, outside the fenced text, pointing at its history.
     /// It leaves the decision to the agent, which may already know the chat.
     /// </summary>
-    public static string ChannelContext(string chatJid) =>
+    public static string ChannelContext(string chatJid, int? account = null) =>
         $"Context: this is the first event from this chat in this session. Only if you lack its history, "
-        + $"call read_messages with chat \"{chatJid}\" before acting on this; if you already know the chat, carry on.";
+        + $"call read_messages with chat \"{chatJid}\"{(account is { } id ? $" and account {id}" : string.Empty)} before acting on this; "
+        + "if you already know the chat, carry on.";
+
+    public const string Accounts =
+        " The user may have several WhatsApp accounts in tawk. list_accounts shows the ones you may use and what you may do in each; "
+        + "the tools that reach WhatsApp take an optional account, and without it use the default account. A chat belongs to one account: "
+        + "the same person on two accounts is two chats. When you act on something that arrived with an account, pass that account. "
+        + "Never move a conversation to another of the user's numbers unless the user asks: the other person would see a different sender.";
 
     public const string ChannelOwn =
         " Messages the user sends themselves arrive the same way, with from_me=\"true\". They tell you what the user said and how they write; "

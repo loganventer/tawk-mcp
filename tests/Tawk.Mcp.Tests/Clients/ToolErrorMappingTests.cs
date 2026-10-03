@@ -1,6 +1,7 @@
 using Tawk.Mcp.Clients.Tools;
 using Tawk.Mcp.Core;
 using Tawk.Mcp.Tests.Fakes;
+using Tawk.Mcp.ResourceAccess;
 
 namespace Tawk.Mcp.Tests.Clients;
 
@@ -10,7 +11,7 @@ public class ToolErrorMappingTests
     {
         var parts = new TestParts();
         parts.Control.Fail("send_message", error);
-        var result = await new MessageTools(parts.Sending, parts.Messages).SendMessageAsync("Mom", "hi");
+        var result = await new MessageTools(parts.Sending, parts.Messages, new AmbientAccountScope()).SendMessageAsync("Mom", "hi");
         Assert.That(result.IsError, Is.True);
         return ToolOutput.Text(result);
     }
@@ -55,7 +56,7 @@ public class ToolErrorMappingTests
         var parts = new TestParts();
         parts.Control.Fail("list_chats", TawkControlException.NotRunning("/run/user/1000/tawk/control.sock"));
 
-        var result = await new ChatTools(parts.Reading, parts.Chats).ListChatsAsync();
+        var result = await new ChatTools(parts.Reading, parts.Chats, new AmbientAccountScope()).ListChatsAsync();
 
         Assert.Multiple(() =>
         {

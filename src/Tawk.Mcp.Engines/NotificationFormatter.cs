@@ -41,6 +41,12 @@ public sealed partial class NotificationFormatter : INotificationFormatter
         };
     }
 
+    public string Account(AccountRef account)
+    {
+        ArgumentNullException.ThrowIfNull(account);
+        return $"On the user's account \"{Name(account.Label)}\" (account {account.Id}); pass that account when you act on this.";
+    }
+
     // Names are chosen by other people too, so they are shortened and kept to one plain line.
     private static string Name(string name)
     {
