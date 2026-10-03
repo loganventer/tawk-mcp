@@ -391,13 +391,13 @@ Claude Code shows a warning about development channels first; choose to continue
 
 An event shows one moment of a chat. An agent that already knows the chat needs nothing more; one that does not is told to get the rest first. The server instructions say that only when the context is missing should it read the chat's recent history with `read_messages`, and the person's profile and knowledge when memory is on, before judging, summarising or drafting from an event.
 
-The first event from each chat since tawk-mcp started also ends with a line naming the chat:
+In every session, the first event from each chat also ends with a line naming the chat, because what an agent knew in an earlier session may be gone in this one:
 
 ```
-Context: this is the first event from this chat since tawk-mcp started. Only if you lack its history, call read_messages with chat "27820000000@s.whatsapp.net" before acting on this; if you already know the chat, carry on.
+Context: this is the first event from this chat in this session. Only if you lack its history, call read_messages with chat "27820000000@s.whatsapp.net" before acting on this; if you already know the chat, carry on.
 ```
 
-Later events from the same chat carry no such line. The line comes after the fenced message text, so nothing a sender writes can pose as it.
+Later events from the same chat in that session carry no such line. The line comes after the fenced message text, so nothing a sender writes can pose as it.
 
 `TAWKMCP_CHANNEL` (or `--channel`) controls it: `auto` (the default) sends to clients that identify as Claude Code, `on` sends to every connected client, `off` sends nothing and stops declaring the capability.
 

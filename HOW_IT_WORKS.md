@@ -201,7 +201,7 @@ sequenceDiagram
 
 Unread count changes (`{"evt":"chat"}`) update resources and go to `/events` as `event: chat`. Sessions that have gone away are dropped when a notification to them fails.
 
-`ChannelEventSink` ends the first channel event of each chat with a line naming the chat to read with `read_messages`, after the fenced text. `ChannelContextHints` remembers which chats have had one. The line and the instructions both leave it to the agent: it gathers the history only when it lacks it.
+`ChannelEventSink` ends a session's first channel event from each chat with a line naming the chat to read with `read_messages`, after the fenced text. `ChannelContextHints` remembers, per session, which chats have had one, and forgets a session when it ends. The line and the instructions both leave it to the agent: it gathers the history only when it lacks it.
 
 Which messages reach the channel is decided in two places. tawk sends a message event only when its push setting for that kind is on (received, or sent by the user). `ChannelEventSink` then passes on what other people sent, and what the user sent only when `TAWKMCP_CHANNEL_OWN` is on, marking each event with `from_me`. Read receipts, reactions, edits and deletes, and scheduled sends follow the same two steps, each with its own switch in tawk and its own option here, and none of them counts as a workflow round.
 
