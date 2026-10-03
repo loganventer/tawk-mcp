@@ -83,6 +83,10 @@ public sealed class ControlLineCodec
             root.TryGetProperty("message_id", out var read) ? read.GetString() ?? string.Empty : string.Empty,
             Property<ReaderRef>(root, "reader"),
             root.TryGetProperty("at", out var at) && at.TryGetInt64(out var seconds) ? seconds : 0),
+        "reaction" => Activity(ActivityKind.Reaction, root),
+        "edit" => Activity(ActivityKind.Edited, root),
+        "delete" => Activity(ActivityKind.Deleted, root),
+        "scheduled_sent" => Activity(ActivityKind.ScheduledSent, root),
         "chat" => new ChatUpdatedEvent(Property<ChatSummary>(root, "chat")),
         "bye" => new ByeEvent(),
         "approval" => new ApprovalEvent(
@@ -90,6 +94,15 @@ public sealed class ControlLineCodec
             root.TryGetProperty("state", out var state) ? state.GetString() ?? string.Empty : string.Empty),
         _ => new UnknownEvent(name),
     };
+
+    private static MessageActivityEvent Activity(ActivityKind kind, JsonElement root) => new(
+        kind,
+        Property<ChatRef>(root, "chat"),
+        root.TryGetProperty("message_id", out var id) ? id.GetString() ?? string.Empty : string.Empty,
+        root.TryGetProperty("who", out var who) ? Deserialize<ReaderRef>(who) : null,
+        root.TryGetProperty("emoji", out var emoji) ? emoji.GetString() : null,
+        root.TryGetProperty("message", out var message) ? Deserialize<ChatMessage>(message) : null,
+        root.TryGetProperty("at", out var at) && at.TryGetInt64(out var seconds) ? seconds : 0);
 
     private static T Property<T>(JsonElement root, string name) =>
         root.TryGetProperty(name, out var value)

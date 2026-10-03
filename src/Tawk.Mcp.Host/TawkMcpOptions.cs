@@ -45,6 +45,15 @@ public sealed record TawkMcpOptions
     /// <summary>Also push read receipts for the user's messages as channel events. Off by default.</summary>
     public bool ChannelRead { get; init; }
 
+    /// <summary>Also push reactions to the user's messages as channel events. Off by default.</summary>
+    public bool ChannelReactions { get; init; }
+
+    /// <summary>Also push other people's edits and deletes as channel events. Off by default.</summary>
+    public bool ChannelEdits { get; init; }
+
+    /// <summary>Also push a channel event when a scheduled message goes out. Off by default.</summary>
+    public bool ChannelScheduled { get; init; }
+
     /// <summary>Scheduled messages are moved by a random amount up to this many seconds either way. 0 turns it off.</summary>
     public int ScheduleJitterS { get; init; } = 60;
 

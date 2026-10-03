@@ -23,6 +23,24 @@ public sealed partial class NotificationFormatter : INotificationFormatter
         return $"Read receipt: {who} read the user's message in \"{Name(chat.Name)}\" (id {Name(messageId)}).";
     }
 
+    public string Activity(MessageActivityEvent activity)
+    {
+        ArgumentNullException.ThrowIfNull(activity);
+        var who = Name(string.IsNullOrWhiteSpace(activity.Who?.Name) ? activity.Who?.Jid ?? "someone" : activity.Who.Name);
+        var chat = Name(activity.Chat.Name);
+        var id = Name(activity.MessageId);
+        return activity.Kind switch
+        {
+            ActivityKind.Reaction when string.IsNullOrEmpty(activity.Emoji) =>
+                $"Reaction removed: {who} took back their reaction to the user's message in \"{chat}\" (id {id}).",
+            ActivityKind.Reaction =>
+                $"Reaction: {who} reacted {Name(activity.Emoji!)} to the user's message in \"{chat}\" (id {id}).",
+            ActivityKind.Edited => $"Message edited: {who} changed their message in \"{chat}\" (id {id}). It now reads:",
+            ActivityKind.Deleted => $"Message deleted: {who} deleted their message in \"{chat}\" (id {id}).",
+            _ => $"Scheduled message sent: the user's scheduled message {id} went out in \"{chat}\".",
+        };
+    }
+
     // Names are chosen by other people too, so they are shortened and kept to one plain line.
     private static string Name(string name)
     {

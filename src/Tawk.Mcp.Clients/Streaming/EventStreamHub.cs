@@ -45,6 +45,9 @@ public sealed class EventStreamHub : IEventSink, IEventStreamHub
             ChatUpdatedEvent c => ("chat", JsonSerializer.Serialize(new { chat = c.Chat }, Json)),
             ConnectionStateEvent s => ("tawk", JsonSerializer.Serialize(new { state = TawkConnectionStates.ToWire(s.State) }, Json)),
             ReadEvent r => ("read", JsonSerializer.Serialize(new { chat = r.Chat, message_id = r.MessageId, reader = r.Reader, at = r.At }, Json)),
+            MessageActivityEvent a => (
+                ActivityNames.Of(a.Kind),
+                JsonSerializer.Serialize(new { chat = a.Chat, message_id = a.MessageId, who = a.Who, emoji = a.Emoji, message = a.Message, at = a.At }, Json)),
             _ => (null, null),
         };
         if (name is not null)

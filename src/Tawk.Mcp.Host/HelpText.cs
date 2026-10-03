@@ -24,6 +24,9 @@ public static class HelpText
           --channel auto|on|off         Claude Code channel events     TAWKMCP_CHANNEL
           --channel-own on|off          also the messages you send     TAWKMCP_CHANNEL_OWN (off)
           --channel-read on|off         also read receipts for them    TAWKMCP_CHANNEL_READ (off)
+          --channel-reactions on|off    also reactions to them         TAWKMCP_CHANNEL_REACTIONS (off)
+          --channel-edits on|off        also others' edits and deletes TAWKMCP_CHANNEL_EDITS (off)
+          --channel-scheduled on|off    also scheduled messages going  TAWKMCP_CHANNEL_SCHEDULED (off)
           --memory write|read|off       voices, contacts, templates    TAWKMCP_MEMORY (write)
           --data-file PATH              memory database                TAWKMCP_DATA_FILE
           --sync-repo OWNER/NAME        private repository for memory  TAWKMCP_SYNC_REPO

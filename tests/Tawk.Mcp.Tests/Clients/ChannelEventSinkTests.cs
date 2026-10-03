@@ -91,6 +91,48 @@ public class ChannelEventSinkTests
     }
 
     [Test]
+    public async Task Reactions_edits_and_scheduled_sends_each_follow_their_own_option()
+    {
+        var chat = new ChatRef(Samples.MomJid, "Mom");
+        var mom = new ReaderRef(Samples.MomJid, "Mom");
+        var updates = new[]
+        {
+            new LiveUpdate(new MessageActivityEvent(ActivityKind.Reaction, chat, "A1", mom, "+", null, 10), "Reaction"),
+            new LiveUpdate(new MessageActivityEvent(ActivityKind.Edited, chat, "A2", mom, null, null, 11), "Message edited"),
+            new LiveUpdate(new MessageActivityEvent(ActivityKind.Deleted, chat, "A3", mom, null, null, 12), "Message deleted"),
+            new LiveUpdate(new MessageActivityEvent(ActivityKind.ScheduledSent, chat, "A4", null, null, null, 13), "Scheduled message sent"),
+        };
+
+        var off = new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence);
+        var edits = new ChannelEventSink(new ChannelOptions(ChannelMode.On, Edits: true), _sessions, _cadence);
+        foreach (var update in updates)
+        {
+            await off.OnUpdateAsync(update, CancellationToken.None);
+        }
+
+        var before = _claude.Sent.Count;
+        foreach (var update in updates)
+        {
+            await edits.OnUpdateAsync(update, CancellationToken.None);
+        }
+
+        var all = new ChannelEventSink(new ChannelOptions(ChannelMode.On, Reactions: true, Edits: true, Scheduled: true), _sessions, _cadence);
+        var types = _claude.Sent.Select(sent => (string?)sent.Parameters["meta"]!["type"]).ToList();
+        _claude.Sent.Clear();
+        foreach (var update in updates)
+        {
+            await all.OnUpdateAsync(update, CancellationToken.None);
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(before, Is.Zero);
+            Assert.That(types, Is.EqualTo(new[] { "edit", "delete" }));
+            Assert.That(_claude.Sent.Select(sent => (string?)sent.Parameters["meta"]!["type"]), Is.EqualTo(new[] { "reaction", "edit", "delete", "scheduled_sent" }));
+        });
+    }
+
+    [Test]
     public async Task The_users_own_messages_are_not_pushed()
     {
         await new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence).OnUpdateAsync(Update(fromMe: true), CancellationToken.None);

@@ -64,7 +64,25 @@ public sealed class ChannelEventSink(ChannelOptions options, IClientSessionRegis
             ["type"] = "read",
             ["from_me"] = "false",
         },
+        MessageActivityEvent activity when Carries(activity.Kind) => new JsonObject
+        {
+            ["chat_jid"] = activity.Chat.Jid,
+            ["chat_name"] = activity.Chat.Name,
+            ["message_id"] = activity.MessageId,
+            ["sender"] = activity.Who?.Name ?? activity.Who?.Jid ?? string.Empty,
+            ["ts"] = activity.At.ToString(CultureInfo.InvariantCulture),
+            ["type"] = ActivityNames.Of(activity.Kind),
+            ["from_me"] = activity.Kind == ActivityKind.ScheduledSent ? "true" : "false",
+        },
         _ => null,
+    };
+
+    private bool Carries(ActivityKind kind) => kind switch
+    {
+        ActivityKind.Reaction => options.Reactions,
+        ActivityKind.Edited or ActivityKind.Deleted => options.Edits,
+        ActivityKind.ScheduledSent => options.Scheduled,
+        _ => false,
     };
 
     private bool Wants(IClientSession session) =>

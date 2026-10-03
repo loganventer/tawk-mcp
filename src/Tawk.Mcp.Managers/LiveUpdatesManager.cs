@@ -46,6 +46,7 @@ public sealed partial class LiveUpdatesManager : ILiveUpdatesManager
             {
                 MessageEvent message => Describe(message),
                 ReadEvent read => _notification.Read(read.Chat, read.MessageId, read.Reader),
+                MessageActivityEvent activity => Describe(activity),
                 _ => null,
             });
             foreach (var sink in _sinks)
@@ -77,6 +78,12 @@ public sealed partial class LiveUpdatesManager : ILiveUpdatesManager
     private string Describe(MessageEvent message) =>
         _notification.Header(message.Chat, message.Message) + "\n"
         + _fence.Wrap("a new WhatsApp message", _transcript.FormatMessage(message.Message));
+
+    // An edit carries the other person's new words, which are fenced like any message.
+    private string Describe(MessageActivityEvent activity) =>
+        activity is { Kind: ActivityKind.Edited, Message: { } edited }
+            ? _notification.Activity(activity) + "\n" + _fence.Wrap("the edited WhatsApp message", _transcript.FormatMessage(edited))
+            : _notification.Activity(activity);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not subscribe to tawk updates: {Reason}")]
     private partial void LogSubscribeFailed(string reason);
