@@ -31,7 +31,9 @@ public static class TawkServerInstructions
     public const string Accounts =
         " The user may have several WhatsApp accounts in tawk. list_accounts shows the ones you may use and what you may do in each; "
         + "the tools that reach WhatsApp take an optional account, and without it use the default account. A chat belongs to one account: "
-        + "the same person on two accounts is two chats. When you act on something that arrived with an account, pass that account. "
+        + "the same person on two accounts is two chats. When you read or act on something that arrived with an account, pass that account. "
+        + "A new message is the exception: leave the account out and tawk sends it from the number the user chose for that contact, "
+        + "and refuses when that number is closed to you. Name an account for a new message only when the user asks for that number. "
         + "Never move a conversation to another of the user's numbers unless the user asks: the other person would see a different sender.";
 
     public const string ChannelOwn =
