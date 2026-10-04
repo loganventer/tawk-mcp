@@ -273,7 +273,7 @@ claude mcp add tawk-channel -- tawk-mcp --stdio
 claude --dangerously-load-development-channels server:tawk-channel
 ```
 
-Claude Code shows a warning first, and on Team and Enterprise plans an admin must enable channels. See "Claude Code channel" in [MANUAL.md](MANUAL.md).
+`scripts/claude-tawk` wraps the second line: it rebuilds tawk-mcp when the checkout moved on, turns the channel events on and starts Claude Code. Claude Code shows a warning first, and on Team and Enterprise plans an admin must enable channels. See "Claude Code channel" in [MANUAL.md](MANUAL.md).
 
 **Letting one instance approve its own sends.** By default every write waits for the person. To change that for chosen chats, the person does both of these, each by hand:
 
