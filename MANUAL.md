@@ -83,7 +83,7 @@ Locked and hidden chats, and chats outside tawk's `chats` setting, are never sho
 tawk can hold several WhatsApp numbers. You decide in tawk, for each one, whether agents may use it and how far: off, read, send, manage or admin (Settings, Account, Accounts…). An account you add starts off, and tawk-mcp is not told it exists.
 
 - **`list_accounts`** shows the accounts open to agents: id, label, number, what may be done in each, and which is the default.
-- **`account`** is an optional argument on every tool that reaches WhatsApp, and on the memory tools that take a `chat`. Give an account's label or id. Without it the tool uses the default account: your primary one if agents may use it, else the first they may.
+- **`account`** is an optional argument on every tool that reaches WhatsApp, and on the memory tools that take a `chat`. Give an account's label or id. Without it the tool uses the default account: your primary one if agents may use it, else the first they may. A new message is the exception: `send_message`, `schedule_message` and `draft_message` without an account go out from the number you chose for that contact in tawk, and are refused when that number is off for agents. Tell the agent which number to use and it names that account instead.
 - A chat belongs to one account. The same person on two of your numbers is two chats, and `chat` is looked up inside the account you named.
 - What a tool may do is decided by that account's level. A send from an account at read is refused, whatever your other accounts allow.
 - An account that is closed or does not exist answers "No such account" either way.

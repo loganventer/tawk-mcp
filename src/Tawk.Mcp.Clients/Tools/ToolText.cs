@@ -7,7 +7,8 @@ internal static class ToolText
 
     public const string Account =
         "Which of the user's WhatsApp accounts, by label or id from list_accounts. Leave out for the default account. "
-        + "When answering something that arrived with an account, pass that account.";
+        + "When reading or acting on something that arrived with an account, pass that account. "
+        + "For a new message leave it out unless the user names a number: tawk then sends from the number the user chose for that contact.";
 
     public const string NeedsSend =
         " Needs access = send in tawk, and the user must approve it in tawk; the call waits while tawk asks them."
