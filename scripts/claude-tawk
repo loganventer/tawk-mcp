@@ -1,0 +1,51 @@
+#!/bin/sh
+# Starts Claude Code with tawk's channel on: new WhatsApp messages arrive in the session.
+# Register the stdio server once first:  claude mcp add tawk-channel -- tawk-mcp --stdio
+# Copy or link this file into a directory on your PATH. Arguments are passed on to Claude Code.
+
+# Uses CLAUDE_BIN when set, else the newest Claude Code that the VS Code extension installed, else the one on PATH.
+bin="${CLAUDE_BIN:-}"
+[ -n "$bin" ] || bin="$(ls -d "$HOME"/.vscode/extensions/anthropic.claude-code-*/resources/native-binary/claude 2>/dev/null | sort -V | tail -1)"
+[ -n "$bin" ] || bin="$(command -v claude 2>/dev/null)"
+[ -n "$bin" ] && [ -x "$bin" ] || { echo "Claude Code was not found: set CLAUDE_BIN, or install it" >&2; exit 1; }
+
+# Runs the latest tawk-mcp: when the checkout has moved on since the last build, build it again.
+# TAWK_MCP_SRC names the checkout; without it, the one this file lives in. TAWK_MCP_PULL=1 pulls from GitHub first.
+src="${TAWK_MCP_SRC:-$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)}"
+stamp="${XDG_DATA_HOME:-$HOME/.local/share}/tawk-mcp/built-commit"
+if [ -f "$src/install.sh" ] && command -v git >/dev/null 2>&1; then
+    [ "${TAWK_MCP_PULL:-0}" = 1 ] && git -C "$src" pull --ff-only --quiet
+    head="$(git -C "$src" rev-parse HEAD 2>/dev/null)"
+    if [ -n "$head" ] && [ "$head" != "$(cat "$stamp" 2>/dev/null)" ]; then
+        echo "tawk-mcp: building $(git -C "$src" log -1 --format='%h %s')" >&2
+        if PATH="$HOME/.dotnet:$PATH" DOTNET_ROOT="${DOTNET_ROOT:-$HOME/.dotnet}" bash "$src/install.sh" --no-service -y >&2; then
+            mkdir -p "$(dirname "$stamp")" && printf '%s\n' "$head" > "$stamp"
+        else
+            echo "tawk-mcp: the build failed; starting with the version already installed" >&2
+        fi
+    fi
+fi
+
+# Lets this session's tawk-mcp approve its own queued sends, when tawk's access is admin: it is handed the
+# admin token file tawk writes beside its control socket. TAWK_MCP_ADMIN=0 starts without it.
+if [ "${TAWK_MCP_ADMIN:-1}" = 1 ] && [ -z "${TAWKMCP_ADMIN_TOKEN_FILE:-}" ]; then
+    if [ -n "${TAWK_CONTROL_SOCKET:-}" ]; then run="$(dirname "$TAWK_CONTROL_SOCKET")"
+    elif [ -n "${XDG_RUNTIME_DIR:-}" ]; then run="$XDG_RUNTIME_DIR/tawk"
+    else run="${XDG_STATE_HOME:-$HOME/.local/state}/tawk"; fi
+    export TAWKMCP_ADMIN_TOKEN_FILE="$run/admin.token"
+fi
+
+# The messages you send arrive on the channel as well as the ones you receive. tawk's own switches
+# (Settings > Automation > Push ...) decide whether either kind is handed over at all.
+export TAWKMCP_CHANNEL_OWN="${TAWKMCP_CHANNEL_OWN:-on}"
+# Read receipts for your messages arrive too, once tawk's "Push read receipts" switch is on.
+export TAWKMCP_CHANNEL_READ="${TAWKMCP_CHANNEL_READ:-on}"
+# The same for reactions, edits and deletes, and scheduled sends: tawk's Agent events switches decide.
+export TAWKMCP_CHANNEL_REACTIONS="${TAWKMCP_CHANNEL_REACTIONS:-on}"
+export TAWKMCP_CHANNEL_EDITS="${TAWKMCP_CHANNEL_EDITS:-on}"
+export TAWKMCP_CHANNEL_SCHEDULED="${TAWKMCP_CHANNEL_SCHEDULED:-on}"
+
+# Memory sync is off unless TAWKMCP_SYNC_REPO names your own private repository; it is passed on as it is.
+
+# TAWK_MCP_SERVER is the name the stdio server was registered under.
+exec "$bin" --dangerously-load-development-channels "server:${TAWK_MCP_SERVER:-tawk-channel}" "$@"

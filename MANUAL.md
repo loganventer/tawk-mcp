@@ -408,6 +408,14 @@ claude --dangerously-load-development-channels server:tawk-channel
 
 The stdio instance connects to tawk by itself, next to any HTTP instance you run; tawk accepts several clients at once.
 
+**`scripts/claude-tawk`** does the second line for you, with the rest set up. Copy or link it into a directory on your `PATH` and run `claude-tawk`; arguments are passed on to Claude Code. It:
+
+- finds Claude Code: `CLAUDE_BIN`, else the newest one the VS Code extension installed, else `claude` on your `PATH`
+- rebuilds tawk-mcp with `install.sh --no-service` when the checkout has a commit it has not built yet. `TAWK_MCP_SRC` names the checkout (default: the one the script is in), and `TAWK_MCP_PULL=1` pulls first
+- points `TAWKMCP_ADMIN_TOKEN_FILE` at tawk's `admin.token`, so the session can approve its own sends where you allowed that. `TAWK_MCP_ADMIN=0` leaves it out
+- turns on the channel events for your own messages, read receipts, reactions, edits and deletes, and scheduled sends. tawk's own switches still decide what is handed over
+- loads the server registered as `tawk-channel`; `TAWK_MCP_SERVER` names another
+
 Claude Code shows a warning about development channels first; choose to continue. Your own messages are not pushed. On Team and Enterprise plans an admin must enable channels.
 
 An event shows one moment of a chat. An agent that already knows the chat needs nothing more; one that does not is told to get the rest first. The server instructions say that only when the context is missing should it read the chat's recent history with `read_messages`, and the person's profile and knowledge when memory is on, before judging, summarising or drafting from an event.
