@@ -408,7 +408,7 @@ claude --dangerously-load-development-channels server:tawk-channel
 
 The stdio instance connects to tawk by itself, next to any HTTP instance you run; tawk accepts several clients at once.
 
-**`scripts/claude-tawk`** does the second line for you, with the rest set up. Copy or link it into a directory on your `PATH` and run `claude-tawk`; arguments are passed on to Claude Code. It:
+**`scripts/claude-tawk`** does the second line for you, with the rest set up. Link it into a directory on your `PATH` (`ln -s "$PWD/scripts/claude-tawk" ~/.local/bin/`) and run `claude-tawk`. It works on Linux and macOS; arguments are passed on to Claude Code. It:
 
 - finds Claude Code: `CLAUDE_BIN`, else the newest one the VS Code extension installed, else `claude` on your `PATH`
 - rebuilds tawk-mcp with `install.sh --no-service` when the checkout has a commit it has not built yet. `TAWK_MCP_SRC` names the checkout (default: the one the script is in), and `TAWK_MCP_PULL=1` pulls first
