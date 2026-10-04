@@ -367,7 +367,7 @@ Memory can be kept in step between your machines through a private git repositor
 | `tawk://contact/{jid}` | One contact's profile, without sensitive fields |
 | `tawk://templates` | The reply templates in memory |
 
-The first two mean the default account. Clients may subscribe to those two; the per-account forms are read on request and send no update notifications yet. A subscribed client is told (`notifications/resources/updated`) when a chat gets a new message or its unread count changes, and the chat list resource changes with every chat. After tawk-mcp reconnects to tawk it tells subscribed clients about every subscribed resource, and sends `notifications/resources/list_changed`, since messages may have arrived while it was away.
+The first two mean the default account. Clients may subscribe to the chat list and chat resources, in either form; a subscription that names an account hears about that account only. A subscribed client is told (`notifications/resources/updated`) when a chat gets a new message or its unread count changes, and the chat list resource changes with every chat. After tawk-mcp reconnects to tawk it tells subscribed clients about every subscribed resource, and sends `notifications/resources/list_changed`, since messages may have arrived while it was away.
 
 ## Prompts
 

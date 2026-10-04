@@ -13,18 +13,21 @@ namespace Tawk.Mcp.Clients.Resources;
 /// </summary>
 public sealed partial class ResourceUpdatePump(IResourceSubscriptionRegistry registry, ILogger<ResourceUpdatePump> logger) : IEventSink
 {
+    private int? _defaultAccount;
+
     public async Task OnUpdateAsync(LiveUpdate update, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(update);
         switch (update.Event)
         {
             case MessageEvent message:
-                await NotifyAsync(registry.TargetsForChat(message.Chat.Jid), cancellationToken).ConfigureAwait(false);
+                await NotifyAsync(TargetsFor(message.Chat.Jid, message.Account), cancellationToken).ConfigureAwait(false);
                 break;
             case ChatUpdatedEvent chat:
-                await NotifyAsync(registry.TargetsForChat(chat.Chat.Jid), cancellationToken).ConfigureAwait(false);
+                await NotifyAsync(TargetsFor(chat.Chat.Jid, chat.Account), cancellationToken).ConfigureAwait(false);
                 break;
-            case ConnectionStateEvent { State: TawkConnectionState.Connected }:
+            case ConnectionStateEvent { State: TawkConnectionState.Connected } connected:
+                _defaultAccount = connected.Hello?.DefaultAccount;      // which account the plain uris mean
                 var all = registry.All();
                 await NotifyAsync(all, cancellationToken).ConfigureAwait(false);
                 foreach (var session in all.Select(t => t.Session).Distinct())
@@ -35,6 +38,10 @@ public sealed partial class ResourceUpdatePump(IResourceSubscriptionRegistry reg
                 break;
         }
     }
+
+    // Until tawk has said which account is the default, an event is taken to be about it.
+    private IReadOnlyList<ResourceTarget> TargetsFor(string jid, AccountRef? account) =>
+        registry.TargetsForChat(jid, account, account is null || _defaultAccount is null || account.Id == _defaultAccount);
 
     private async Task NotifyAsync(IReadOnlyList<ResourceTarget> targets, CancellationToken cancellationToken)
     {

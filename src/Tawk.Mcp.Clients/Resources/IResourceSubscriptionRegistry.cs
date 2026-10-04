@@ -1,4 +1,5 @@
 using Tawk.Mcp.Clients.Sessions;
+using Tawk.Mcp.Core;
 
 namespace Tawk.Mcp.Clients.Resources;
 
@@ -11,8 +12,12 @@ public interface IResourceSubscriptionRegistry
 
     void RemoveSession(IClientSession session);
 
-    /// <summary>The subscriptions affected by a change in one chat: that chat's resource and the chat list.</summary>
-    IReadOnlyList<ResourceTarget> TargetsForChat(string jid);
+    /// <summary>
+    /// The subscriptions affected by a change in one chat: that chat's resource and the chat list.
+    /// <paramref name="account"/> is the account the chat is in, or null from a tawk with one account. The
+    /// plain uris mean the default account, so they are affected only when <paramref name="isDefault"/> is true.
+    /// </summary>
+    IReadOnlyList<ResourceTarget> TargetsForChat(string jid, AccountRef? account = null, bool isDefault = true);
 
     IReadOnlyList<ResourceTarget> All();
 }

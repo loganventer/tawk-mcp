@@ -12,20 +12,43 @@ public static class ResourceUris
 
     public static string Chat(string jid) => ChatPrefix + jid;
 
-    /// <summary>Returns "chats" for the chat list, the unescaped jid for one chat, or null for anything else.</summary>
-    public static string? Key(string uri)
+    private const string AccountPrefix = "tawk://account/";
+
+    /// <summary>Reads a chat list or chat uri, in its plain form or for one account, or returns null for anything else.</summary>
+    public static ResourceAddress? Parse(string uri)
     {
         ArgumentNullException.ThrowIfNull(uri);
         if (string.Equals(uri, Chats, StringComparison.Ordinal))
         {
-            return "chats";
+            return new ResourceAddress(null, null);
         }
 
         if (uri.StartsWith(ChatPrefix, StringComparison.Ordinal) && uri.Length > ChatPrefix.Length)
         {
-            return "chat:" + Uri.UnescapeDataString(uri[ChatPrefix.Length..]);
+            return new ResourceAddress(null, Uri.UnescapeDataString(uri[ChatPrefix.Length..]));
         }
 
-        return null;
+        if (!uri.StartsWith(AccountPrefix, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var rest = uri[AccountPrefix.Length..];
+        var slash = rest.IndexOf('/', StringComparison.Ordinal);
+        if (slash <= 0)
+        {
+            return null;
+        }
+
+        var account = Uri.UnescapeDataString(rest[..slash]);
+        var tail = rest[(slash + 1)..];
+        if (tail == "chats")
+        {
+            return new ResourceAddress(account, null);
+        }
+
+        return tail.StartsWith("chat/", StringComparison.Ordinal) && tail.Length > 5
+            ? new ResourceAddress(account, Uri.UnescapeDataString(tail[5..]))
+            : null;
     }
 }
