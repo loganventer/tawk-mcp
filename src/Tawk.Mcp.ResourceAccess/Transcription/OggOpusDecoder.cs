@@ -1,5 +1,5 @@
 using Concentus;
-using Concentus.Oggfile;
+using Concentus.Structs;
 using Tawk.Mcp.Core.Transcription;
 
 namespace Tawk.Mcp.ResourceAccess.Transcription;
@@ -11,6 +11,12 @@ namespace Tawk.Mcp.ResourceAccess.Transcription;
 public sealed class OggOpusDecoder : IAudioDecoder
 {
     public const int SampleRate = 16000;
+
+    // The longest an Opus packet can be is 120 ms.
+    private const int LongestPacket = SampleRate * 120 / 1000;
+
+    // A voice note is given up on when more than one packet in this many cannot be read.
+    private const int SkippedShare = 10;
 
     public float[] Decode(string path, int maxSeconds)
     {
@@ -25,30 +31,7 @@ public sealed class OggOpusDecoder : IAudioDecoder
             }
 
             file.Position = 0;
-            var decoder = OpusCodecFactory.CreateDecoder(SampleRate, 1);
-            var ogg = new OpusOggReadStream(decoder, file);
-            var limit = (long)maxSeconds * SampleRate;
-            var samples = new List<float>(SampleRate * 30);
-            while (ogg.HasNextPacket)
-            {
-                var packet = ogg.DecodeNextPacket();
-                if (packet is null)
-                {
-                    continue;
-                }
-
-                foreach (var sample in packet)
-                {
-                    samples.Add(sample / 32768f);
-                }
-
-                if (samples.Count > limit)
-                {
-                    throw new TranscriptionException("too long");
-                }
-            }
-
-            return samples.Count == 0 ? throw new TranscriptionException("the voice note holds no sound") : [.. samples];
+            return Decode(file, (long)maxSeconds * SampleRate);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -57,6 +40,83 @@ public sealed class OggOpusDecoder : IAudioDecoder
         catch (Exception ex) when (ex is InvalidDataException or ArgumentException or InvalidOperationException or OpusException)
         {
             throw new TranscriptionException("the voice note could not be decoded", ex);
+        }
+    }
+
+    private static float[] Decode(Stream file, long limit)
+    {
+        var decoder = OpusCodecFactory.CreateDecoder(SampleRate, 1);
+        var frame = new short[LongestPacket];
+        var samples = new List<float>(SampleRate * 30);
+        var described = false;
+        var decoded = 0;
+        var skipped = 0;
+        foreach (var packet in OggPackets.Read(file))
+        {
+            // The stream opens with two packets that describe it and hold no sound.
+            if (Starts(packet, "OpusHead"u8) || Starts(packet, "OpusTags"u8))
+            {
+                described = true;
+                continue;
+            }
+
+            if (!described)
+            {
+                throw new TranscriptionException("unsupported format: only Ogg Opus voice notes can be transcribed in process");
+            }
+
+            if (packet.Length == 0)
+            {
+                continue;
+            }
+
+            int count;
+            try
+            {
+                count = decoder.Decode(packet, frame, frame.Length, false);
+                decoded++;
+            }
+            catch (Exception ex) when (ex is OpusException or ArgumentException or InvalidOperationException or IndexOutOfRangeException)
+            {
+                // The decoder refuses some packets that phones write. One of them is left out as silence of
+                // its own length and the decoder starts afresh, so a fraction of a second is lost, not the note.
+                skipped++;
+                decoder.ResetState();
+                count = Length(packet);
+                Array.Clear(frame, 0, count);
+            }
+
+            for (var i = 0; i < count; i++)
+            {
+                samples.Add(frame[i] / 32768f);
+            }
+
+            if (samples.Count > limit)
+            {
+                throw new TranscriptionException("too long");
+            }
+        }
+
+        if (!described || skipped * SkippedShare > decoded + skipped)
+        {
+            throw new TranscriptionException("the voice note could not be decoded");
+        }
+
+        return decoded == 0 ? throw new TranscriptionException("the voice note holds no sound") : [.. samples];
+    }
+
+    private static bool Starts(byte[] packet, ReadOnlySpan<byte> with) => packet.AsSpan().StartsWith(with);
+
+    // How many samples a packet stands for, by what it says of itself, or none when it does not say.
+    private static int Length(byte[] packet)
+    {
+        try
+        {
+            return Math.Clamp(OpusPacketInfo.GetNumFrames(packet) * OpusPacketInfo.GetNumSamplesPerFrame(packet, SampleRate), 0, LongestPacket);
+        }
+        catch (Exception ex) when (ex is OpusException or ArgumentException or IndexOutOfRangeException)
+        {
+            return 0;
         }
     }
 }
