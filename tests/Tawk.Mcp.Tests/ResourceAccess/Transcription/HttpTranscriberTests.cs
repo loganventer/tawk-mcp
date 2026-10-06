@@ -32,7 +32,7 @@ public class HttpTranscriberTests
         using var client = new HttpClient(handler);
 
         var transcript = await new HttpTranscriber(client, Options).TranscribeAsync(
-            new TranscriptionPassRequest(_file, "af", TranscriptionTask.Transcribe, "small", "Koos"), CancellationToken.None);
+            new TranscriptionPassRequest(_file, "af", TranscriptionTask.Transcribe, "small", "Koos"), NoTranscriptionProgress.Instance, CancellationToken.None);
 
         Assert.Multiple(() =>
         {
@@ -49,7 +49,7 @@ public class HttpTranscriberTests
         using var client = new HttpClient(handler);
 
         var transcript = await new HttpTranscriber(client, Options).TranscribeAsync(
-            new TranscriptionPassRequest(_file, "auto", TranscriptionTask.Translate, "base", null), CancellationToken.None);
+            new TranscriptionPassRequest(_file, "auto", TranscriptionTask.Translate, "base", null), NoTranscriptionProgress.Instance, CancellationToken.None);
 
         Assert.Multiple(() =>
         {
@@ -68,7 +68,7 @@ public class HttpTranscriberTests
 
         Assert.That(
             async () => await new HttpTranscriber(client, Options).TranscribeAsync(
-                new TranscriptionPassRequest(_file, "af", TranscriptionTask.Transcribe, "small", null), CancellationToken.None),
+                new TranscriptionPassRequest(_file, "af", TranscriptionTask.Transcribe, "small", null), NoTranscriptionProgress.Instance, CancellationToken.None),
             Throws.TypeOf<TranscriptionException>().With.Message.EqualTo("the transcriber answered 500"));
     }
 }

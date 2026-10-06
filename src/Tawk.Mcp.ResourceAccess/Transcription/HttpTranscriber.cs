@@ -12,9 +12,13 @@ public sealed class HttpTranscriber(HttpClient client, TranscriptionOptions opti
 {
     public string Name => "http";
 
-    public async Task<Transcript> TranscribeAsync(TranscriptionPassRequest request, CancellationToken cancellationToken)
+    public async Task<Transcript> TranscribeAsync(TranscriptionPassRequest request, IProgress<TranscriptionProgress> progress, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(progress);
+
+        // The user's transcriber does not say how far it is, only that it has the file.
+        progress.Report(new TranscriptionProgress(TranscriptionStage.Transcribing));
         var address = options.Url ?? throw new TranscriptionException("no transcriber is set");
         var model = request.Model;
         var endpoint = new Uri(

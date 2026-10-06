@@ -120,7 +120,7 @@ scripts/docker-run.sh               # builds, runs as you, prints the token and 
 | Profile | `get_profile` | `set_profile`, `set_profile_photo`, `remove_profile_photo` |
 | Settings | `get_settings`, `list_themes` | `set_setting` |
 | tawk itself | `app_status`, `get_version`, `list_accounts` | `describe_session`, `reconnect`, `decline_call` |
-| Voice notes | `transcribe_message`, `get_transcript` | |
+| Voice notes | `transcribe_message`, `get_transcript`, `get_transcription_progress` | |
 | Your own waiting requests (only with an admin token file) | `list_pending` | `approve_pending` |
 | Audience categories | `list_categories` | `set_category`, `delete_category` |
 | Voices | `list_voices`, `get_voice`, `export_voice`, `check_voice` | `set_voice`, `set_voice_variant`, `import_voice`, `learn_voice`, `delete_voice` |

@@ -72,4 +72,28 @@ public class TranscriptionNoticeFormatterTests
             Assert.That(_formatter.Started(job, true), Does.Contain("already under way"));
         });
     }
+
+    [Test]
+    public void Progress_names_each_step_in_plain_words()
+    {
+        var job = Job(TranscriptionState.Running, new TranscriptionPass("af", new Transcript("Hallo", null, null, 4)), new TranscriptionPass("en"));
+        var now = DateTimeOffset.UnixEpoch.AddSeconds(90);
+        string Step(TranscriptionProgress? progress) => _formatter.Progress(job, progress, now);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Step(null), Is.EqualTo("Job t1 (message id 3EB0, model tiny): running, asked 90 s ago. starting."));
+            Assert.That(Step(new TranscriptionProgress(TranscriptionStage.FetchingAudio)), Does.EndWith("ago. fetching the voice note from tawk."));
+            Assert.That(Step(new TranscriptionProgress(TranscriptionStage.DecodingAudio, Language: "en")), Does.EndWith("Language en, 2 of 2: decoding the voice note."));
+            Assert.That(Step(new TranscriptionProgress(TranscriptionStage.WaitingForModel, Language: "en")), Does.EndWith("waiting for another transcription to finish."));
+            Assert.That(
+                Step(new TranscriptionProgress(TranscriptionStage.DownloadingModel, Bytes: 736L * 1024 * 1024, Language: "en")),
+                Does.EndWith("downloading the tiny model, 736 MB so far."));
+            Assert.That(Step(new TranscriptionProgress(TranscriptionStage.DownloadingModel, Language: "en")), Does.EndWith("downloading the tiny model."));
+            Assert.That(Step(new TranscriptionProgress(TranscriptionStage.LoadingModel, Language: "en")), Does.EndWith("loading the tiny model."));
+            Assert.That(Step(new TranscriptionProgress(TranscriptionStage.Transcribing, Language: "en")), Does.EndWith("2 of 2: transcribing."));
+            Assert.That(Step(new TranscriptionProgress(TranscriptionStage.Transcribing, 60, Language: "en")), Does.EndWith("transcribing, 60% of the voice note heard."));
+            Assert.That(Step(new TranscriptionProgress(TranscriptionStage.Transcribing, 60, Language: "en")), Does.Not.Contain("Hallo"), "no transcript in it");
+        });
+    }
 }

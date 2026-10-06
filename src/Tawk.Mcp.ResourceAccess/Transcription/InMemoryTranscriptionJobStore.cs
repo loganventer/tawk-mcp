@@ -9,6 +9,7 @@ public sealed class InMemoryTranscriptionJobStore(TranscriptionOptions options, 
     private readonly Lock _gate = new();
     private readonly Dictionary<string, TranscriptionJob> _jobs = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _active = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, TranscriptionProgress> _progress = new(StringComparer.Ordinal);
     private readonly Channel<string> _queue = Channel.CreateUnbounded<string>();
     private long _nextId;
 
@@ -61,7 +62,38 @@ public sealed class InMemoryTranscriptionJobStore(TranscriptionOptions options, 
             if (job.Ended)
             {
                 _active.Remove(job.Request.Key);
+                _progress.Remove(job.Id);
             }
+        }
+    }
+
+    public void Report(string id, TranscriptionProgress progress)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentNullException.ThrowIfNull(progress);
+        lock (_gate)
+        {
+            if (_jobs.TryGetValue(id, out var job) && !job.Ended)
+            {
+                _progress[id] = progress;
+            }
+        }
+    }
+
+    public TranscriptionProgress? Progress(string id)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        lock (_gate)
+        {
+            return _progress.GetValueOrDefault(id.Trim());
+        }
+    }
+
+    public IReadOnlyList<TranscriptionJob> Active()
+    {
+        lock (_gate)
+        {
+            return [.. _jobs.Values.Where(j => !j.Ended).OrderBy(j => j.CreatedAt).ThenBy(j => j.Id.Length).ThenBy(j => j.Id, StringComparer.Ordinal)];
         }
     }
 

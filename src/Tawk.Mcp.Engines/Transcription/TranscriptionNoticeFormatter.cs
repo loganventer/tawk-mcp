@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Tawk.Mcp.Core.Transcription;
 
@@ -47,6 +48,51 @@ public sealed class TranscriptionNoticeFormatter(IUntrustedTextFence fence) : IT
         }
 
         return text.ToString();
+    }
+
+    public string Progress(TranscriptionJob job, TranscriptionProgress? progress, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        var text = new StringBuilder();
+        text.Append("Job ").Append(job.Id).Append(" (message id ").Append(PlainName.Of(job.Request.MessageId))
+            .Append(", model ").Append(PlainName.Of(job.Request.Model)).Append("): ").Append(State(job));
+        if (job.Ended)
+        {
+            return text.Append(". get_transcript reads it.").ToString();
+        }
+
+        var asked = Math.Max(0, (long)(now - job.CreatedAt).TotalSeconds);
+        text.Append(CultureInfo.InvariantCulture, $", asked {asked} s ago.");
+        if (job.State != TranscriptionState.Running)
+        {
+            return text.ToString();
+        }
+
+        if (progress?.Language is { } language)
+        {
+            var pass = Math.Min(job.Passes.Count(p => p.Ended) + 1, job.Passes.Count);
+            text.Append(CultureInfo.InvariantCulture, $" Language {PlainName.Of(language)}, {pass} of {job.Passes.Count}:");
+        }
+
+        return text.Append(' ').Append(Step(job, progress)).Append('.').ToString();
+    }
+
+    private static string Step(TranscriptionJob job, TranscriptionProgress? progress)
+    {
+        var model = PlainName.Of(job.Request.Model);
+        return progress switch
+        {
+            null => "starting",
+            { Stage: TranscriptionStage.FetchingAudio } => "fetching the voice note from tawk",
+            { Stage: TranscriptionStage.DecodingAudio } => "decoding the voice note",
+            { Stage: TranscriptionStage.WaitingForModel } => "waiting for another transcription to finish",
+            { Stage: TranscriptionStage.DownloadingModel, Bytes: { } bytes } =>
+                string.Create(CultureInfo.InvariantCulture, $"downloading the {model} model, {bytes / (1024 * 1024)} MB so far"),
+            { Stage: TranscriptionStage.DownloadingModel } => $"downloading the {model} model",
+            { Stage: TranscriptionStage.LoadingModel } => $"loading the {model} model",
+            { Percent: { } percent } => string.Create(CultureInfo.InvariantCulture, $"transcribing, {percent}% of the voice note heard"),
+            _ => "transcribing",
+        };
     }
 
     private static string State(TranscriptionJob job) => job.State switch

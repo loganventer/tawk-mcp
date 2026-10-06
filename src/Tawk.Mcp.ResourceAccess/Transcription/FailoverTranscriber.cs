@@ -16,13 +16,13 @@ public sealed class FailoverTranscriber(
     /// <summary>The engine that did the last pass.</summary>
     public string Name => _last;
 
-    public async Task<Transcript> TranscribeAsync(TranscriptionPassRequest request, CancellationToken cancellationToken)
+    public async Task<Transcript> TranscribeAsync(TranscriptionPassRequest request, IProgress<TranscriptionProgress> progress, CancellationToken cancellationToken)
     {
         if (breaker.TryBeginAttempt())
         {
             try
             {
-                var transcript = await primary.TranscribeAsync(request, cancellationToken).ConfigureAwait(false);
+                var transcript = await primary.TranscribeAsync(request, progress, cancellationToken).ConfigureAwait(false);
                 breaker.RecordSuccess();
                 _last = primary.Name;
                 await host.UnloadAsync(cancellationToken).ConfigureAwait(false);
@@ -35,7 +35,7 @@ public sealed class FailoverTranscriber(
             }
         }
 
-        var own = await fallback.TranscribeAsync(request, cancellationToken).ConfigureAwait(false);
+        var own = await fallback.TranscribeAsync(request, progress, cancellationToken).ConfigureAwait(false);
         _last = fallback.Name;
         return own;
     }

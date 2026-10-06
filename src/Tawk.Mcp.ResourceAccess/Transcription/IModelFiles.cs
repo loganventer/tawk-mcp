@@ -12,6 +12,9 @@ public interface IModelFiles
     /// <summary>The file for a model by its name, such as tiny, or null when it is not installed.</summary>
     string? Find(string model);
 
+    /// <summary>How many bytes of a model that is being downloaded are here so far, or null when no download of it is under way.</summary>
+    long? Downloaded(string model);
+
     /// <summary>The names of the installed models.</summary>
     IReadOnlyList<string> Installed();
 

@@ -74,6 +74,7 @@ public sealed partial class TranscriptionRunManager : ITranscriptionRunManager
         MediaFile? file;
         try
         {
+            _jobs.Report(job.Id, new TranscriptionProgress(TranscriptionStage.FetchingAudio));
             file = await _media.LocateAsync(job.Request.MessageId, _options.Timeout, cancellationToken).ConfigureAwait(false);
             if (file is null)
             {
@@ -100,7 +101,7 @@ public sealed partial class TranscriptionRunManager : ITranscriptionRunManager
         var passes = job.Passes.ToList();
         for (var i = 0; i < passes.Count; i++)
         {
-            passes[i] = await PassAsync(job.Request, file.Path, passes[i], cancellationToken).ConfigureAwait(false);
+            passes[i] = await PassAsync(job, file.Path, passes[i], cancellationToken).ConfigureAwait(false);
             job = job with { Passes = [.. passes] };
             _jobs.Save(job);
         }
@@ -110,14 +111,18 @@ public sealed partial class TranscriptionRunManager : ITranscriptionRunManager
 
     // One language. A pass that fails says why and leaves the others to run.
     private async Task<TranscriptionPass> PassAsync(
-        TranscriptionRequest request, string path, TranscriptionPass pass, CancellationToken cancellationToken)
+        TranscriptionJob job, string path, TranscriptionPass pass, CancellationToken cancellationToken)
     {
+        var request = job.Request;
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         limit.CancelAfter(_options.Timeout);
         try
         {
             var transcript = await _transcriber
-                .TranscribeAsync(new TranscriptionPassRequest(path, pass.Language, request.Task, request.Model, request.Prompt), limit.Token)
+                .TranscribeAsync(
+                    new TranscriptionPassRequest(path, pass.Language, request.Task, request.Model, request.Prompt),
+                    new PassProgress(_jobs, job.Id, pass.Language),
+                    limit.Token)
                 .ConfigureAwait(false);
             return transcript.DurationS > _options.MaxSeconds
                 ? pass with { Failure = "too long" }

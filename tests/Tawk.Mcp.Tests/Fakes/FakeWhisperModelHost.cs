@@ -8,7 +8,8 @@ public sealed class FakeWhisperModelHost : IWhisperModelHost
 {
     public int Unloads { get; private set; }
 
-    public Task<Transcript> TranscribeAsync(ReadOnlyMemory<float> samples, TranscriptionPassRequest request, CancellationToken cancellationToken) =>
+    public Task<Transcript> TranscribeAsync(
+        ReadOnlyMemory<float> samples, TranscriptionPassRequest request, IProgress<TranscriptionProgress> progress, CancellationToken cancellationToken) =>
         Task.FromResult(new Transcript("from the model inside", null, request.Model, samples.Length / 16000.0));
 
     public Task UnloadAsync(CancellationToken cancellationToken)

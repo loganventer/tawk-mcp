@@ -9,6 +9,6 @@ public sealed class NoTranscriber : ITranscriber
 
     public string Name => "off";
 
-    public Task<Transcript> TranscribeAsync(TranscriptionPassRequest request, CancellationToken cancellationToken) =>
+    public Task<Transcript> TranscribeAsync(TranscriptionPassRequest request, IProgress<TranscriptionProgress> progress, CancellationToken cancellationToken) =>
         Task.FromException<Transcript>(new TranscriptionException(Off));
 }

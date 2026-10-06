@@ -7,10 +7,12 @@ public sealed class EmbeddedTranscriber(IAudioDecoder decoder, IWhisperModelHost
 {
     public string Name => "embedded";
 
-    public async Task<Transcript> TranscribeAsync(TranscriptionPassRequest request, CancellationToken cancellationToken)
+    public async Task<Transcript> TranscribeAsync(TranscriptionPassRequest request, IProgress<TranscriptionProgress> progress, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(progress);
+        progress.Report(new TranscriptionProgress(TranscriptionStage.DecodingAudio));
         var samples = await Task.Run(() => decoder.Decode(request.Path, options.MaxSeconds), cancellationToken).ConfigureAwait(false);
-        return await host.TranscribeAsync(samples, request, cancellationToken).ConfigureAwait(false);
+        return await host.TranscribeAsync(samples, request, progress, cancellationToken).ConfigureAwait(false);
     }
 }

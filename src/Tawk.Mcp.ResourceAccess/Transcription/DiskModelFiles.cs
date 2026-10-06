@@ -6,6 +6,9 @@ namespace Tawk.Mcp.ResourceAccess.Transcription;
 /// <summary>Models are GGML files named ggml-NAME.bin in one private folder.</summary>
 public sealed class DiskModelFiles(TranscriptionOptions options) : IModelFiles
 {
+    // A download is written beside the model under this name and renamed when it is whole.
+    private const string PartialSuffix = ".part";
+
     public string Folder => options.ModelDirectory;
 
     /// <summary>~/.local/share/tawk-mcp/models, or under $XDG_DATA_HOME when that is set.</summary>
@@ -25,6 +28,18 @@ public sealed class DiskModelFiles(TranscriptionOptions options) : IModelFiles
 
         var path = PathOf(model);
         return File.Exists(path) ? path : null;
+    }
+
+    public long? Downloaded(string model)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+        if (!Known(model))
+        {
+            return null;
+        }
+
+        var partial = new FileInfo(PathOf(model) + PartialSuffix);
+        return partial.Exists ? partial.Length : null;
     }
 
     public IReadOnlyList<string> Installed() => [.. TranscriptionOptions.KnownModels.Where(m => File.Exists(PathOf(m)))];
@@ -55,7 +70,7 @@ public sealed class DiskModelFiles(TranscriptionOptions options) : IModelFiles
         }
 
         var path = PathOf(model);
-        var partial = path + ".part";
+        var partial = path + PartialSuffix;
         try
         {
             var download = await WhisperGgmlDownloader.Default.GetGgmlModelAsync(type, QuantizationType.NoQuantization, cancellationToken).ConfigureAwait(false);

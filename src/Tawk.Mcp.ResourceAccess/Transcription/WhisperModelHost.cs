@@ -9,6 +9,9 @@ namespace Tawk.Mcp.ResourceAccess.Transcription;
 /// <summary>The only type that touches Whisper's own factory. Everything about the model's life is here.</summary>
 public sealed partial class WhisperModelHost : IWhisperModelHost, IAsyncDisposable
 {
+    // How often a pass that waits for a model to download says how much of it is here.
+    private static readonly TimeSpan DownloadTick = TimeSpan.FromSeconds(1);
+
     private readonly IModelFiles _files;
     private readonly IModelLock _lock;
     private readonly IWhisperRuntime _runtime;
@@ -43,15 +46,22 @@ public sealed partial class WhisperModelHost : IWhisperModelHost, IAsyncDisposab
         _logger = logger;
     }
 
-    public async Task<Transcript> TranscribeAsync(ReadOnlyMemory<float> samples, TranscriptionPassRequest request, CancellationToken cancellationToken)
+    public async Task<Transcript> TranscribeAsync(
+        ReadOnlyMemory<float> samples, TranscriptionPassRequest request, IProgress<TranscriptionProgress> progress, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(progress);
+        if (_gate.CurrentCount == 0)
+        {
+            progress.Report(new TranscriptionProgress(TranscriptionStage.WaitingForModel));
+        }
+
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             try
             {
-                return await OnceAsync(samples, request, cancellationToken).ConfigureAwait(false);
+                return await OnceAsync(samples, request, progress, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is not OperationCanceledException and not TranscriptionException)
             {
@@ -63,7 +73,7 @@ public sealed partial class WhisperModelHost : IWhisperModelHost, IAsyncDisposab
 
             try
             {
-                return await OnceAsync(samples, request, cancellationToken).ConfigureAwait(false);
+                return await OnceAsync(samples, request, progress, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is not OperationCanceledException and not TranscriptionException)
             {
@@ -110,10 +120,21 @@ public sealed partial class WhisperModelHost : IWhisperModelHost, IAsyncDisposab
         _gate.Dispose();
     }
 
-    private async Task<Transcript> OnceAsync(ReadOnlyMemory<float> samples, TranscriptionPassRequest request, CancellationToken cancellationToken)
+    private async Task<Transcript> OnceAsync(
+        ReadOnlyMemory<float> samples, TranscriptionPassRequest request, IProgress<TranscriptionProgress> progress, CancellationToken cancellationToken)
     {
-        var factory = await LoadAsync(request.Model, cancellationToken).ConfigureAwait(false);
-        var builder = factory.CreateBuilder().WithThreads(Math.Clamp(Environment.ProcessorCount / 2, 1, 8));
+        var factory = await LoadAsync(request.Model, progress, cancellationToken).ConfigureAwait(false);
+        var seconds = (double)samples.Length / OggOpusDecoder.SampleRate;
+
+        // The engine counts in coarse steps and each segment says where it ends, so the furthest of the two is told.
+        var percent = 0;
+        void Heard(int reached)
+        {
+            percent = Math.Clamp(Math.Max(percent, reached), 0, 100);
+            progress.Report(new TranscriptionProgress(TranscriptionStage.Transcribing, percent));
+        }
+
+        var builder = factory.CreateBuilder().WithThreads(Math.Clamp(Environment.ProcessorCount / 2, 1, 8)).WithProgressHandler(Heard);
         builder = request.LanguageHint is { } language ? builder.WithLanguage(language) : builder.WithLanguageDetection();
         if (request.Task == TranscriptionTask.Translate)
         {
@@ -130,10 +151,15 @@ public sealed partial class WhisperModelHost : IWhisperModelHost, IAsyncDisposab
         var processor = builder.Build();
         await using (processor.ConfigureAwait(false))
         {
+            Heard(0);
             await foreach (var segment in processor.ProcessAsync(samples, cancellationToken).ConfigureAwait(false))
             {
                 text.Append(segment.Text);
                 heard ??= segment.Language;
+                if (seconds > 0)
+                {
+                    Heard((int)(segment.End.TotalSeconds / seconds * 100));
+                }
             }
         }
 
@@ -141,11 +167,11 @@ public sealed partial class WhisperModelHost : IWhisperModelHost, IAsyncDisposab
             text.ToString().Trim(),
             request.LanguageHint is null ? heard : null,
             request.Model,
-            (double)samples.Length / OggOpusDecoder.SampleRate);
+            seconds);
     }
 
     // The model asked for, loaded. Another model is let go first, so two are never in memory together.
-    private async Task<WhisperFactory> LoadAsync(string model, CancellationToken cancellationToken)
+    private async Task<WhisperFactory> LoadAsync(string model, IProgress<TranscriptionProgress> progress, CancellationToken cancellationToken)
     {
         if (_factory is not null && string.Equals(_loaded, model, StringComparison.Ordinal))
         {
@@ -153,7 +179,8 @@ public sealed partial class WhisperModelHost : IWhisperModelHost, IAsyncDisposab
         }
 
         Unload();
-        var path = await PathAsync(model, cancellationToken).ConfigureAwait(false);
+        var path = await PathAsync(model, progress, cancellationToken).ConfigureAwait(false);
+        progress.Report(new TranscriptionProgress(TranscriptionStage.LoadingModel));
         _held = await _lock.AcquireAsync(_options.LockWait, cancellationToken).ConfigureAwait(false)
             ?? throw new TranscriptionException("transcriber busy: another tawk-mcp on this computer is transcribing");
         _runtime.Ensure();
@@ -165,7 +192,7 @@ public sealed partial class WhisperModelHost : IWhisperModelHost, IAsyncDisposab
 
     // The model's file, downloaded first when it is not here yet. The download is not tied to the pass that
     // asked for it: a large model outlasts one pass, so it carries on and the next pass picks it up.
-    private async Task<string> PathAsync(string model, CancellationToken cancellationToken)
+    private async Task<string> PathAsync(string model, IProgress<TranscriptionProgress> progress, CancellationToken cancellationToken)
     {
         if (_files.Find(model) is { } installed)
         {
@@ -181,7 +208,18 @@ public sealed partial class WhisperModelHost : IWhisperModelHost, IAsyncDisposab
 
         try
         {
-            return await _fetch.WaitAsync(cancellationToken).ConfigureAwait(false);
+            // The pass waits and says how much of the model is here each time it looks.
+            while (true)
+            {
+                progress.Report(new TranscriptionProgress(TranscriptionStage.DownloadingModel, Bytes: _files.Downloaded(model)));
+                var tick = Task.Delay(DownloadTick, _clock, cancellationToken);
+                if (await Task.WhenAny(_fetch, tick).ConfigureAwait(false) == _fetch)
+                {
+                    return await _fetch.ConfigureAwait(false);
+                }
+
+                await tick.ConfigureAwait(false);
+            }
         }
         catch (OperationCanceledException) when (!_fetch.IsCompleted)
         {

@@ -12,5 +12,6 @@ public interface ITranscriber
     /// <summary>A short name for the engine, shown with a transcript.</summary>
     string Name { get; }
 
-    Task<Transcript> TranscribeAsync(TranscriptionPassRequest request, CancellationToken cancellationToken);
+    /// <summary>The steps of the pass are reported to <paramref name="progress"/> as it goes, as far as the engine tells.</summary>
+    Task<Transcript> TranscribeAsync(TranscriptionPassRequest request, IProgress<TranscriptionProgress> progress, CancellationToken cancellationToken);
 }
