@@ -10,7 +10,7 @@ public sealed record TranscriptionOptions
 
     public const int DefaultMaxLanguages = 3;
 
-    public const int DefaultMaxSeconds = 600;
+    public const int DefaultMaxSeconds = 3600;
 
     public const int DefaultTimeoutS = 300;
 
