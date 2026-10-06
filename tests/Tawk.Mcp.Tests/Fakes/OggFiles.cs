@@ -30,18 +30,29 @@ public static class OggFiles
         return [head, tags];
     }
 
-    /// <summary>A tone, one packet for each 20 ms.</summary>
-    public static IReadOnlyList<byte[]> Tone(int packets)
+    /// <summary>
+    /// A tone, one packet for each 20 ms. <paramref name="wide"/> records it at 48 kHz, in the hybrid mode
+    /// phones use for voice notes.
+    /// </summary>
+    public static IReadOnlyList<byte[]> Tone(int packets, bool wide = false)
     {
-        var encoder = OpusCodecFactory.CreateEncoder(SampleRate, 1, OpusApplication.OPUS_APPLICATION_VOIP);
-        var pcm = new short[PacketSamples];
+        var rate = wide ? 48000 : SampleRate;
+        var encoder = OpusCodecFactory.CreateEncoder(rate, 1, OpusApplication.OPUS_APPLICATION_VOIP);
+        if (wide)
+        {
+            encoder.Bitrate = 24000;
+            encoder.MaxBandwidth = OpusBandwidth.OPUS_BANDWIDTH_SUPERWIDEBAND;
+            encoder.Bandwidth = OpusBandwidth.OPUS_BANDWIDTH_SUPERWIDEBAND;
+        }
+
+        var pcm = new short[rate / 50];
         var buffer = new byte[4000];
         var made = new List<byte[]>();
         for (var p = 0; p < packets; p++)
         {
             for (var i = 0; i < pcm.Length; i++)
             {
-                pcm[i] = (short)(8000 * Math.Sin(2 * Math.PI * 440 * ((p * pcm.Length) + i) / SampleRate));
+                pcm[i] = (short)(8000 * Math.Sin(2 * Math.PI * 440 * ((p * pcm.Length) + i) / rate));
             }
 
             var size = encoder.Encode(pcm, pcm.Length, buffer, buffer.Length);

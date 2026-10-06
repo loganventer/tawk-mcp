@@ -5,15 +5,18 @@ using Tawk.Mcp.Core.Transcription;
 namespace Tawk.Mcp.ResourceAccess.Transcription;
 
 /// <summary>
-/// WhatsApp voice notes are Opus in an Ogg file. Opus decodes straight to 16 kHz mono, in managed code, so
-/// no other program and no resampling is needed.
+/// WhatsApp voice notes are Opus in an Ogg file, decoded in managed code, so no other program is needed.
+/// Opus is decoded at its own 48 kHz and brought down to 16 kHz here: asked for 16 kHz directly, the decoder
+/// gives silence for the wider modes that many phones record in.
 /// </summary>
 public sealed class OggOpusDecoder : IAudioDecoder
 {
     public const int SampleRate = 16000;
 
+    private const int DecodeRate = SampleRate * Downsampler.Factor;
+
     // The longest an Opus packet can be is 120 ms.
-    private const int LongestPacket = SampleRate * 120 / 1000;
+    private const int LongestPacket = DecodeRate * 120 / 1000;
 
     // A voice note is given up on when more than one packet in this many cannot be read.
     private const int SkippedShare = 10;
@@ -31,7 +34,7 @@ public sealed class OggOpusDecoder : IAudioDecoder
             }
 
             file.Position = 0;
-            return Decode(file, (long)maxSeconds * SampleRate);
+            return Decode(file, (long)maxSeconds * DecodeRate);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -45,9 +48,9 @@ public sealed class OggOpusDecoder : IAudioDecoder
 
     private static float[] Decode(Stream file, long limit)
     {
-        var decoder = OpusCodecFactory.CreateDecoder(SampleRate, 1);
+        var decoder = OpusCodecFactory.CreateDecoder(DecodeRate, 1);
         var frame = new short[LongestPacket];
-        var samples = new List<float>(SampleRate * 30);
+        var samples = new List<float>(DecodeRate * 30);
         var described = false;
         var decoded = 0;
         var skipped = 0;
@@ -102,7 +105,7 @@ public sealed class OggOpusDecoder : IAudioDecoder
             throw new TranscriptionException("the voice note could not be decoded");
         }
 
-        return decoded == 0 ? throw new TranscriptionException("the voice note holds no sound") : [.. samples];
+        return decoded == 0 ? throw new TranscriptionException("the voice note holds no sound") : Downsampler.ToThird(samples);
     }
 
     private static bool Starts(byte[] packet, ReadOnlySpan<byte> with) => packet.AsSpan().StartsWith(with);
@@ -112,7 +115,7 @@ public sealed class OggOpusDecoder : IAudioDecoder
     {
         try
         {
-            return Math.Clamp(OpusPacketInfo.GetNumFrames(packet) * OpusPacketInfo.GetNumSamplesPerFrame(packet, SampleRate), 0, LongestPacket);
+            return Math.Clamp(OpusPacketInfo.GetNumFrames(packet) * OpusPacketInfo.GetNumSamplesPerFrame(packet, DecodeRate), 0, LongestPacket);
         }
         catch (Exception ex) when (ex is OpusException or ArgumentException or IndexOutOfRangeException)
         {

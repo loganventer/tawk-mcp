@@ -57,6 +57,18 @@ public class OggOpusDecoderTests
     }
 
     [Test]
+    public void A_note_recorded_in_a_wide_mode_comes_out_with_its_sound_and_not_as_silence()
+    {
+        var samples = Decode([.. OggFiles.Opening(), .. OggFiles.Tone(50, wide: true)]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(samples, Has.Length.EqualTo(50 * OggFiles.PacketSamples));
+            Assert.That(samples.Skip(1600).Max(), Is.GreaterThan(0.1f), "a phone that records wider than 16 kHz is still heard");
+        });
+    }
+
+    [Test]
     [CancelAfter(10000)]
     public void A_packet_the_decoder_refuses_is_left_out_and_the_rest_is_kept()
     {
