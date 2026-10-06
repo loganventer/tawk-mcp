@@ -90,7 +90,7 @@ Flags override environment variables, which override the defaults. A flag or a c
 | `--transcribe-language A,B` | `TAWKMCP_TRANSCRIBE_LANGUAGE` | `auto` | The default languages, when tawk's settings do not name any |
 | `--transcribe-auto on\|off` | `TAWKMCP_TRANSCRIBE_AUTO` | `off` | Transcribe every voice note others send, when tawk's settings have no such switch |
 | `--transcribe-max-languages N` | `TAWKMCP_TRANSCRIBE_MAX_LANGUAGES` | `3` | The most languages one call may ask for (1 to 10) |
-| `--transcribe-max-seconds N` | `TAWKMCP_TRANSCRIBE_MAX_SECONDS` | `600` | The longest recording whose text is handed over |
+| `--transcribe-max-seconds N` | `TAWKMCP_TRANSCRIBE_MAX_SECONDS` | `3600` | The longest recording whose text is handed over |
 | `--transcribe-timeout-s N` | `TAWKMCP_TRANSCRIBE_TIMEOUT_S` | `300` | How long one language may take |
 | `--transcribe-concurrency N` | `TAWKMCP_TRANSCRIBE_CONCURRENCY` | `1` | Jobs running at once (1 to 8) |
 | `--schedule-jitter-s N` | `TAWKMCP_SCHEDULE_JITTER_S` | `60` | Scheduled messages move by a random amount up to this many seconds either way (0 to 3600, 0 turns it off) |

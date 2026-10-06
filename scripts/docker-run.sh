@@ -4,7 +4,7 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-image="tawk-mcp:0.6.0"
+image="tawk-mcp:0.6.1"
 name="tawk-mcp"
 port="${TAWKMCP_PORT:-8765}"
 runtime="${XDG_RUNTIME_DIR:-$HOME/.local/state}"

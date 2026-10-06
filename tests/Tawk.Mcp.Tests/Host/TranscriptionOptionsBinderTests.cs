@@ -26,6 +26,17 @@ public class TranscriptionOptionsBinderTests
     }
 
     [Test]
+    public void A_recording_may_run_for_an_hour_unless_another_length_is_named()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(TawkMcpOptionsBinder.Bind([], Env()).TranscribeMaxSeconds, Is.EqualTo(3600));
+            Assert.That(TawkMcpOptionsBinder.Bind([], Env(("TAWKMCP_TRANSCRIBE_MAX_SECONDS", "900"))).TranscribeMaxSeconds, Is.EqualTo(900));
+            Assert.That(TawkMcpOptionsBinder.Bind(["--transcribe-max-seconds", "7200"], Env(("TAWKMCP_TRANSCRIBE_MAX_SECONDS", "900"))).TranscribeMaxSeconds, Is.EqualTo(7200));
+        });
+    }
+
+    [Test]
     public void The_http_engine_takes_its_address_models_and_several_default_languages()
     {
         var options = TawkMcpOptionsBinder.Bind(

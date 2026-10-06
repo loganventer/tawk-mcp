@@ -67,7 +67,7 @@ public static class HelpText
           --transcribe-models A,B       models an agent may ask for    TAWKMCP_TRANSCRIBE_MODELS
           --transcribe-language A,B     default languages, or auto     TAWKMCP_TRANSCRIBE_LANGUAGE
           --transcribe-max-languages N  most languages in one call, 3  TAWKMCP_TRANSCRIBE_MAX_LANGUAGES
-          --transcribe-max-seconds N    longest recording, 600         TAWKMCP_TRANSCRIBE_MAX_SECONDS
+          --transcribe-max-seconds N    longest recording, 3600        TAWKMCP_TRANSCRIBE_MAX_SECONDS
           --transcribe-timeout-s N      longest pass, 300              TAWKMCP_TRANSCRIBE_TIMEOUT_S
           --transcribe-concurrency N    jobs at once, 1                TAWKMCP_TRANSCRIBE_CONCURRENCY
           --schedule-jitter-s N         random +/- shift on schedules  TAWKMCP_SCHEDULE_JITTER_S (60, 0 = off)
