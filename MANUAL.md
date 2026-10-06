@@ -246,6 +246,7 @@ These need `access = manage` (or `admin`). Each is shown to you in tawk to appro
 | `set_setting` | `section`, `key`, `value` | Changes one tawk setting that `get_settings` marks as changeable |
 | `reconnect` | | Makes tawk reconnect to WhatsApp |
 | `decline_call` | | Declines the call ringing now |
+| `get_version` | | Shows which tawk-mcp this is and which tawk it is talking to. A read; nothing is asked |
 | `describe_session` | `description` | Tells tawk what this session is working on, in at most 10 words, shown beside it in the Agents list. Nothing goes to WhatsApp |
 
 ### Pictures and voice notes

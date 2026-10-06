@@ -4,7 +4,7 @@ using Tawk.Mcp.ResourceAccess;
 
 namespace Tawk.Mcp.Managers;
 
-public sealed class AppManager(ITawkControl control, IConfirmationGate gate) : IAppManager
+public sealed class AppManager(ITawkControl control, IConfirmationGate gate, TawkControlOptions options) : IAppManager
 {
     public const int MaxDescriptionWords = 10;
 
@@ -12,6 +12,20 @@ public sealed class AppManager(ITawkControl control, IConfirmationGate gate) : I
 
     public async Task<string> AppStatusAsync(CancellationToken cancellationToken) =>
         WriteResults.Json(await control.RequestAsync("app_status", null, cancellationToken).ConfigureAwait(false));
+
+    public async Task<string> VersionAsync(CancellationToken cancellationToken)
+    {
+        var mine = $"tawk-mcp {options.Version}";
+        try
+        {
+            var hello = await control.ConnectAsync(cancellationToken).ConfigureAwait(false);
+            return $"{mine}\ntawk {hello.Tawk} (control protocol {hello.Protocol})";
+        }
+        catch (TawkControlException)
+        {
+            return $"{mine}\ntawk is not running, so its version is not known.";
+        }
+    }
 
     public async Task<string> ListAccountsAsync(CancellationToken cancellationToken)
     {

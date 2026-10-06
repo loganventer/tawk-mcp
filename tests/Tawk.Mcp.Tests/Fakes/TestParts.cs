@@ -22,7 +22,7 @@ public sealed class TestParts
         Statuses = new StatusManager(Control, Gate, Fence);
         Profile = new ProfileManager(Control, Gate);
         Settings = new SettingsManager(Control, Gate);
-        App = new AppManager(Control, Gate);
+        App = new AppManager(Control, Gate, new TawkControlOptions { Version = "9.9.9" });
     }
 
     public ManualTimeProvider Clock { get; } = new();

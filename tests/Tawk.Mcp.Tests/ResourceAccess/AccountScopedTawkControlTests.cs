@@ -107,7 +107,7 @@ public class AccountScopedTawkControlTests
     public async Task A_tool_called_with_an_account_reaches_tawk_with_it()
     {
         var gate = new ConfirmationGate(_control);
-        var tools = new AppTools(new AppManager(_control, gate), _scope);
+        var tools = new AppTools(new AppManager(_control, gate, new TawkControlOptions()), _scope);
 
         await tools.AppStatusAsync("2");
         await tools.AppStatusAsync();
@@ -128,7 +128,7 @@ public class AccountScopedTawkControlTests
               {"id":2,"label":"work","jid":"","name":"","connected":false,"primary":false,"access":"read"}],
              "default":1}
             """);
-        var text = await new AppManager(_control, new ConfirmationGate(_control)).ListAccountsAsync(CancellationToken.None);
+        var text = await new AppManager(_control, new ConfirmationGate(_control), new TawkControlOptions()).ListAccountsAsync(CancellationToken.None);
 
         Assert.Multiple(() =>
         {
@@ -142,7 +142,7 @@ public class AccountScopedTawkControlTests
     {
         _tawk.Hello = _tawk.Hello with { MultiAccount = false };
 
-        var text = await new AppManager(_control, new ConfirmationGate(_control)).ListAccountsAsync(CancellationToken.None);
+        var text = await new AppManager(_control, new ConfirmationGate(_control), new TawkControlOptions()).ListAccountsAsync(CancellationToken.None);
 
         Assert.Multiple(() =>
         {

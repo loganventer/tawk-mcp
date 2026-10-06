@@ -26,7 +26,7 @@ public class McpEndToEndTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(names, Has.Count.EqualTo(78));
+            Assert.That(names, Has.Count.EqualTo(79));
             Assert.That(names, Does.Contain("view_image"));
             Assert.That(names, Has.None.Contains("transcri"), "transcription is off unless the user turns it on");
             Assert.That(names, Does.Contain("draft_message").And.Contain("delete_chat").And.Contain("decline_call"));
@@ -84,6 +84,21 @@ public class McpEndToEndTests
     }
 
     [Test]
+    public async Task Get_version_names_this_tawk_mcp_and_the_tawk_it_talks_to()
+    {
+        await _harness.StartAsync();
+
+        var result = await _harness.Client.CallToolAsync("get_version");
+        var text = string.Join('\n', result.Content.OfType<TextContentBlock>().Select(b => b.Text));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(text, Does.StartWith("tawk-mcp " + Tawk.Mcp.Host.TawkMcpComposition.Version));
+            Assert.That(text, Does.Contain("tawk 0.6.4 (control protocol 1)"));
+        });
+    }
+
+    [Test]
     public async Task Memory_tools_are_offered_and_vanish_when_memory_is_off()
     {
         await _harness.StartAsync();
@@ -100,7 +115,7 @@ public class McpEndToEndTests
             Assert.That(_harness.Client.ServerInstructions, Does.Contain("record_observation"));
             Assert.That(names, Has.None.EqualTo("get_workflow"));
             Assert.That(_harness.Client.ServerInstructions, Does.Not.Contain("workflow check"));
-            Assert.That(offNames, Has.Count.EqualTo(45));
+            Assert.That(offNames, Has.Count.EqualTo(46));
             Assert.That(offNames, Has.None.Contains("voice"));
             Assert.That(off.Client.ServerInstructions, Does.Not.Contain("remembers"));
             Assert.That(File.Exists(off.DataFile), Is.False);
