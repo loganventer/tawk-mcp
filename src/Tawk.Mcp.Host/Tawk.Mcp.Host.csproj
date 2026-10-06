@@ -7,6 +7,19 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="ModelContextProtocol.AspNetCore" />
+    <PackageReference Include="Whisper.net.Runtime" GeneratePathProperty="true" />
+  </ItemGroup>
+  <!--
+    tawk-mcp is installed as one file, and Whisper's native libraries are separate files. For a published
+    program they are carried inside the assembly, for its own platform only, and unpacked on first use
+    (BundledWhisperRuntime). The package names its folders linux-x64, macos-arm64, win-x64 and so on.
+  -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <WhisperNativeFolder>$(RuntimeIdentifier)</WhisperNativeFolder>
+    <WhisperNativeFolder Condition="$(RuntimeIdentifier.StartsWith('osx-'))">macos-$(RuntimeIdentifier.Substring(4))</WhisperNativeFolder>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(WhisperNativeFolder)' != '' and Exists('$(PkgWhisper_net_Runtime)/build/$(WhisperNativeFolder)')">
+    <EmbeddedResource Include="$(PkgWhisper_net_Runtime)/build/$(WhisperNativeFolder)/*" LogicalName="whisper-native/$(WhisperNativeFolder)/%(Filename)%(Extension)" Visible="false" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Tawk.Mcp.Core\Tawk.Mcp.Core.csproj" />

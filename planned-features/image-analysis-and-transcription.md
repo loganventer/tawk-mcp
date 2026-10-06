@@ -327,6 +327,10 @@ These replace what the sections above say where they differ.
 - **`download_media` also names the type and the chat** when the file is there: `{"path","type","chat":{"jid","name"}}`. The `media_ready` event carries the same.
 - **What stays in tawk-mcp's flags** is what belongs to the installation: the engine, the transcriber's address or command, whether it may be on another machine, the models an agent may ask for beyond the chosen one, and the limits.
 
+- **The in-process engine is the default.** `--transcribe auto` is the default mode: with no transcriber of the user's own it loads one Whisper model inside tawk-mcp. The tools are always listed, and with `--transcribe off` they say so.
+- **A missing model is downloaded** the first time a transcription needs it, and the installer fetches `tiny`. This replaces the rule in section 6.7 that only the user fetches a model. The download carries on when the pass that started it runs out of time, and the next pass picks it up.
+- **The native libraries travel inside the program.** tawk-mcp is installed as one file, so the program assembly embeds the libraries for its own platform and unpacks them on first use into `~/.local/share/tawk-mcp/native/<build>/runtimes/<platform>`, where Whisper's loader looks.
+
 ## 13. Where the work stands
 
 | Step | State |
@@ -335,6 +339,6 @@ These replace what the sections above say where they differ.
 | tawk-mcp: `view_image` | Done, tests pass |
 | tawk-mcp: job queue, worker, `http` and `command` engines, `transcribe_message`, `get_transcript`, channel and stream events | Done, tests pass |
 | tawk-mcp: several languages, per-call options, automatic transcription, settings read from tawk | Done, tests pass |
-| tawk-mcp: the in-process engine and failover (section 6.7) | Not started |
+| tawk-mcp: the in-process engine and failover (section 6.7) | Done on Linux, checked against a real voice note. macOS and Windows carry the same code and were not run |
 | tawk-mcp: the contact's language as a default | Not started |
 | Docker mount, and the manual, configuration, intent and security documents | Not started |

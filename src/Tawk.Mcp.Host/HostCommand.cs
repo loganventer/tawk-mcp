@@ -8,6 +8,7 @@ public enum HostCommand
     ExportOkf,
     ImportOkf,
     Sync,
+    FetchModel,
     Version,
     Help,
 }

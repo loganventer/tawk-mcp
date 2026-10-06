@@ -46,7 +46,7 @@ public static class TawkMcpComposition
 {
     public static string Version { get; } =
         typeof(TawkMcpComposition).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
-        ?? "0.3.0";
+        ?? "0.4.0";
 
     public static IMcpServerBuilder AddTawkMcp(this IServiceCollection services, TawkMcpOptions options)
     {
@@ -116,11 +116,9 @@ public static class TawkMcpComposition
         services.AddSingleton<IMediaFiles, DiskMediaFiles>();
         services.AddSingleton<IMediaTypeSniffer, MediaTypeSniffer>();
         services.AddSingleton<IMediaViewingManager, MediaViewingManager>();
+        // The tools are always offered. With transcription off they say so, instead of not being there.
         var transcription = Transcription(options);
-        if (transcription.Enabled)
-        {
-            AddTranscription(services, transcription);
-        }
+        AddTranscription(services, transcription);
 
         if (options.Memory == MemoryMode.Off)
         {
@@ -171,7 +169,7 @@ public static class TawkMcpComposition
                     + (workflow.Enabled ? TawkServerInstructions.Workflow : string.Empty)
                     + (admin.Enabled ? TawkServerInstructions.Admin : string.Empty)
                     + TawkServerInstructions.Media
-                    + (transcription.Enabled ? TawkServerInstructions.Transcription : string.Empty)
+                    + TawkServerInstructions.Transcription
                     + (options.Channel == ChannelMode.Off ? string.Empty : TawkServerInstructions.Channel)
                     + (options.Channel != ChannelMode.Off && options.ChannelOwn ? TawkServerInstructions.ChannelOwn : string.Empty)
                     + (options.Channel != ChannelMode.Off && options.ChannelRead ? TawkServerInstructions.ChannelRead : string.Empty)
@@ -203,7 +201,7 @@ public static class TawkMcpComposition
                 .AddIncomingFilter(SessionTracking.Filter(sessions)))
             .WithRequestFilters(filters => filters.AddCallToolFilter(WorkflowReminder.Filter(cadence, workflow)))
             .WithAdmin(admin)
-            .WithTranscription(transcription)
+            .WithTools<TranscriptionTools>()
             .WithMemory(options.Memory, workflow);
     }
 
@@ -231,6 +229,17 @@ public static class TawkMcpComposition
             CultureInfo.InvariantCulture, $"{(folder.Length == 0 ? "/" : folder)} (stdio, pid {Environment.ProcessId})");
     }
 
+    /// <summary>The model files and their manager alone, for `tawk-mcp fetch-model`, which does not serve MCP.</summary>
+    public static ServiceProvider BuildModels(TawkMcpOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        var services = new ServiceCollection();
+        services.AddSingleton(Transcription(options));
+        services.AddSingleton<IModelFiles, DiskModelFiles>();
+        services.AddSingleton<ITranscriptionModelManager, TranscriptionModelManager>();
+        return services.BuildServiceProvider();
+    }
+
     private static TranscriptionOptions Transcription(TawkMcpOptions options) => new()
     {
         Engine = options.Transcribe,
@@ -244,22 +253,50 @@ public static class TawkMcpComposition
         Timeout = TimeSpan.FromSeconds(options.TranscribeTimeoutS),
         Concurrency = options.TranscribeConcurrency,
         Automatic = options.TranscribeAuto,
+        ModelDirectory = options.TranscribeModelDir
+            ?? DiskModelFiles.DefaultFolder(Environment.GetEnvironmentVariable, Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)),
+        IdleUnload = TimeSpan.FromMinutes(options.TranscribeIdleUnloadM),
     };
 
     // The engine is chosen here, once. Nothing below this knows which one it was given.
     private static void AddTranscription(IServiceCollection services, TranscriptionOptions transcription)
     {
         services.AddSingleton(transcription);
-        if (transcription.Engine == TranscriptionEngine.Command)
+
+        // The model inside tawk-mcp: one host owns it, and one lock keeps it the only one on the machine.
+        services.AddSingleton<IModelFiles, DiskModelFiles>();
+        services.AddSingleton<IModelLock>(sp => new FileModelLock(
+            Path.Combine(transcription.ModelDirectory, ".loaded.lock"), sp.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<IAudioDecoder, OggOpusDecoder>();
+        services.AddSingleton<IWhisperRuntime>(new BundledWhisperRuntime(typeof(TawkMcpComposition).Assembly, transcription));
+        services.AddSingleton<IWhisperModelHost, WhisperModelHost>();
+        services.AddSingleton<EmbeddedTranscriber>();
+
+        // Each pass is bounded by the manager, so the HTTP client itself never times out first.
+        services.AddSingleton(_ => new HttpTranscriber(new HttpClient { Timeout = Timeout.InfiniteTimeSpan }, transcription));
+        switch (transcription.Engine)
         {
-            services.AddSingleton<IProcessRunner, ProcessRunner>();
-            services.AddSingleton<ITranscriber, CommandTranscriber>();
-        }
-        else
-        {
-            // Each pass is bounded by the manager, so the client itself never times out first.
-            services.AddSingleton<ITranscriber>(sp => new HttpTranscriber(
-                new HttpClient { Timeout = Timeout.InfiniteTimeSpan }, sp.GetRequiredService<TranscriptionOptions>()));
+            case TranscriptionEngine.Off:
+                services.AddSingleton<ITranscriber, NoTranscriber>();
+                break;
+            case TranscriptionEngine.Command:
+                services.AddSingleton<IProcessRunner, ProcessRunner>();
+                services.AddSingleton<ITranscriber, CommandTranscriber>();
+                break;
+            case TranscriptionEngine.Http:
+                services.AddSingleton<ITranscriber>(sp => sp.GetRequiredService<HttpTranscriber>());
+                break;
+            case TranscriptionEngine.Auto when transcription.Url is not null:
+                // Its own breaker: the one for tawk's socket must not open because a transcriber is down.
+                services.AddSingleton<ITranscriber>(sp => new FailoverTranscriber(
+                    sp.GetRequiredService<HttpTranscriber>(),
+                    sp.GetRequiredService<EmbeddedTranscriber>(),
+                    new CircuitBreaker(2, TimeSpan.FromSeconds(60), sp.GetRequiredService<TimeProvider>()),
+                    sp.GetRequiredService<IWhisperModelHost>()));
+                break;
+            default:
+                services.AddSingleton<ITranscriber>(sp => sp.GetRequiredService<EmbeddedTranscriber>());
+                break;
         }
 
         services.AddSingleton<ITranscriptionJobStore, InMemoryTranscriptionJobStore>();
@@ -273,9 +310,6 @@ public static class TawkMcpComposition
 
         services.AddHostedService<TranscriptionWorker>();
     }
-
-    private static IMcpServerBuilder WithTranscription(this IMcpServerBuilder builder, TranscriptionOptions transcription) =>
-        transcription.Enabled ? builder.WithTools<TranscriptionTools>() : builder;
 
     private static IMcpServerBuilder WithAdmin(this IMcpServerBuilder builder, AdminOptions admin) =>
         admin.Enabled ? builder.WithTools<ApprovalTools>() : builder;

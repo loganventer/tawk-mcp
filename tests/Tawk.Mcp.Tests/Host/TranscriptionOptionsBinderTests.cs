@@ -9,14 +9,15 @@ public class TranscriptionOptionsBinderTests
         key => values.FirstOrDefault(v => v.Key == key).Value;
 
     [Test]
-    public void Transcription_is_off_unless_asked_for()
+    public void Transcription_handles_itself_unless_told_otherwise()
     {
         var options = TawkMcpOptionsBinder.Bind([], Env());
 
         Assert.Multiple(() =>
         {
             Assert.That(options.Error, Is.Null);
-            Assert.That(options.Transcribe, Is.EqualTo(TranscriptionEngine.Off));
+            Assert.That(options.Transcribe, Is.EqualTo(TranscriptionEngine.Auto), "a running transcriber when there is one, else the model inside");
+            Assert.That(options.TranscribeIdleUnloadM, Is.EqualTo(15));
             Assert.That(options.TranscribeMaxLanguages, Is.EqualTo(3));
             Assert.That(options.TranscribeModel, Is.Null, "unset: tawk's settings panel chooses, and the smallest model when it does not");
             Assert.That(options.TranscribeLanguages, Is.Null);
@@ -73,6 +74,34 @@ public class TranscriptionOptionsBinderTests
         });
     }
 
+    [TestCase("embedded", TranscriptionEngine.Embedded)]
+    [TestCase("auto", TranscriptionEngine.Auto)]
+    [TestCase("off", TranscriptionEngine.Off)]
+    public void The_engine_is_chosen_by_name(string name, TranscriptionEngine engine)
+    {
+        var options = TawkMcpOptionsBinder.Bind(["--transcribe", name, "--transcribe-model-dir", "/models", "--transcribe-idle-unload-m", "0"], Env());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(options.Error, Is.Null);
+            Assert.That(options.Transcribe, Is.EqualTo(engine));
+            Assert.That(options.TranscribeModelDir, Is.EqualTo("/models"));
+            Assert.That(options.TranscribeIdleUnloadM, Is.Zero);
+        });
+    }
+
+    [Test]
+    public void Fetch_model_is_a_command_with_the_models_name()
+    {
+        var options = TawkMcpOptionsBinder.Bind(["fetch-model", "small"], Env());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(options.Command, Is.EqualTo(HostCommand.FetchModel));
+            Assert.That(options.FetchModel, Is.EqualTo("small"));
+        });
+    }
+
     [TestCase("--transcribe", "http")]
     [TestCase("--transcribe", "command")]
     [TestCase("--transcribe", "whisper")]
@@ -90,7 +119,7 @@ public class TranscriptionOptionsBinderTests
         var off = TawkMcpOptionsBinder.Bind(["--transcribe", "command", "--transcribe-command", "whisper {file}"], Env());
         var on = TawkMcpOptionsBinder.Bind(
             ["--transcribe", "command", "--transcribe-command", "whisper {file}"], Env(("TAWKMCP_TRANSCRIBE_AUTO", "on")));
-        var withoutEngine = TawkMcpOptionsBinder.Bind(["--transcribe-auto", "on"], Env());
+        var withoutEngine = TawkMcpOptionsBinder.Bind(["--transcribe", "off", "--transcribe-auto", "on"], Env());
 
         Assert.Multiple(() =>
         {

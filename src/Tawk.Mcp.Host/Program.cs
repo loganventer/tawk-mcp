@@ -30,6 +30,8 @@ switch (options.Command)
         return 0;
     case HostCommand.Healthcheck:
         return await HealthCheckCommand.RunAsync(options, Console.Out);
+    case HostCommand.FetchModel:
+        return await FetchModelCommand.RunAsync(options, Console.Out);
     case HostCommand.ExportOkf:
     case HostCommand.ImportOkf:
     case HostCommand.Sync:

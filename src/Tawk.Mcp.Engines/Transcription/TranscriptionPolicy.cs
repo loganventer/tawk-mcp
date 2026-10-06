@@ -8,6 +8,9 @@ public sealed partial class TranscriptionPolicy(TranscriptionOptions options) : 
 {
     public const int MaxPromptLength = 500;
 
+    public const string Off =
+        "Transcription is off: this tawk-mcp was started with --transcribe off. Only the user can turn it on, by starting it without that.";
+
     public TranscriptionRequest Resolve(
         string messageId,
         string? account,
@@ -18,6 +21,11 @@ public sealed partial class TranscriptionPolicy(TranscriptionOptions options) : 
         TranscriptionPreferences preferences)
     {
         ArgumentNullException.ThrowIfNull(preferences);
+        if (!options.Enabled)
+        {
+            throw new TranscriptionException(Off);
+        }
+
         if (string.IsNullOrWhiteSpace(messageId))
         {
             throw new TranscriptionException("A message id is needed.");
@@ -35,7 +43,7 @@ public sealed partial class TranscriptionPolicy(TranscriptionOptions options) : 
     public bool Automatic(TranscriptionPreferences preferences)
     {
         ArgumentNullException.ThrowIfNull(preferences);
-        return preferences.Automatic ?? options.Automatic ?? false;
+        return options.Enabled && (preferences.Automatic ?? options.Automatic ?? false);
     }
 
     /// <summary>The language as a code in lower case, or null when it is not one.</summary>

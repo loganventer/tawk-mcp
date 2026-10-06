@@ -16,7 +16,7 @@ public sealed record TranscriptionOptions
 
     public const int DefaultKeptJobs = 50;
 
-    public TranscriptionEngine Engine { get; init; } = TranscriptionEngine.Off;
+    public TranscriptionEngine Engine { get; init; } = TranscriptionEngine.Auto;
 
     /// <summary>The base address of the transcriber for <see cref="TranscriptionEngine.Http"/>.</summary>
     public Uri? Url { get; init; }
@@ -51,6 +51,18 @@ public sealed record TranscriptionOptions
 
     /// <summary>Transcribe every voice note another person sends, without being asked. Used only when tawk's settings panel has no such switch. Null is off.</summary>
     public bool? Automatic { get; init; }
+
+    /// <summary>The folder of model files for the model tawk-mcp loads itself.</summary>
+    public string ModelDirectory { get; init; } = string.Empty;
+
+    /// <summary>How long that model stays loaded with no job to run. Zero keeps it loaded.</summary>
+    public TimeSpan IdleUnload { get; init; } = TimeSpan.FromMinutes(15);
+
+    /// <summary>How long a job waits for another tawk-mcp on this machine to let go of its model.</summary>
+    public TimeSpan LockWait { get; init; } = TimeSpan.FromSeconds(60);
+
+    /// <summary>The names of the models tawk-mcp can load, as tawk's settings list them.</summary>
+    public static IReadOnlyList<string> KnownModels { get; } = ["tiny", "base", "small", "medium", "large-v3-turbo", "large-v3"];
 
     public bool Enabled => Engine != TranscriptionEngine.Off;
 }

@@ -39,6 +39,9 @@ public static class TawkMcpOptionsBinder
                 "export-okf" => options with { Command = HostCommand.ExportOkf, BundlePath = Next() },
                 "import-okf" => options with { Command = HostCommand.ImportOkf, BundlePath = Next() },
                 "sync" => options with { Command = HostCommand.Sync },
+                "fetch-model" => options with { Command = HostCommand.FetchModel, FetchModel = Next() },
+                "transcribe-model-dir" => options with { TranscribeModelDir = Next() },
+                "transcribe-idle-unload-m" => options with { TranscribeIdleUnloadM = Int(arg, Next(), 0, 1440, ref error) },
                 "include-sensitive" => options with { IncludeSensitive = true },
                 "sync-repo" => options with { SyncRepository = Repository(arg, Next(), ref error) },
                 "sync-branch" => options with { SyncBranch = Next() },
@@ -98,7 +101,8 @@ public static class TawkMcpOptionsBinder
     private static string? TranscriptionError(TawkMcpOptions options) => options.Transcribe switch
     {
         TranscriptionEngine.Http when options.TranscribeUrl is null => "--transcribe http needs --transcribe-url.",
-        TranscriptionEngine.Http when !options.TranscribeRemote && !options.TranscribeUrl.IsLoopback =>
+        TranscriptionEngine.Http or TranscriptionEngine.Auto
+            when options.TranscribeUrl is not null && !options.TranscribeRemote && !options.TranscribeUrl.IsLoopback =>
             "--transcribe-url must be on this machine (127.0.0.1 or localhost). --transcribe-remote on allows another machine: "
             + "voice notes are then sent there.",
         TranscriptionEngine.Command when string.IsNullOrWhiteSpace(options.TranscribeCommand) => "--transcribe command needs --transcribe-command.",
@@ -250,6 +254,16 @@ public static class TawkMcpOptionsBinder
             options = options with { Transcribe = Engine("TAWKMCP_TRANSCRIBE", transcribe, ref error) };
         }
 
+        if (env("TAWKMCP_TRANSCRIBE_MODEL_DIR") is { Length: > 0 } transcribeModelDir)
+        {
+            options = options with { TranscribeModelDir = transcribeModelDir };
+        }
+
+        if (env("TAWKMCP_TRANSCRIBE_IDLE_UNLOAD_M") is { Length: > 0 } transcribeIdle)
+        {
+            options = options with { TranscribeIdleUnloadM = Int("TAWKMCP_TRANSCRIBE_IDLE_UNLOAD_M", transcribeIdle, 0, 1440, ref error) };
+        }
+
         if (env("TAWKMCP_TRANSCRIBE_URL") is { Length: > 0 } transcribeUrl)
         {
             options = options with { TranscribeUrl = Address("TAWKMCP_TRANSCRIBE_URL", transcribeUrl, ref error) };
@@ -386,12 +400,16 @@ public static class TawkMcpOptionsBinder
         {
             case "OFF":
                 return TranscriptionEngine.Off;
+            case "AUTO":
+                return TranscriptionEngine.Auto;
+            case "EMBEDDED":
+                return TranscriptionEngine.Embedded;
             case "HTTP":
                 return TranscriptionEngine.Http;
             case "COMMAND":
                 return TranscriptionEngine.Command;
             default:
-                error ??= $"{name} must be off, http or command, not {value}.";
+                error ??= $"{name} must be auto, embedded, http, command or off, not {value}.";
                 return TranscriptionEngine.Off;
         }
     }

@@ -11,6 +11,9 @@ public static class HelpText
           tawk-mcp print-token          print the bearer token for HTTP mode, creating it if needed
           tawk-mcp healthcheck          ask a running HTTP server for /healthz (exit 0 when it answers)
           tawk-mcp sync                 sync the memory database with its repository once, now
+          tawk-mcp fetch-model NAME     download a Whisper model ahead of time: tiny, base, small,
+                                        medium, large-v3-turbo or large-v3 (otherwise the first
+                                        transcription that needs a model downloads it)
           tawk-mcp export-okf DIR       write knowledge as an Open Knowledge Format 0.2 bundle (--include-sensitive for all of it)
           tawk-mcp import-okf DIR       read an Open Knowledge Format bundle into memory
           tawk-mcp --version | --help
@@ -42,7 +45,14 @@ public static class HelpText
           --instructions-file PATH      your standing instructions     TAWKMCP_INSTRUCTIONS_FILE
           --admin-token-file PATH       tawk's admin token file        TAWKMCP_ADMIN_TOKEN_FILE
                                         no default: only with it may this instance approve its own sends
-          --transcribe off|http|command voice notes to text            TAWKMCP_TRANSCRIBE (off)
+          --transcribe MODE             voice notes to text            TAWKMCP_TRANSCRIBE (auto)
+                                        auto: your transcriber at --transcribe-url while it answers,
+                                        and otherwise one model loaded inside tawk-mcp
+                                        embedded: always the model inside tawk-mcp
+                                        http, command: only your own transcriber    off: none
+          --transcribe-model-dir DIR    models for the one inside      TAWKMCP_TRANSCRIBE_MODEL_DIR
+                                        ~/.local/share/tawk-mcp/models; a missing model is downloaded
+          --transcribe-idle-unload-m N  let that model go when idle    TAWKMCP_TRANSCRIBE_IDLE_UNLOAD_M (15, 0 = never)
           --transcribe-url ADDRESS      the http transcriber's address TAWKMCP_TRANSCRIBE_URL
                                         speaks the OpenAI audio API; on this machine unless remote is on
           --transcribe-remote on|off    allow one on another machine   TAWKMCP_TRANSCRIBE_REMOTE (off)

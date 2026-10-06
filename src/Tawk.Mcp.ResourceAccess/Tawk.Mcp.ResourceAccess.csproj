@@ -2,6 +2,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Whisper.net" />
+    <PackageReference Include="Whisper.net.Runtime" />
+    <PackageReference Include="Concentus" />
+    <PackageReference Include="Concentus.OggFile" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Tawk.Mcp.Core\Tawk.Mcp.Core.csproj" />

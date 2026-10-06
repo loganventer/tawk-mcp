@@ -397,6 +397,18 @@ say "checking: $("$BIN" --version)"
 "$BIN" print-token >/dev/null
 say "the bearer token for HTTP clients is in $TOKEN_FILE (tawk-mcp print-token shows it)"
 
+# Voice notes are transcribed inside tawk-mcp. The smallest model is fetched now so the first one does
+# not wait for a download; a larger model chosen in tawk is fetched the first time it is needed.
+MODEL_DIR="${TAWKMCP_TRANSCRIBE_MODEL_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/tawk-mcp/models}"
+if [ -f "$MODEL_DIR/ggml-tiny.bin" ]; then
+    say "transcription model: tiny is already in $MODEL_DIR"
+elif "$BIN" fetch-model tiny >/dev/null 2>&1; then
+    say "transcription model: fetched tiny into $MODEL_DIR"
+else
+    warn "the tiny transcription model could not be fetched now. tawk-mcp fetches it the first time"
+    warn "a voice note is transcribed, or run: tawk-mcp fetch-model tiny"
+fi
+
 if ! have tawk; then
     warn "tawk itself is not installed. tawk-mcp needs a running tawk; install it with:"
     echo "    curl -fsSL $TAWK_INSTALLER | bash"

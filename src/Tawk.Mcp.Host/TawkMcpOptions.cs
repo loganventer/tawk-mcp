@@ -94,8 +94,20 @@ public sealed record TawkMcpOptions
     /// <summary>What that file held when the server started.</summary>
     public string? UserInstructions { get; init; }
 
-    /// <summary>How voice notes are transcribed. Off by default, and then there are no transcription tools.</summary>
-    public TranscriptionEngine Transcribe { get; init; } = TranscriptionEngine.Off;
+    /// <summary>
+    /// How voice notes are transcribed. By default a transcriber the user runs when one is set and answers,
+    /// and otherwise one model loaded inside tawk-mcp.
+    /// </summary>
+    public TranscriptionEngine Transcribe { get; init; } = TranscriptionEngine.Auto;
+
+    /// <summary>The folder of model files for the model tawk-mcp loads itself. Defaults to ~/.local/share/tawk-mcp/models.</summary>
+    public string? TranscribeModelDir { get; init; }
+
+    /// <summary>Minutes with no job before that model is let go. 0 keeps it loaded.</summary>
+    public int TranscribeIdleUnloadM { get; init; } = 15;
+
+    /// <summary>The model `tawk-mcp fetch-model` was asked for.</summary>
+    public string? FetchModel { get; init; }
 
     /// <summary>The transcriber's base address for the http engine. On this machine unless <see cref="TranscribeRemote"/> is on.</summary>
     public Uri? TranscribeUrl { get; init; }

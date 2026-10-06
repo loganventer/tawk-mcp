@@ -54,6 +54,19 @@ public class TranscriptionPolicyTests
     }
 
     [Test]
+    public void With_transcription_off_every_request_is_refused_saying_so_and_nothing_is_automatic()
+    {
+        var off = Policy(new TranscriptionOptions { Engine = TranscriptionEngine.Off, Automatic = true });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(() => off.Resolve("3EB0", null, null, null, null, null, TranscriptionPreferences.None),
+                Throws.TypeOf<TranscriptionException>().With.Message.Contains("--transcribe off"));
+            Assert.That(off.Automatic(new TranscriptionPreferences("tiny", "auto", true)), Is.False);
+        });
+    }
+
+    [Test]
     public void Several_languages_keep_their_order_and_lose_repeats()
     {
         var request = Policy().Resolve("3EB0", null, ["Auto", " af", "EN", "af"], "translate", null, null, TranscriptionPreferences.None);
