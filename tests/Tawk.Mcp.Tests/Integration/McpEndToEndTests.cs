@@ -17,6 +17,26 @@ public class McpEndToEndTests
     public async Task TearDown() => await _harness.DisposeAsync();
 
     [Test]
+    public async Task Sending_says_how_to_name_someone_with_no_chat_yet_and_reading_does_not()
+    {
+        await _harness.StartAsync();
+
+        var tools = await _harness.Client.ListToolsAsync();
+        string Chat(string tool) => tools.Single(t => t.Name == tool).JsonSchema
+            .GetProperty("properties").GetProperty("chat").GetProperty("description").GetString()!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Chat("send_message"), Does.Contain("no chat with yet").And.Contain("country code").And.Contain("contacts"));
+            Assert.That(Chat("send_message"), Does.Contain("always the user's own to approve"));
+            Assert.That(Chat("schedule_message"), Is.EqualTo(Chat("send_message")));
+            Assert.That(Chat("draft_message"), Is.EqualTo("The chat's jid or name."), "a draft needs a chat that is already there");
+            Assert.That(Chat("read_messages"), Does.Not.Contain("country code"));
+            Assert.That(_harness.Client.ServerInstructions, Does.Contain("no chat with yet"));
+        });
+    }
+
+    [Test]
     public async Task Offers_every_tool_and_no_way_to_confirm_for_the_user()
     {
         await _harness.StartAsync();

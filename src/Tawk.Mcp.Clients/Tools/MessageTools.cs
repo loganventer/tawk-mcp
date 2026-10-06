@@ -24,7 +24,7 @@ public sealed class MessageTools(IMessageSendingManager sending, IMessageManagem
     [Description("Send a WhatsApp message from the user's account." + ToolText.NeedsSend
         + " The user may edit the text while approving; the result then shows what was actually sent. Prefer draft_message when unsure.")]
     public Task<CallToolResult> SendMessageAsync(
-        [Description("The chat's jid or name.")] string chat,
+        [Description(ToolText.Recipient)] string chat,
         [Description("The message text, up to 65536 bytes.")] string text,
         [Description("Id of a message in that chat to reply to.")] string? replyTo = null,
         [Description(ToolText.Account)] string? account = null,

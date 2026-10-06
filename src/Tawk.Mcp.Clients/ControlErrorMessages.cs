@@ -23,7 +23,7 @@ public static partial class ControlErrorMessages
                 CultureInfo.InvariantCulture,
                 $"tawk's write limit (writes_per_minute) was reached. Try again in {error.RetryAfter ?? 60} seconds."),
             ControlErrorCode.Offline => "tawk cannot do this right now: " + error.Message,
-            ControlErrorCode.NotFound => "Nothing visible matches. Locked and hidden chats are never shown. tawk said: " + error.Message,
+            ControlErrorCode.NotFound => "Nothing visible matches. Locked and hidden chats are never shown, and only send_message and schedule_message reach someone with no chat yet. tawk said: " + error.Message,
             ControlErrorCode.DraftExists => "That chat already has a draft in tawk, so it was left alone. Ask the user to send or clear it first.",
             ControlErrorCode.NotRunning => error.Message,
             ControlErrorCode.BadToken => "The confirmation expired or was already used, so nothing was done. Ask the user whether to start again.",

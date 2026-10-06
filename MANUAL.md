@@ -192,6 +192,8 @@ This is the safest way to let the model propose messages. Ask: "Draft a reply to
 
 Sends a message. `replyTo` (a message id from `read_messages`) makes it a reply.
 
+`chat` is usually a chat's name or jid. It can also name someone you have no chat with yet: their phone number with its country code (`+27821234567`), their jid, or their name as you saved it in your contacts. The message then starts the chat. A name that two contacts share is refused as ambiguous, with both offered, and a number written the local way (`082...`) is not found, because it names no country. tawk asks you about a first message as "start a new chat with this message", and that one is always yours to approve: an allowance for the session does not cover it, and an agent with an admin token cannot answer it for you. Your list of chats agents may use still decides who can be reached at all. Needs tawk 0.10.0 or later.
+
 tawk shows you the message to approve. You can change the text before you allow it; the tool result then shows what was actually sent:
 
 ```text
@@ -209,7 +211,7 @@ Reacts to a message with an emoji (`messageId`, `emoji`), or removes your reacti
 
 ### `schedule_message`
 
-Schedules a message (`chat`, `when`, `text`). `when` is anything tawk's `/later` accepts: `18:00`, `+30m`, `tomorrow 9:00`, `fri 17:30`. You approve it in tawk, and can edit the text as with `send_message`.
+Schedules a message (`chat`, `when`, `text`). As with `send_message`, `chat` may name someone you have no chat with yet. `when` is anything tawk's `/later` accepts: `18:00`, `+30m`, `tomorrow 9:00`, `fri 17:30`. You approve it in tawk, and can edit the text as with `send_message`.
 
 tawk-mcp moves the time by a random amount between minus and plus 60 seconds, picked to the millisecond, so scheduled messages do not all go out on the exact minute. It sends the shift to tawk as whole seconds (`18:00 +37s`), since tawk schedules to the second, and the result says how far it moved. The shift never moves a message into the past. `reschedule` does the same. Set `--schedule-jitter-s 0` to turn it off. A tawk without seconds adjustments in its control protocol cannot read the shift; tawk-mcp then schedules the exact time instead, without asking you twice.
 
