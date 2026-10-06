@@ -10,9 +10,11 @@ public interface IWhisperModelHost
 {
     /// <summary>
     /// Transcribes 16 kHz mono samples with the model named in the request, loading it if needed. One call
-    /// runs at a time. Throws <see cref="TranscriptionException"/> with a reason safe to show.
+    /// runs at a time, and each step is reported to <paramref name="progress"/>. Throws
+    /// <see cref="TranscriptionException"/> with a reason safe to show.
     /// </summary>
-    Task<Transcript> TranscribeAsync(ReadOnlyMemory<float> samples, TranscriptionPassRequest request, CancellationToken cancellationToken);
+    Task<Transcript> TranscribeAsync(
+        ReadOnlyMemory<float> samples, TranscriptionPassRequest request, IProgress<TranscriptionProgress> progress, CancellationToken cancellationToken);
 
     /// <summary>Lets the model go now, if one is loaded.</summary>
     Task UnloadAsync(CancellationToken cancellationToken);

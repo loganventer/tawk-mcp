@@ -24,4 +24,7 @@ public interface ITranscriptionManager
 
     /// <summary>A job as it stands, for a client without channels.</summary>
     string Read(string jobId);
+
+    /// <summary>How far a job is, or every job that is queued or running when no id is given. It carries no transcript.</summary>
+    string Progress(string? jobId);
 }

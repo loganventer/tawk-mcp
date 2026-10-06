@@ -30,4 +30,13 @@ public sealed class TranscriptionTools(ITranscriptionManager transcription, IAcc
     public Task<CallToolResult> GetTranscriptAsync(
         [Description("The job id, such as t1.")] string jobId) =>
         ToolResults.RunAsync(() => Task.FromResult(transcription.Read(jobId)));
+
+    [McpServerTool(Name = "get_transcription_progress", Destructive = false, ReadOnly = true, Idempotent = true, OpenWorld = false)]
+    [Description("Say how far a transcription is, without any of its text: queued, or running with the step it is on (fetching the voice note, "
+        + "waiting for another transcription, downloading or loading the model, or transcribing with the share of the voice note heard so far) "
+        + "and how long ago it was asked for. Use it when the user asks how far a transcription is. Do not poll it in a loop: "
+        + "the channel event still says when the job ends.")]
+    public Task<CallToolResult> GetTranscriptionProgressAsync(
+        [Description("The job id, such as t1. Leave out for every job that is queued or running.")] string? jobId = null) =>
+        ToolResults.RunAsync(() => Task.FromResult(transcription.Progress(jobId)));
 }

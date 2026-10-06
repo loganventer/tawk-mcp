@@ -19,9 +19,10 @@ public class AutoTranscriptionSinkTests
     public AutoTranscriptionSinkTests()
     {
         var options = new TranscriptionOptions { Engine = TranscriptionEngine.Http };
-        _jobs = new InMemoryTranscriptionJobStore(options, new ManualTimeProvider());
+        var clock = new ManualTimeProvider();
+        _jobs = new InMemoryTranscriptionJobStore(options, clock);
         _sink = new AutoTranscriptionSink(
-            new TranscriptionManager(new TranscriptionPolicy(options), _preferences, _jobs, new TranscriptionNoticeFormatter(new UntrustedTextFence())),
+            new TranscriptionManager(new TranscriptionPolicy(options), _preferences, _jobs, new TranscriptionNoticeFormatter(new UntrustedTextFence()), clock),
             NullLogger<AutoTranscriptionSink>.Instance);
     }
 

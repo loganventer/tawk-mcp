@@ -20,4 +20,13 @@ public interface ITranscriptionJobStore
     void Save(TranscriptionJob job);
 
     TranscriptionJob? Find(string id);
+
+    /// <summary>Notes the step a job is on. It is kept beside the job and dropped when the job ends.</summary>
+    void Report(string id, TranscriptionProgress progress);
+
+    /// <summary>The step a job that has not ended is on, or null when none was reported.</summary>
+    TranscriptionProgress? Progress(string id);
+
+    /// <summary>The jobs that are queued or running, oldest first.</summary>
+    IReadOnlyList<TranscriptionJob> Active();
 }

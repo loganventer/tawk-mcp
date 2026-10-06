@@ -10,4 +10,7 @@ public interface ITranscriptionNoticeFormatter
 
     /// <summary>A job as it stands: what the channel event carries when it ends, and what get_transcript answers.</summary>
     string Describe(TranscriptionJob job);
+
+    /// <summary>How far a job is, in one line with no transcript in it: the step it is on and how long ago it was asked for.</summary>
+    string Progress(TranscriptionJob job, TranscriptionProgress? progress, DateTimeOffset now);
 }

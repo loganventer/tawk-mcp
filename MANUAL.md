@@ -256,6 +256,7 @@ These need `access = manage` (or `admin`). Each is shown to you in tawk to appro
 | `view_image` | `messageId` | Hands the picture of an image or sticker message to your MCP client, for its own model to look at. JPEG, PNG, GIF and WebP, up to 5 MB. tawk downloads it first if needed; when that takes more than a few seconds the call says to try again |
 | `transcribe_message` | `messageId`, `languages`, `task`, `model`, `prompt` | Starts turning a voice note into text and answers at once with a job id |
 | `get_transcript` | `jobId` | Reads a transcription job: queued, running, or ended with every transcript. For clients without channel events |
+| `get_transcription_progress` | `jobId` | Says how far a job is, with none of its text: queued, or running with the step it is on (fetching the voice note, waiting for another transcription, downloading or loading the model, or transcribing with the share of the voice note heard so far) and how long ago it was asked for. With no `jobId`, every job that is queued or running |
 
 A transcription never keeps the call waiting. When the job ends, a channel event with `type="transcript"` carries the text, fenced as untrusted like any message, with `status` (`done`, `partial` or `failed`), `job_id`, `message_id`, `languages`, `engine` and `model` in its tag. The event stream gets a `transcript` event with the same.
 

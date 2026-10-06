@@ -20,9 +20,17 @@ public sealed class FakeTranscriber : ITranscriber
 
     public double? DurationS { get; set; }
 
-    public async Task<Transcript> TranscribeAsync(TranscriptionPassRequest request, CancellationToken cancellationToken)
+    /// <summary>What each pass reports before it does anything else.</summary>
+    public TranscriptionProgress? Says { get; set; }
+
+    public async Task<Transcript> TranscribeAsync(TranscriptionPassRequest request, IProgress<TranscriptionProgress> progress, CancellationToken cancellationToken)
     {
         Passes.Add(request);
+        if (Says is not null)
+        {
+            progress.Report(Says);
+        }
+
         if (Stalls.Contains(request.Language))
         {
             await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);

@@ -79,4 +79,29 @@ public class InMemoryTranscriptionJobStoreTests
         _clock.Advance(TimeSpan.FromMinutes(31));
         Assert.That(store.Find(ids[2]), Is.Null);
     }
+
+    [Test]
+    public async Task The_step_a_job_is_on_is_kept_until_the_job_ends()
+    {
+        var store = Store();
+        store.Add(Request("A"), out _);
+        store.Add(Request("B"), out _);
+        var taken = await store.TakeAsync(CancellationToken.None);
+
+        store.Report("t1", new TranscriptionProgress(TranscriptionStage.Transcribing, 30));
+        store.Report("t9", new TranscriptionProgress(TranscriptionStage.LoadingModel));
+        var during = store.Progress("t1");
+        var active = store.Active().Select(j => j.Id).ToList();
+        store.Save(taken with { State = TranscriptionState.Done, EndedAt = _clock.GetUtcNow() });
+        store.Report("t1", new TranscriptionProgress(TranscriptionStage.Transcribing, 90));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(during, Is.EqualTo(new TranscriptionProgress(TranscriptionStage.Transcribing, 30)));
+            Assert.That(active, Is.EqualTo(new[] { "t1", "t2" }));
+            Assert.That(store.Progress("t1"), Is.Null, "dropped with the job's end, and a late report is not kept");
+            Assert.That(store.Progress("t9"), Is.Null, "nothing is kept for a job that does not exist");
+            Assert.That(store.Active().Select(j => j.Id), Is.EqualTo(new[] { "t2" }));
+        });
+    }
 }

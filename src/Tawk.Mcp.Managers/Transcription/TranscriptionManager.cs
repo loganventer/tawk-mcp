@@ -8,8 +8,11 @@ public sealed class TranscriptionManager(
     ITranscriptionPolicy policy,
     ITranscriptionPreferences preferences,
     ITranscriptionJobStore jobs,
-    ITranscriptionNoticeFormatter notices) : ITranscriptionManager
+    ITranscriptionNoticeFormatter notices,
+    TimeProvider clock) : ITranscriptionManager
 {
+    public const string NothingRunning = "No transcription is queued or running.";
+
     public const string NoSuchJob = "No transcription job has that id. Jobs are kept for a short while after they end, and not across a restart.";
 
     public async Task<string> StartAsync(
@@ -41,4 +44,18 @@ public sealed class TranscriptionManager(
 
     public string Read(string jobId) =>
         string.IsNullOrWhiteSpace(jobId) || jobs.Find(jobId) is not { } job ? NoSuchJob : notices.Describe(job);
+
+    public string Progress(string? jobId)
+    {
+        var now = clock.GetUtcNow();
+        if (string.IsNullOrWhiteSpace(jobId))
+        {
+            var active = jobs.Active();
+            return active.Count == 0
+                ? NothingRunning
+                : string.Join('\n', active.Select(job => notices.Progress(job, jobs.Progress(job.Id), now)));
+        }
+
+        return jobs.Find(jobId) is { } found ? notices.Progress(found, jobs.Progress(found.Id), now) : NoSuchJob;
+    }
 }

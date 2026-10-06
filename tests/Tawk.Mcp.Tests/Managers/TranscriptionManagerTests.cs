@@ -27,6 +27,8 @@ public class TranscriptionManagerTests
 
         public string Read(string jobId) => Requests.Read(jobId);
 
+        public string Progress(string? jobId) => Requests.Progress(jobId);
+
         public Task RunNextAsync(CancellationToken cancellationToken) => Runs.RunNextAsync(cancellationToken);
     }
 
@@ -51,7 +53,7 @@ public class TranscriptionManagerTests
         var jobs = new InMemoryTranscriptionJobStore(_options, _clock);
         var notices = new TranscriptionNoticeFormatter(new UntrustedTextFence());
         return new Pair(
-            new TranscriptionManager(new TranscriptionPolicy(_options), _preferences, jobs, notices),
+            new TranscriptionManager(new TranscriptionPolicy(_options), _preferences, jobs, notices, _clock),
             new TranscriptionRunManager(
                 jobs,
                 _media,
@@ -228,6 +230,56 @@ public class TranscriptionManagerTests
             Assert.That(manager.Start("3EB0", null, ["af"], null, null, null), Does.Contain("already under way as job t1"));
             Assert.That(manager.Start("3EB0", null, ["af", "en"], null, null, null), Does.Contain("as job t2"));
             Assert.That(manager.Read("t9"), Is.EqualTo(TranscriptionManager.NoSuchJob));
+        });
+    }
+
+    [Test]
+    public async Task Progress_says_the_step_a_running_job_is_on_and_carries_no_transcript()
+    {
+        _transcriber.Stalls.Add("af");
+        _transcriber.Says = new TranscriptionProgress(TranscriptionStage.Transcribing, 40);
+        var manager = Manager();
+        var nothing = manager.Progress(null);
+        manager.Start("3EB0", null, ["af", "en"], null, null, null);
+        manager.Start("OTHER", null, ["af"], null, null, null);
+        var queued = manager.Progress("t1");
+        using var stop = new CancellationTokenSource();
+
+        var running = manager.RunNextAsync(stop.Token);
+        while (_transcriber.Passes.Count == 0)
+        {
+            await Task.Delay(5);
+        }
+
+        _clock.Advance(TimeSpan.FromSeconds(42));
+        var one = manager.Progress("t1");
+        var all = manager.Progress(null);
+        await stop.CancelAsync();
+        Assert.CatchAsync<OperationCanceledException>(async () => await running);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(nothing, Is.EqualTo(TranscriptionManager.NothingRunning));
+            Assert.That(queued, Is.EqualTo("Job t1 (message id 3EB0, model large-v3-turbo): queued, asked 0 s ago."));
+            Assert.That(one, Is.EqualTo(
+                "Job t1 (message id 3EB0, model large-v3-turbo): running, asked 42 s ago. Language af, 1 of 2: transcribing, 40% of the voice note heard."));
+            Assert.That(all.Split('\n'), Is.EqualTo(new[] { one, "Job t2 (message id OTHER, model large-v3-turbo): queued, asked 42 s ago." }));
+            Assert.That(manager.Progress("t9"), Is.EqualTo(TranscriptionManager.NoSuchJob));
+        });
+    }
+
+    [Test]
+    public async Task Progress_of_a_job_that_ended_points_to_its_transcript()
+    {
+        var manager = Manager();
+        manager.Start("3EB0", null, ["af"], null, null, null);
+
+        await manager.RunNextAsync(CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(manager.Progress("t1"), Is.EqualTo("Job t1 (message id 3EB0, model large-v3-turbo): done. get_transcript reads it."));
+            Assert.That(manager.Progress(null), Is.EqualTo(TranscriptionManager.NothingRunning));
         });
     }
 

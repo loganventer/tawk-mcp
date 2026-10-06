@@ -26,7 +26,7 @@ public class FailoverTranscriberTests
     [Test]
     public async Task A_running_transcriber_does_the_work_and_no_model_stays_loaded_inside()
     {
-        var transcript = await _failover.TranscribeAsync(Pass, CancellationToken.None);
+        var transcript = await _failover.TranscribeAsync(Pass, NoTranscriptionProgress.Instance, CancellationToken.None);
 
         Assert.Multiple(() =>
         {
@@ -41,7 +41,7 @@ public class FailoverTranscriberTests
     {
         _running.Failures["af"] = "the transcriber could not be reached";
 
-        var transcript = await _failover.TranscribeAsync(Pass, CancellationToken.None);
+        var transcript = await _failover.TranscribeAsync(Pass, NoTranscriptionProgress.Instance, CancellationToken.None);
 
         Assert.Multiple(() =>
         {
@@ -55,15 +55,15 @@ public class FailoverTranscriberTests
     public async Task After_repeated_failures_it_is_left_alone_until_the_cooldown_then_tried_once_and_taken_back()
     {
         _running.Failures["af"] = "the transcriber could not be reached";
-        await _failover.TranscribeAsync(Pass, CancellationToken.None);
-        await _failover.TranscribeAsync(Pass, CancellationToken.None);
+        await _failover.TranscribeAsync(Pass, NoTranscriptionProgress.Instance, CancellationToken.None);
+        await _failover.TranscribeAsync(Pass, NoTranscriptionProgress.Instance, CancellationToken.None);
         var triedWhileFailing = _running.Passes.Count;
 
-        await _failover.TranscribeAsync(Pass, CancellationToken.None);
+        await _failover.TranscribeAsync(Pass, NoTranscriptionProgress.Instance, CancellationToken.None);
         var triedWhileOpen = _running.Passes.Count;
         _running.Failures.Clear();
         _clock.Advance(TimeSpan.FromSeconds(61));
-        var back = await _failover.TranscribeAsync(Pass, CancellationToken.None);
+        var back = await _failover.TranscribeAsync(Pass, NoTranscriptionProgress.Instance, CancellationToken.None);
 
         Assert.Multiple(() =>
         {
