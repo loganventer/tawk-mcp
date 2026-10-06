@@ -63,7 +63,7 @@ public static class HelpText
           --transcribe-auto on|off      transcribe every voice note    TAWKMCP_TRANSCRIBE_AUTO
                                         that others send, unasked, in the default languages
           --transcribe-model NAME       default model                  TAWKMCP_TRANSCRIBE_MODEL
-                                        tiny, the smallest Whisper model, unless chosen in tawk or here
+                                        large-v3-turbo unless chosen in tawk or here; tiny is the lightest
           --transcribe-models A,B       models an agent may ask for    TAWKMCP_TRANSCRIBE_MODELS
           --transcribe-language A,B     default languages, or auto     TAWKMCP_TRANSCRIBE_LANGUAGE
           --transcribe-max-languages N  most languages in one call, 3  TAWKMCP_TRANSCRIBE_MAX_LANGUAGES

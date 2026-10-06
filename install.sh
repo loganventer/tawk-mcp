@@ -397,16 +397,20 @@ say "checking: $("$BIN" --version)"
 "$BIN" print-token >/dev/null
 say "the bearer token for HTTP clients is in $TOKEN_FILE (tawk-mcp print-token shows it)"
 
-# Voice notes are transcribed inside tawk-mcp. The smallest model is fetched now so the first one does
-# not wait for a download; a larger model chosen in tawk is fetched the first time it is needed.
+# Voice notes are transcribed inside tawk-mcp. The default model is fetched now so the first one does
+# not wait for a download (about 1.6 GB); another model chosen in tawk is fetched the first time it is needed.
 MODEL_DIR="${TAWKMCP_TRANSCRIBE_MODEL_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/tawk-mcp/models}"
-if [ -f "$MODEL_DIR/ggml-tiny.bin" ]; then
-    say "transcription model: tiny is already in $MODEL_DIR"
-elif "$BIN" fetch-model tiny >/dev/null 2>&1; then
-    say "transcription model: fetched tiny into $MODEL_DIR"
+DEFAULT_MODEL=large-v3-turbo
+if [ -f "$MODEL_DIR/ggml-$DEFAULT_MODEL.bin" ]; then
+    say "transcription model: $DEFAULT_MODEL is already in $MODEL_DIR"
 else
-    warn "the tiny transcription model could not be fetched now. tawk-mcp fetches it the first time"
-    warn "a voice note is transcribed, or run: tawk-mcp fetch-model tiny"
+    say "transcription model: fetching $DEFAULT_MODEL (about 1.6 GB), this takes a while ..."
+    if "$BIN" fetch-model "$DEFAULT_MODEL" >/dev/null 2>&1; then
+        say "transcription model: fetched $DEFAULT_MODEL into $MODEL_DIR"
+    else
+        warn "the $DEFAULT_MODEL transcription model could not be fetched now. tawk-mcp fetches it the first time"
+        warn "a voice note is transcribed, or run: tawk-mcp fetch-model $DEFAULT_MODEL"
+    fi
 fi
 
 if ! have tawk; then

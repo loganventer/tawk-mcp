@@ -71,7 +71,7 @@ public class MediaAndTranscriptionTests
             Assert.That((string?)meta["type"], Is.EqualTo("transcript"));
             Assert.That((string?)meta["status"], Is.EqualTo("done"));
             Assert.That((string?)meta["languages"], Is.EqualTo("af,en"));
-            Assert.That((string?)meta["model"], Is.EqualTo("tiny"), "the smallest model unless the user chose another");
+            Assert.That((string?)meta["model"], Is.EqualTo("large-v3-turbo"), "the default model unless the user chose another");
             Assert.That((string?)meta["chat_name"], Is.EqualTo("Mom"));
             Assert.That(content, Does.Contain("said in af").And.Contain("said in en").And.Contain("<<<BEGIN UNTRUSTED"));
             Assert.That(content, Does.StartWith(ToolOutput.Text(read)), "get_transcript reads the same text the event carried");

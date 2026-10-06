@@ -41,7 +41,7 @@ What a client may see and do is decided in tawk, under `[automation]` in `~/.con
 | `confirm_cli` | `on`, `off` | Also ask before writes from your own tawk commands. Writes from tawk-mcp always ask |
 | `writes_per_minute` | 1 to 60 | How many writes clients may make per minute |
 
-The same section holds your choices for voice notes, under **Settings > Automation > Voice note transcription**: `transcribe_model` (a list, `tiny` by default), `transcribe_languages` and `transcribe_auto`. tawk-mcp reads them and they override its own `--transcribe-model`, `--transcribe-language` and `--transcribe-auto`.
+The same section holds your choices for voice notes, under **Settings > Automation > Voice note transcription**: `transcribe_model` (a list, `large-v3-turbo` by default), `transcribe_languages` and `transcribe_auto`. tawk-mcp reads them and they override its own `--transcribe-model`, `--transcribe-language` and `--transcribe-auto`.
 
 tawk-mcp cannot change any of these. What agents ask for and do is listed in tawk's Agentic tab (**🤖 Agentic** in the header, or F3).
 
@@ -85,7 +85,7 @@ Flags override environment variables, which override the defaults. A flag or a c
 | `--transcribe-url ADDRESS` | `TAWKMCP_TRANSCRIBE_URL` | none | The transcriber for `http`: a server that speaks the OpenAI audio API (`/v1/audio/transcriptions`), such as whisper.cpp's server or faster-whisper-server. It must be on this machine unless the next flag is on |
 | `--transcribe-remote on\|off` | `TAWKMCP_TRANSCRIBE_REMOTE` | `off` | Allow a transcriber on another machine. Voice notes are then sent there |
 | `--transcribe-command TEXT` | `TAWKMCP_TRANSCRIBE_COMMAND` | none | The program for `command`, run once for each language with `{file}`, `{language}`, `{model}`, `{task}` and `{prompt}` filled in, no shell. What it prints is the transcript |
-| `--transcribe-model NAME` | `TAWKMCP_TRANSCRIBE_MODEL` | `tiny` | The model, when tawk's settings do not name one |
+| `--transcribe-model NAME` | `TAWKMCP_TRANSCRIBE_MODEL` | `large-v3-turbo` | The model, when tawk's settings do not name one |
 | `--transcribe-models A,B` | `TAWKMCP_TRANSCRIBE_MODELS` | none | Other models an agent may ask for by name |
 | `--transcribe-language A,B` | `TAWKMCP_TRANSCRIBE_LANGUAGE` | `auto` | The default languages, when tawk's settings do not name any |
 | `--transcribe-auto on\|off` | `TAWKMCP_TRANSCRIBE_AUTO` | `off` | Transcribe every voice note others send, when tawk's settings have no such switch |

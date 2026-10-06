@@ -24,9 +24,9 @@ public class TranscriptionPolicyTests
     }
 
     [Test]
-    public void The_smallest_model_is_used_until_the_user_names_another()
+    public void The_default_model_is_used_until_the_user_names_another()
     {
-        Assert.That(Policy().Resolve("3EB0", null, null, null, null, null, TranscriptionPreferences.None).Model, Is.EqualTo("tiny"));
+        Assert.That(Policy().Resolve("3EB0", null, null, null, null, null, TranscriptionPreferences.None).Model, Is.EqualTo("large-v3-turbo"));
     }
 
     [Test]

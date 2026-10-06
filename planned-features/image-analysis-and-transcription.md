@@ -319,8 +319,8 @@ Each step ships with tests in the existing style: the fake tawk server for the c
 These replace what the sections above say where they differ.
 
 - **The user's choices live in tawk's settings panel.** Settings, Automation, Voice note transcription holds the model (a list to choose from: `tiny`, `base`, `small`, `medium`, `large-v3-turbo`, `large-v3`), the default languages, and a switch for transcribing every voice note as it arrives. They are in `[automation]`, so an agent can read them and cannot change them.
-- **tawk's settings override tawk-mcp's.** For the model, the languages and the automatic switch, tawk's panel comes first. `--transcribe-model`, `--transcribe-language` and `--transcribe-auto` stand in only for a tawk that does not have these settings or is not running. The built-in values are last: `tiny`, `auto`, off.
-- **The smallest model is the default.** `tiny`, until the user picks another.
+- **tawk's settings override tawk-mcp's.** For the model, the languages and the automatic switch, tawk's panel comes first. `--transcribe-model`, `--transcribe-language` and `--transcribe-auto` stand in only for a tawk that does not have these settings or is not running. The built-in values are last: `large-v3-turbo`, `auto`, off.
+- **`large-v3-turbo` is the default**, until the user picks another. `tiny` was the first default and proved unusable for Afrikaans and for mixed languages.
 - **Automatic transcription is built**, as a switch, where section 11 had left it out. `AutoTranscriptionSink` offers each incoming voice note, and the switch is read as each one arrives, so a change in the panel takes hold within seconds.
 - **Two managers, not one.** `TranscriptionManager` takes requests and answers about jobs. `TranscriptionRunManager` runs them and announces the outcome. The automatic sink is an event sink that needs the first, and the second needs the event sinks, so one manager would have depended on itself.
 - **`ITranscriptionPreferences`** in resource access reads the choices with `get_settings` and keeps them for ten seconds.
@@ -328,7 +328,7 @@ These replace what the sections above say where they differ.
 - **What stays in tawk-mcp's flags** is what belongs to the installation: the engine, the transcriber's address or command, whether it may be on another machine, the models an agent may ask for beyond the chosen one, and the limits.
 
 - **The in-process engine is the default.** `--transcribe auto` is the default mode: with no transcriber of the user's own it loads one Whisper model inside tawk-mcp. The tools are always listed, and with `--transcribe off` they say so.
-- **A missing model is downloaded** the first time a transcription needs it, and the installer fetches `tiny`. This replaces the rule in section 6.7 that only the user fetches a model. The download carries on when the pass that started it runs out of time, and the next pass picks it up.
+- **A missing model is downloaded** the first time a transcription needs it, and the installer fetches `large-v3-turbo`. This replaces the rule in section 6.7 that only the user fetches a model. The download carries on when the pass that started it runs out of time, and the next pass picks it up.
 - **The native libraries travel inside the program.** tawk-mcp is installed as one file, so the program assembly embeds the libraries for its own platform and unpacks them on first use into `~/.local/share/tawk-mcp/native/<build>/runtimes/<platform>`, where Whisper's loader looks.
 
 ## 13. Where the work stands

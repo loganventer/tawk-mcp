@@ -5,8 +5,8 @@ public sealed record TranscriptionOptions
 {
     public const string Auto = "auto";
 
-    /// <summary>The smallest Whisper model: the quickest and lightest, and the default until the user names another.</summary>
-    public const string DefaultModel = "tiny";
+    /// <summary>The default until the user names another: close to the largest model in accuracy and several times quicker, which is what mixed and smaller languages need.</summary>
+    public const string DefaultModel = "large-v3-turbo";
 
     public const int DefaultMaxLanguages = 3;
 
