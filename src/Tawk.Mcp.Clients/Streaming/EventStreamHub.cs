@@ -2,6 +2,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading.Channels;
 using Tawk.Mcp.Core;
+using Tawk.Mcp.Core.Transcription;
 using Tawk.Mcp.Managers;
 
 namespace Tawk.Mcp.Clients.Streaming;
@@ -48,6 +49,27 @@ public sealed class EventStreamHub : IEventSink, IEventStreamHub
             MessageActivityEvent a => (
                 ActivityNames.Of(a.Kind),
                 JsonSerializer.Serialize(new { chat = a.Chat, message_id = a.MessageId, who = a.Who, emoji = a.Emoji, message = a.Message, at = a.At, account = a.Account }, Json)),
+            TranscriptEvent t => ("transcript", JsonSerializer.Serialize(
+                new
+                {
+                    job_id = t.Job.Id,
+                    status = TranscriptNames.Of(t.Job.State),
+                    message_id = t.Job.Request.MessageId,
+                    chat = t.Job.Chat,
+                    account = t.Job.Request.Account,
+                    engine = t.Engine,
+                    model = t.Job.Request.Model,
+                    task = TranscriptNames.Of(t.Job.Request.Task),
+                    failure = t.Job.Failure,
+                    transcripts = t.Job.Passes.Select(p => new
+                    {
+                        language = p.Language,
+                        detected = p.Transcript?.DetectedLanguage,
+                        text = p.Transcript?.Text,
+                        failure = p.Failure,
+                    }),
+                },
+                Json)),
             _ => (null, null),
         };
         if (name is not null)

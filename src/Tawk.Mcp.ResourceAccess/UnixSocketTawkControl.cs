@@ -292,6 +292,11 @@ public sealed class UnixSocketTawkControl : ITawkControl, ITawkApprovals, ITawkC
             ["protocol"] = _options.Protocol,
             ["origin"] = _options.Origin,
         };
+        if (!string.IsNullOrWhiteSpace(_options.Label))
+        {
+            args["label"] = _options.Label;
+        }
+
         try
         {
             var result = await connection.SendAsync(

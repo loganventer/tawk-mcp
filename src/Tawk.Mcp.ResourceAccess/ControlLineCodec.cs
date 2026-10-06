@@ -2,6 +2,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Tawk.Mcp.Core;
+using Tawk.Mcp.Core.Media;
 
 namespace Tawk.Mcp.ResourceAccess;
 
@@ -92,6 +93,11 @@ public sealed class ControlLineCodec
         "delete" => Activity(ActivityKind.Deleted, root),
         "scheduled_sent" => Activity(ActivityKind.ScheduledSent, root),
         "chat" => new ChatUpdatedEvent(Property<ChatSummary>(root, "chat")),
+        "media_ready" => new MediaReadyEvent(
+            root.TryGetProperty("chat", out var mediaChat) && mediaChat.ValueKind == JsonValueKind.Object ? Deserialize<ChatRef>(mediaChat) : null,
+            root.TryGetProperty("message_id", out var mediaId) ? mediaId.GetString() ?? string.Empty : string.Empty,
+            root.TryGetProperty("path", out var mediaPath) ? mediaPath.GetString() ?? string.Empty : string.Empty,
+            root.TryGetProperty("type", out var mediaType) ? mediaType.GetString() : null),
         "bye" => new ByeEvent(),
         "approval" => new ApprovalEvent(
             root.TryGetProperty("id", out var id) ? id.GetString() ?? string.Empty : string.Empty,

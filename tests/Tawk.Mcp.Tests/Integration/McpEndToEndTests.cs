@@ -26,7 +26,9 @@ public class McpEndToEndTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(names, Has.Count.EqualTo(76));
+            Assert.That(names, Has.Count.EqualTo(78));
+            Assert.That(names, Does.Contain("view_image"));
+            Assert.That(names, Has.None.Contains("transcri"), "transcription is off unless the user turns it on");
             Assert.That(names, Does.Contain("draft_message").And.Contain("delete_chat").And.Contain("decline_call"));
             Assert.That(names, Has.None.Contains("confirm"));
             Assert.That(tools.Single(t => t.Name == "read_messages").Description, Does.Contain("untrusted data"));
@@ -34,6 +36,50 @@ public class McpEndToEndTests
             Assert.That(_harness.Client.ServerCapabilities.Experimental!.ContainsKey("claude/channel"), Is.True);
             Assert.That(_harness.Client.ServerCapabilities.Resources!.Subscribe, Is.True);
             Assert.That(_harness.Client.ServerInstructions, Does.Contain("untrusted data"));
+        });
+    }
+
+    [Test]
+    public async Task Says_what_tells_it_apart_when_it_greets_tawk()
+    {
+        await _harness.StartAsync();
+
+        var hello = await _harness.Server.WaitForAsync("hello");
+
+        Assert.That((string?)hello["args"]!["label"], Is.EqualTo("http, port 8765"));
+    }
+
+    [Test]
+    public async Task A_session_tells_tawk_what_it_is_doing()
+    {
+        await _harness.StartAsync();
+
+        var result = await _harness.Client.CallToolAsync(
+            "describe_session", new Dictionary<string, object?> { ["description"] = "Reviewing the billing service\nin the payments repo" });
+        var sent = await _harness.Server.WaitForAsync("describe");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsError, Is.Not.True);
+            Assert.That((string?)sent["args"]!["text"], Is.EqualTo("Reviewing the billing service in the payments repo"));
+            Assert.That(_harness.Client.ServerInstructions, Does.Contain("describe_session"));
+        });
+    }
+
+    [Test]
+    public async Task A_description_of_more_than_ten_words_is_sent_back_to_be_shortened()
+    {
+        await _harness.StartAsync();
+
+        var result = await _harness.Client.CallToolAsync(
+            "describe_session", new Dictionary<string, object?> { ["description"] = "one two three four five six seven eight nine ten eleven" });
+        await _harness.Client.CallToolAsync("app_status");
+        await _harness.Server.WaitForAsync("app_status");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(string.Join('\n', result.Content.OfType<TextContentBlock>().Select(b => b.Text)), Does.Contain("11 words").And.Contain("at most 10"));
+            Assert.That(_harness.Server.Received.Any(r => (string?)r["op"] == "describe"), Is.False);
         });
     }
 
@@ -54,7 +100,7 @@ public class McpEndToEndTests
             Assert.That(_harness.Client.ServerInstructions, Does.Contain("record_observation"));
             Assert.That(names, Has.None.EqualTo("get_workflow"));
             Assert.That(_harness.Client.ServerInstructions, Does.Not.Contain("workflow check"));
-            Assert.That(offNames, Has.Count.EqualTo(43));
+            Assert.That(offNames, Has.Count.EqualTo(45));
             Assert.That(offNames, Has.None.Contains("voice"));
             Assert.That(off.Client.ServerInstructions, Does.Not.Contain("remembers"));
             Assert.That(File.Exists(off.DataFile), Is.False);

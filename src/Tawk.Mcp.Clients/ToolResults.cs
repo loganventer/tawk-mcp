@@ -1,6 +1,8 @@
 using ModelContextProtocol.Protocol;
 using Tawk.Mcp.Core;
+using Tawk.Mcp.Core.Media;
 using Tawk.Mcp.Core.Memory;
+using Tawk.Mcp.Core.Transcription;
 
 namespace Tawk.Mcp.Clients;
 
@@ -17,6 +19,39 @@ public static class ToolResults
         Content = [new TextContentBlock { Text = text }],
         IsError = true,
     };
+
+    /// <summary>A picture for the client's own model to look at.</summary>
+    public static CallToolResult Image(ImageData image)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        return new()
+        {
+            Content = [ImageContentBlock.FromBytes(image.Bytes, image.MimeType)],
+            IsError = false,
+        };
+    }
+
+    /// <summary>Runs a use case that answers with a picture, for one of the user's accounts.</summary>
+    public static async Task<CallToolResult> RunImageAsync(IAccountScope accounts, string? account, Func<Task<ImageData>> action)
+    {
+        ArgumentNullException.ThrowIfNull(accounts);
+        ArgumentNullException.ThrowIfNull(action);
+        using (accounts.Use(account))
+        {
+            try
+            {
+                return Image(await action().ConfigureAwait(false));
+            }
+            catch (TawkControlException ex)
+            {
+                return Error(ControlErrorMessages.Describe(ex));
+            }
+            catch (MediaException ex)
+            {
+                return Error(ex.Message);
+            }
+        }
+    }
 
     /// <summary>Runs a use case for one of the user's accounts: every request to tawk made inside names it.</summary>
     public static async Task<CallToolResult> RunAsync(IAccountScope accounts, string? account, Func<Task<string>> action)
@@ -45,6 +80,10 @@ public static class ToolResults
             return Error(ControlErrorMessages.Describe(ex));
         }
         catch (MemoryException ex)
+        {
+            return Error(ex.Message);
+        }
+        catch (TranscriptionException ex)
         {
             return Error(ex.Message);
         }

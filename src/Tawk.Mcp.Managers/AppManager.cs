@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Tawk.Mcp.Core;
 using Tawk.Mcp.ResourceAccess;
 
@@ -5,6 +6,10 @@ namespace Tawk.Mcp.Managers;
 
 public sealed class AppManager(ITawkControl control, IConfirmationGate gate) : IAppManager
 {
+    public const int MaxDescriptionWords = 10;
+
+    public const int MaxDescriptionLength = 150;
+
     public async Task<string> AppStatusAsync(CancellationToken cancellationToken) =>
         WriteResults.Json(await control.RequestAsync("app_status", null, cancellationToken).ConfigureAwait(false));
 
@@ -34,6 +39,32 @@ public sealed class AppManager(ITawkControl control, IConfirmationGate gate) : I
             + (a.Connected ? string.Empty : "  offline")
             + (a.Id == defaultId ? "  (default)" : string.Empty));
         return string.Join('\n', lines);
+    }
+
+    public async Task<string> DescribeSessionAsync(string description, CancellationToken cancellationToken)
+    {
+        var words = (description ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length > MaxDescriptionWords)
+        {
+            return $"That is {words.Length} words. Say it in at most {MaxDescriptionWords}: concise, and specific about the task and the project.";
+        }
+
+        var text = string.Join(' ', words);
+        if (text.Length > MaxDescriptionLength)
+        {
+            text = text[..MaxDescriptionLength];
+        }
+
+        try
+        {
+            await control.RequestAsync("describe", new JsonObject { ["text"] = text }, cancellationToken).ConfigureAwait(false);
+        }
+        catch (TawkControlException ex) when (ex.Code == ControlErrorCode.BadRequest)
+        {
+            return "This tawk is too old to show what a session is doing. Carry on; nothing else is affected.";
+        }
+
+        return text.Length == 0 ? "tawk no longer shows a description for this session." : "tawk now shows that beside this session.";
     }
 
     public async Task<string> ReconnectAsync(WriteContext context, CancellationToken cancellationToken) =>

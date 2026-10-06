@@ -2,6 +2,7 @@ using Tawk.Mcp.Clients.Channels;
 using Tawk.Mcp.Core;
 using Tawk.Mcp.Core.Memory;
 using Tawk.Mcp.Core.Sync;
+using Tawk.Mcp.Core.Transcription;
 
 namespace Tawk.Mcp.Host;
 
@@ -92,6 +93,38 @@ public sealed record TawkMcpOptions
 
     /// <summary>What that file held when the server started.</summary>
     public string? UserInstructions { get; init; }
+
+    /// <summary>How voice notes are transcribed. Off by default, and then there are no transcription tools.</summary>
+    public TranscriptionEngine Transcribe { get; init; } = TranscriptionEngine.Off;
+
+    /// <summary>The transcriber's base address for the http engine. On this machine unless <see cref="TranscribeRemote"/> is on.</summary>
+    public Uri? TranscribeUrl { get; init; }
+
+    /// <summary>Lets the http engine send voice notes to another machine. Off by default.</summary>
+    public bool TranscribeRemote { get; init; }
+
+    /// <summary>The program and arguments for the command engine, with {file}, {language}, {model}, {task} and {prompt}.</summary>
+    public string? TranscribeCommand { get; init; }
+
+    /// <summary>The model used when a call names none and tawk has no setting for it. tawk's settings panel wins when it has one.</summary>
+    public string? TranscribeModel { get; init; }
+
+    /// <summary>The model names an agent may ask for, besides the default.</summary>
+    public IReadOnlyList<string> TranscribeModels { get; init; } = [];
+
+    /// <summary>The languages used when a call names none and tawk has no setting for them. tawk's settings panel wins when it has one.</summary>
+    public IReadOnlyList<string>? TranscribeLanguages { get; init; }
+
+    public int TranscribeMaxLanguages { get; init; } = TranscriptionOptions.DefaultMaxLanguages;
+
+    public int TranscribeMaxSeconds { get; init; } = TranscriptionOptions.DefaultMaxSeconds;
+
+    public int TranscribeTimeoutS { get; init; } = TranscriptionOptions.DefaultTimeoutS;
+
+    /// <summary>Transcribe every voice note another person sends, without being asked. Only for a tawk without the switch: tawk's settings panel wins when it has one.</summary>
+    public bool? TranscribeAuto { get; init; }
+
+    public int TranscribeConcurrency { get; init; } = 1;
 
     public TimeSpan Heartbeat { get; init; } = TimeSpan.FromSeconds(15);
 

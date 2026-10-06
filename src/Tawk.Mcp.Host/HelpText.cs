@@ -18,6 +18,8 @@ public static class HelpText
         Options (each also has an environment variable):
           --socket PATH                 tawk's control socket          TAWK_CONTROL_SOCKET
           --bind ADDRESS                HTTP bind address, 127.0.0.1   TAWKMCP_BIND
+          every option and command below may be written with two dashes, one or none:
+          --port, -port and port are the same
           --port N                      HTTP port, 8765                TAWKMCP_PORT
           --stdio | --http              transport, http by default     TAWKMCP_TRANSPORT
           --token-file PATH             bearer token file              TAWKMCP_TOKEN_FILE (or TAWKMCP_TOKEN)
@@ -40,6 +42,24 @@ public static class HelpText
           --instructions-file PATH      your standing instructions     TAWKMCP_INSTRUCTIONS_FILE
           --admin-token-file PATH       tawk's admin token file        TAWKMCP_ADMIN_TOKEN_FILE
                                         no default: only with it may this instance approve its own sends
+          --transcribe off|http|command voice notes to text            TAWKMCP_TRANSCRIBE (off)
+          --transcribe-url ADDRESS      the http transcriber's address TAWKMCP_TRANSCRIBE_URL
+                                        speaks the OpenAI audio API; on this machine unless remote is on
+          --transcribe-remote on|off    allow one on another machine   TAWKMCP_TRANSCRIBE_REMOTE (off)
+          --transcribe-command TEXT     program for the command engine TAWKMCP_TRANSCRIBE_COMMAND
+                                        {file} {language} {model} {task} {prompt} are filled in; no shell
+                                        tawk's own Settings, Automation, Voice note transcription
+                                        override auto, model and language; these are for an older tawk
+          --transcribe-auto on|off      transcribe every voice note    TAWKMCP_TRANSCRIBE_AUTO
+                                        that others send, unasked, in the default languages
+          --transcribe-model NAME       default model                  TAWKMCP_TRANSCRIBE_MODEL
+                                        tiny, the smallest Whisper model, unless chosen in tawk or here
+          --transcribe-models A,B       models an agent may ask for    TAWKMCP_TRANSCRIBE_MODELS
+          --transcribe-language A,B     default languages, or auto     TAWKMCP_TRANSCRIBE_LANGUAGE
+          --transcribe-max-languages N  most languages in one call, 3  TAWKMCP_TRANSCRIBE_MAX_LANGUAGES
+          --transcribe-max-seconds N    longest recording, 600         TAWKMCP_TRANSCRIBE_MAX_SECONDS
+          --transcribe-timeout-s N      longest pass, 300              TAWKMCP_TRANSCRIBE_TIMEOUT_S
+          --transcribe-concurrency N    jobs at once, 1                TAWKMCP_TRANSCRIBE_CONCURRENCY
           --schedule-jitter-s N         random +/- shift on schedules  TAWKMCP_SCHEDULE_JITTER_S (60, 0 = off)
           --backoff-initial-ms N        first retry wait, 500          TAWKMCP_BACKOFF_INITIAL_MS
           --backoff-max-ms N            longest retry wait, 30000      TAWKMCP_BACKOFF_MAX_MS

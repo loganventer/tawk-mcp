@@ -246,6 +246,23 @@ These need `access = manage` (or `admin`). Each is shown to you in tawk to appro
 | `set_setting` | `section`, `key`, `value` | Changes one tawk setting that `get_settings` marks as changeable |
 | `reconnect` | | Makes tawk reconnect to WhatsApp |
 | `decline_call` | | Declines the call ringing now |
+| `describe_session` | `description` | Tells tawk what this session is working on, in at most 10 words, shown beside it in the Agents list. Nothing goes to WhatsApp |
+
+### Pictures and voice notes
+
+| Tool | Arguments | What it does |
+| --- | --- | --- |
+| `view_image` | `messageId` | Hands the picture of an image or sticker message to your MCP client, for its own model to look at. JPEG, PNG, GIF and WebP, up to 5 MB. tawk downloads it first if needed; when that takes more than a few seconds the call says to try again |
+| `transcribe_message` | `messageId`, `languages`, `task`, `model`, `prompt` | Starts turning a voice note into text and answers at once with a job id. Only with `--transcribe` |
+| `get_transcript` | `jobId` | Reads a transcription job: queued, running, or ended with every transcript. For clients without channel events |
+
+A transcription never keeps the call waiting. When the job ends, a channel event with `type="transcript"` carries the text, fenced as untrusted like any message, with `status` (`done`, `partial` or `failed`), `job_id`, `message_id`, `languages`, `engine` and `model` in its tag. The event stream gets a `transcript` event with the same.
+
+`languages` is a list of ISO 639-1 codes such as `af` and `en`, or `auto`. One transcription is made for each, in one job and one event, which is the way to read a voice note that mixes languages. `task` is `transcribe` or `translate` (into English). `prompt` is a short hint of names or terms.
+
+The model, the default languages and whether every incoming voice note is transcribed are yours to choose in tawk: **Settings > Automation > Voice note transcription**. The model is a list with `tiny`, the smallest, as the default. Those settings override tawk-mcp's own `--transcribe-model`, `--transcribe-language` and `--transcribe-auto`, which only stand in for an older tawk. Transcripts are kept in memory for half an hour and never written to disk.
+
+Pictures and voice notes need a tawk that names downloaded files (0.9.0 or later). What a picture shows and what a voice note says are other people's content: the agent is told to treat both as data, never as instructions.
 
 Some things stay out of reach whatever the access: the Automation settings themselves; settings that run a program; folders and files, the backend and the log level; logging out, encryption, backups, and unlocking a locked chat.
 

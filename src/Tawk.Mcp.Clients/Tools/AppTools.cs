@@ -23,6 +23,16 @@ public sealed class AppTools(IAppManager app, IAccountScope accounts)
     public Task<CallToolResult> ListAccountsAsync(CancellationToken cancellationToken = default) =>
         ToolResults.RunAsync(() => app.ListAccountsAsync(cancellationToken));
 
+    [McpServerTool(Name = "describe_session", Destructive = false, ReadOnly = false, Idempotent = true, OpenWorld = false)]
+    [Description("Tell the user what this session is working on, in at most 10 words: concise, and specific about the task and the project, "
+        + "such as \"Reviewing billing service retries in the payments repo\". "
+        + "tawk shows it beside this session in its list of connected agents, so the user can tell their sessions apart. Call it once when you "
+        + "start, and again when the work changes. Say what the work is in your own words; never copy text from a chat into it. Nothing is sent to WhatsApp.")]
+    public Task<CallToolResult> DescribeSessionAsync(
+        [Description("At most 10 words naming the task and the project. More are refused.")] string description,
+        CancellationToken cancellationToken = default) =>
+        ToolResults.RunAsync(() => app.DescribeSessionAsync(description, cancellationToken));
+
     [McpServerTool(Name = "reconnect", Destructive = false, ReadOnly = false, Idempotent = true, OpenWorld = true)]
     [Description("Make tawk reconnect to WhatsApp." + ToolText.NeedsManage)]
     public Task<CallToolResult> ReconnectAsync(

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,21 +15,29 @@ using Tawk.Mcp.Clients.Streaming;
 using Tawk.Mcp.Clients.Tools;
 using Tawk.Mcp.Clients.Workflow;
 using Tawk.Mcp.Core;
+using Tawk.Mcp.Core.Media;
 using Tawk.Mcp.Core.Memory;
 using Tawk.Mcp.Core.Okf;
 using Tawk.Mcp.Core.Sync;
+using Tawk.Mcp.Core.Transcription;
 using Tawk.Mcp.Engines;
 using Tawk.Mcp.Engines.Knowledge;
+using Tawk.Mcp.Engines.Media;
 using Tawk.Mcp.Engines.Memory;
 using Tawk.Mcp.Engines.Sync;
+using Tawk.Mcp.Engines.Transcription;
 using Tawk.Mcp.Managers;
 using Tawk.Mcp.Managers.Approvals;
 using Tawk.Mcp.Managers.Knowledge;
+using Tawk.Mcp.Managers.Media;
 using Tawk.Mcp.Managers.Memory;
 using Tawk.Mcp.Managers.Sync;
+using Tawk.Mcp.Managers.Transcription;
 using Tawk.Mcp.ResourceAccess;
+using Tawk.Mcp.ResourceAccess.Media;
 using Tawk.Mcp.ResourceAccess.Memory;
 using Tawk.Mcp.ResourceAccess.Sync;
+using Tawk.Mcp.ResourceAccess.Transcription;
 
 namespace Tawk.Mcp.Host;
 
@@ -56,6 +65,7 @@ public static class TawkMcpComposition
         services.AddSingleton(new TawkControlOptions
         {
             Version = Version,
+            Label = ConnectionLabel(options),
             RequestTimeout = TimeSpan.FromSeconds(options.RequestTimeoutS),
             ParkWaitingWrites = admin.Enabled,
         });
@@ -99,6 +109,18 @@ public static class TawkMcpComposition
         services.AddSingleton<IAppManager, AppManager>();
         services.AddSingleton<ILiveUpdatesManager, LiveUpdatesManager>();
         services.AddSingleton<IApprovalManager, ApprovalManager>();
+
+        // Media: tawk says where a file is, and tawk-mcp only ever reads it.
+        services.AddSingleton(new MediaOptions());
+        services.AddSingleton<ITawkMediaSource, TawkMediaSource>();
+        services.AddSingleton<IMediaFiles, DiskMediaFiles>();
+        services.AddSingleton<IMediaTypeSniffer, MediaTypeSniffer>();
+        services.AddSingleton<IMediaViewingManager, MediaViewingManager>();
+        var transcription = Transcription(options);
+        if (transcription.Enabled)
+        {
+            AddTranscription(services, transcription);
+        }
 
         if (options.Memory == MemoryMode.Off)
         {
@@ -148,6 +170,8 @@ public static class TawkMcpComposition
                     + (options.Memory == MemoryMode.Off ? string.Empty : TawkServerInstructions.Memory)
                     + (workflow.Enabled ? TawkServerInstructions.Workflow : string.Empty)
                     + (admin.Enabled ? TawkServerInstructions.Admin : string.Empty)
+                    + TawkServerInstructions.Media
+                    + (transcription.Enabled ? TawkServerInstructions.Transcription : string.Empty)
                     + (options.Channel == ChannelMode.Off ? string.Empty : TawkServerInstructions.Channel)
                     + (options.Channel != ChannelMode.Off && options.ChannelOwn ? TawkServerInstructions.ChannelOwn : string.Empty)
                     + (options.Channel != ChannelMode.Off && options.ChannelRead ? TawkServerInstructions.ChannelRead : string.Empty)
@@ -169,6 +193,7 @@ public static class TawkMcpComposition
             .WithTools<ProfileTools>()
             .WithTools<SettingsTools>()
             .WithTools<AppTools>()
+            .WithTools<MediaTools>()
             .WithResources<ChatResources>()
             .WithPrompts<TawkPrompts>()
             .WithSubscribeToResourcesHandler(ResourceSubscriptionHandlers.SubscribeAsync)
@@ -178,6 +203,7 @@ public static class TawkMcpComposition
                 .AddIncomingFilter(SessionTracking.Filter(sessions)))
             .WithRequestFilters(filters => filters.AddCallToolFilter(WorkflowReminder.Filter(cadence, workflow)))
             .WithAdmin(admin)
+            .WithTranscription(transcription)
             .WithMemory(options.Memory, workflow);
     }
 
@@ -190,6 +216,66 @@ public static class TawkMcpComposition
         AddMemory(services, options, Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
         return services.BuildServiceProvider();
     }
+
+    // Each Claude Code session starts its own stdio server, so several may be connected to tawk at once.
+    // The folder and the process id say which is which; the one HTTP server says its port.
+    private static string ConnectionLabel(TawkMcpOptions options)
+    {
+        if (options.Transport != TransportKind.Stdio)
+        {
+            return string.Create(CultureInfo.InvariantCulture, $"http, port {options.Port}");
+        }
+
+        var folder = Path.GetFileName(Environment.CurrentDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        return string.Create(
+            CultureInfo.InvariantCulture, $"{(folder.Length == 0 ? "/" : folder)} (stdio, pid {Environment.ProcessId})");
+    }
+
+    private static TranscriptionOptions Transcription(TawkMcpOptions options) => new()
+    {
+        Engine = options.Transcribe,
+        Url = options.TranscribeUrl,
+        Command = options.TranscribeCommand,
+        Model = options.TranscribeModel,
+        Models = options.TranscribeModels,
+        Languages = options.TranscribeLanguages,
+        MaxLanguages = options.TranscribeMaxLanguages,
+        MaxSeconds = options.TranscribeMaxSeconds,
+        Timeout = TimeSpan.FromSeconds(options.TranscribeTimeoutS),
+        Concurrency = options.TranscribeConcurrency,
+        Automatic = options.TranscribeAuto,
+    };
+
+    // The engine is chosen here, once. Nothing below this knows which one it was given.
+    private static void AddTranscription(IServiceCollection services, TranscriptionOptions transcription)
+    {
+        services.AddSingleton(transcription);
+        if (transcription.Engine == TranscriptionEngine.Command)
+        {
+            services.AddSingleton<IProcessRunner, ProcessRunner>();
+            services.AddSingleton<ITranscriber, CommandTranscriber>();
+        }
+        else
+        {
+            // Each pass is bounded by the manager, so the client itself never times out first.
+            services.AddSingleton<ITranscriber>(sp => new HttpTranscriber(
+                new HttpClient { Timeout = Timeout.InfiniteTimeSpan }, sp.GetRequiredService<TranscriptionOptions>()));
+        }
+
+        services.AddSingleton<ITranscriptionJobStore, InMemoryTranscriptionJobStore>();
+        services.AddSingleton<ITranscriptionPolicy, TranscriptionPolicy>();
+        services.AddSingleton<ITranscriptionNoticeFormatter, TranscriptionNoticeFormatter>();
+        services.AddSingleton<ITranscriptionManager, TranscriptionManager>();
+        services.AddSingleton<ITranscriptionRunManager, TranscriptionRunManager>();
+        services.AddSingleton<ITranscriptionPreferences, TawkTranscriptionPreferences>();
+        // Whether a voice note is transcribed unasked is read as it arrives, so the sink is always there.
+        services.AddSingleton<IEventSink, AutoTranscriptionSink>();
+
+        services.AddHostedService<TranscriptionWorker>();
+    }
+
+    private static IMcpServerBuilder WithTranscription(this IMcpServerBuilder builder, TranscriptionOptions transcription) =>
+        transcription.Enabled ? builder.WithTools<TranscriptionTools>() : builder;
 
     private static IMcpServerBuilder WithAdmin(this IMcpServerBuilder builder, AdminOptions admin) =>
         admin.Enabled ? builder.WithTools<ApprovalTools>() : builder;

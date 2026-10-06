@@ -3,13 +3,15 @@ using System.Text.Json.Nodes;
 using Tawk.Mcp.Clients.Sessions;
 using Tawk.Mcp.Clients.Workflow;
 using Tawk.Mcp.Core;
+using Tawk.Mcp.Core.Transcription;
 using Tawk.Mcp.Managers;
 
 namespace Tawk.Mcp.Clients.Channels;
 
 /// <summary>
 /// Pushes new WhatsApp messages into connected Claude Code sessions as channel events: what other people
-/// send, and when asked for, what the user sends and who read the user's messages.
+/// send, and when asked for, what the user sends and who read the user's messages. A transcription an agent
+/// asked for reports back the same way when it ends.
 /// </summary>
 public sealed class ChannelEventSink(
     ChannelOptions options, IClientSessionRegistry sessions, IWorkflowCadence cadence, IChannelContextHints hints) : IEventSink
@@ -33,8 +35,8 @@ public sealed class ChannelEventSink(
         // The same contact on two accounts is two chats, each with its own history to point at.
         var seenAs = account is null ? chat : string.Create(CultureInfo.InvariantCulture, $"{account.Id}/{chat}");
 
-        // A message handed to the agent is a round, the same as a tool call; a read receipt is not.
-        var round = update.Event is MessageEvent;
+        // A message or a transcript handed to the agent is a round, the same as a tool call; a read receipt is not.
+        var round = update.Event is MessageEvent or TranscriptEvent;
         foreach (var session in sessions.Sessions.Where(Wants))
         {
             // A session's first event from a chat points at its history, in case the agent lacks it. The
@@ -92,8 +94,40 @@ public sealed class ChannelEventSink(
             ["type"] = ActivityNames.Of(activity.Kind),
             ["from_me"] = activity.Kind == ActivityKind.ScheduledSent ? "true" : "false",
         },
+        TranscriptEvent transcript => Transcript(transcript),
         _ => null,
     };
+
+    // A job the agent asked for always reports back, so no option turns this off but the channel itself.
+    private static JsonObject Transcript(TranscriptEvent transcript)
+    {
+        var job = transcript.Job;
+        var meta = new JsonObject
+        {
+            ["chat_jid"] = job.Chat?.Jid ?? string.Empty,
+            ["chat_name"] = job.Chat?.Name ?? string.Empty,
+            ["message_id"] = job.Request.MessageId,
+            ["type"] = "transcript",
+            ["status"] = TranscriptNames.Of(job.State),
+            ["job_id"] = job.Id,
+            ["languages"] = string.Join(',', job.Passes.Select(TranscriptNames.Language)),
+            ["failed_languages"] = string.Join(',', job.Passes.Where(p => p.Failure is not null).Select(p => p.Language)),
+            ["engine"] = transcript.Engine,
+            ["model"] = job.Request.Model,
+            ["task"] = TranscriptNames.Of(job.Request.Task),
+        };
+        if (job.Passes.Select(p => p.Transcript?.DurationS).FirstOrDefault(d => d is not null) is { } seconds)
+        {
+            meta["duration_s"] = Math.Round(seconds).ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (job.Request.Account is { } account)
+        {
+            meta["account"] = account;
+        }
+
+        return meta;
+    }
 
     private bool Carries(ActivityKind kind) => kind switch
     {

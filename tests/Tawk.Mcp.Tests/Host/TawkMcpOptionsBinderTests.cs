@@ -8,6 +8,44 @@ public class TawkMcpOptionsBinderTests
     private static Func<string, string?> Env(params (string Key, string Value)[] values) =>
         key => values.FirstOrDefault(v => v.Key == key).Value;
 
+    [TestCase("--port", "--stdio", "--version")]
+    [TestCase("-port", "-stdio", "-version")]
+    [TestCase("port", "stdio", "version")]
+    public void An_option_may_be_written_with_two_dashes_one_or_none(string port, string stdio, string version)
+    {
+        var options = TawkMcpOptionsBinder.Bind([port, "9000", stdio, version], Env());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(options.Error, Is.Null);
+            Assert.That(options.Port, Is.EqualTo(9000));
+            Assert.That(options.Transport, Is.EqualTo(TransportKind.Stdio));
+            Assert.That(options.Command, Is.EqualTo(HostCommand.Version));
+        });
+    }
+
+    [TestCase("print-token")]
+    [TestCase("-print-token")]
+    [TestCase("--print-token")]
+    public void A_command_may_be_written_the_same_three_ways(string command)
+    {
+        Assert.That(TawkMcpOptionsBinder.Bind([command], Env()).Command, Is.EqualTo(HostCommand.PrintToken));
+    }
+
+    [Test]
+    public void A_value_keeps_its_dashes_and_an_unknown_word_is_still_refused()
+    {
+        var options = TawkMcpOptionsBinder.Bind(["--token-file", "--odd-name", "-v"], Env());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(options.TokenFile, Is.EqualTo("--odd-name"));
+            Assert.That(options.Command, Is.EqualTo(HostCommand.Version));
+            Assert.That(TawkMcpOptionsBinder.Bind(["---port", "9000"], Env()).Error, Does.Contain("Unknown argument"));
+            Assert.That(TawkMcpOptionsBinder.Bind(["nonsense"], Env()).Error, Does.Contain("Unknown argument: nonsense"));
+        });
+    }
+
     [Test]
     public void Defaults_to_http_on_loopback_with_the_documented_timings()
     {

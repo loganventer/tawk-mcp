@@ -34,7 +34,8 @@ public sealed class McpHarness : IAsyncDisposable
 
     public async Task StartAsync(
         bool elicitation = true, bool? accept = true, string clientName = "claude-code", string? protocolVersion = null, MemoryMode memory = MemoryMode.Write,
-        int workflowEvery = 0, string? userInstructions = null, string? adminTokenFile = null)
+        int workflowEvery = 0, string? userInstructions = null, string? adminTokenFile = null,
+        Func<TawkMcpOptions, TawkMcpOptions>? configure = null)
     {
         Server.Start();
         var options = new TawkMcpOptions
@@ -48,6 +49,7 @@ public sealed class McpHarness : IAsyncDisposable
             UserInstructions = userInstructions,
             AdminTokenFile = adminTokenFile,
         };
+        options = configure?.Invoke(options) ?? options;
         var builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true });
         builder.Logging.ClearProviders();
         builder.Services.AddTawkMcp(options).WithStreamServerTransport(_toServer.Reader.AsStream(), _toClient.Writer.AsStream());

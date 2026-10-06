@@ -2,6 +2,8 @@ using System.Globalization;
 using Tawk.Mcp.Clients.Channels;
 using Tawk.Mcp.Engines.Sync;
 using Tawk.Mcp.Core.Memory;
+using Tawk.Mcp.Core.Transcription;
+using Tawk.Mcp.Engines.Transcription;
 
 namespace Tawk.Mcp.Host;
 
@@ -30,44 +32,56 @@ public static class TawkMcpOptionsBinder
                 return args[++i];
             }
 
-            options = arg switch
+            options = Name(arg) switch
             {
                 "print-token" => options with { Command = HostCommand.PrintToken },
                 "healthcheck" => options with { Command = HostCommand.Healthcheck },
                 "export-okf" => options with { Command = HostCommand.ExportOkf, BundlePath = Next() },
                 "import-okf" => options with { Command = HostCommand.ImportOkf, BundlePath = Next() },
                 "sync" => options with { Command = HostCommand.Sync },
-                "--include-sensitive" => options with { IncludeSensitive = true },
-                "--sync-repo" => options with { SyncRepository = Repository(arg, Next(), ref error) },
-                "--sync-branch" => options with { SyncBranch = Next() },
-                "--sync-file" => options with { SyncFile = SyncFile(arg, Next(), ref error) },
-                "--sync-key" => options with { SyncKeyFile = Next() },
-                "--sync-interval-minutes" => options with { SyncIntervalMinutes = Int(arg, Next(), 1, 10_080, ref error) },
-                "--workflow-every" => options with { WorkflowEvery = Int(arg, Next(), 0, 10_000, ref error) },
-                "--instructions-file" => options with { InstructionsFile = Next() },
-                "--admin-token-file" => options with { AdminTokenFile = Next() },
-                "--version" or "-v" => options with { Command = HostCommand.Version },
-                "--help" or "-h" => options with { Command = HostCommand.Help },
-                "--http" => options with { Transport = TransportKind.Http },
-                "--stdio" => options with { Transport = TransportKind.Stdio },
-                "--port" => options with { Port = Int(arg, Next(), 1, 65535, ref error) },
-                "--bind" => options with { Bind = Next() },
-                "--socket" => options with { SocketPath = Next() },
-                "--token-file" => options with { TokenFile = Next() },
-                "--data-file" => options with { DataFile = Next() },
-                "--memory" => options with { Memory = Memory(arg, Next(), ref error) },
-                "--backoff-initial-ms" => options with { BackoffInitialMs = Int(arg, Next(), 1, 600_000, ref error) },
-                "--backoff-max-ms" => options with { BackoffMaxMs = Int(arg, Next(), 1, 3_600_000, ref error) },
-                "--breaker-threshold" => options with { BreakerThreshold = Int(arg, Next(), 1, 1000, ref error) },
-                "--breaker-cooldown-s" => options with { BreakerCooldownS = Int(arg, Next(), 0, 86_400, ref error) },
-                "--request-timeout-s" => options with { RequestTimeoutS = Int(arg, Next(), 1, 600, ref error) },
-                "--channel" => options with { Channel = Channel(arg, Next(), ref error) },
-                "--channel-own" => options with { ChannelOwn = OnOff(arg, Next(), ref error) },
-                "--channel-read" => options with { ChannelRead = OnOff(arg, Next(), ref error) },
-                "--channel-reactions" => options with { ChannelReactions = OnOff(arg, Next(), ref error) },
-                "--channel-edits" => options with { ChannelEdits = OnOff(arg, Next(), ref error) },
-                "--channel-scheduled" => options with { ChannelScheduled = OnOff(arg, Next(), ref error) },
-                "--schedule-jitter-s" => options with { ScheduleJitterS = Int(arg, Next(), 0, 3600, ref error) },
+                "include-sensitive" => options with { IncludeSensitive = true },
+                "sync-repo" => options with { SyncRepository = Repository(arg, Next(), ref error) },
+                "sync-branch" => options with { SyncBranch = Next() },
+                "sync-file" => options with { SyncFile = SyncFile(arg, Next(), ref error) },
+                "sync-key" => options with { SyncKeyFile = Next() },
+                "sync-interval-minutes" => options with { SyncIntervalMinutes = Int(arg, Next(), 1, 10_080, ref error) },
+                "workflow-every" => options with { WorkflowEvery = Int(arg, Next(), 0, 10_000, ref error) },
+                "instructions-file" => options with { InstructionsFile = Next() },
+                "admin-token-file" => options with { AdminTokenFile = Next() },
+                "version" or "v" => options with { Command = HostCommand.Version },
+                "help" or "h" => options with { Command = HostCommand.Help },
+                "http" => options with { Transport = TransportKind.Http },
+                "stdio" => options with { Transport = TransportKind.Stdio },
+                "port" => options with { Port = Int(arg, Next(), 1, 65535, ref error) },
+                "bind" => options with { Bind = Next() },
+                "socket" => options with { SocketPath = Next() },
+                "token-file" => options with { TokenFile = Next() },
+                "data-file" => options with { DataFile = Next() },
+                "memory" => options with { Memory = Memory(arg, Next(), ref error) },
+                "backoff-initial-ms" => options with { BackoffInitialMs = Int(arg, Next(), 1, 600_000, ref error) },
+                "backoff-max-ms" => options with { BackoffMaxMs = Int(arg, Next(), 1, 3_600_000, ref error) },
+                "breaker-threshold" => options with { BreakerThreshold = Int(arg, Next(), 1, 1000, ref error) },
+                "breaker-cooldown-s" => options with { BreakerCooldownS = Int(arg, Next(), 0, 86_400, ref error) },
+                "request-timeout-s" => options with { RequestTimeoutS = Int(arg, Next(), 1, 600, ref error) },
+                "channel" => options with { Channel = Channel(arg, Next(), ref error) },
+                "channel-own" => options with { ChannelOwn = OnOff(arg, Next(), ref error) },
+                "channel-read" => options with { ChannelRead = OnOff(arg, Next(), ref error) },
+                "channel-reactions" => options with { ChannelReactions = OnOff(arg, Next(), ref error) },
+                "channel-edits" => options with { ChannelEdits = OnOff(arg, Next(), ref error) },
+                "channel-scheduled" => options with { ChannelScheduled = OnOff(arg, Next(), ref error) },
+                "transcribe" => options with { Transcribe = Engine(arg, Next(), ref error) },
+                "transcribe-url" => options with { TranscribeUrl = Address(arg, Next(), ref error) },
+                "transcribe-remote" => options with { TranscribeRemote = OnOff(arg, Next(), ref error) },
+                "transcribe-command" => options with { TranscribeCommand = Next() },
+                "transcribe-model" => options with { TranscribeModel = Next() },
+                "transcribe-models" => options with { TranscribeModels = Names(Next()) },
+                "transcribe-language" => options with { TranscribeLanguages = Languages(arg, Next(), ref error) },
+                "transcribe-max-languages" => options with { TranscribeMaxLanguages = Int(arg, Next(), 1, 10, ref error) },
+                "transcribe-max-seconds" => options with { TranscribeMaxSeconds = Int(arg, Next(), 1, 86_400, ref error) },
+                "transcribe-timeout-s" => options with { TranscribeTimeoutS = Int(arg, Next(), 1, 3600, ref error) },
+                "transcribe-auto" => options with { TranscribeAuto = OnOff(arg, Next(), ref error) },
+                "transcribe-concurrency" => options with { TranscribeConcurrency = Int(arg, Next(), 1, 8, ref error) },
+                "schedule-jitter-s" => options with { ScheduleJitterS = Int(arg, Next(), 0, 3600, ref error) },
                 _ => Unknown(options, arg, ref error),
             };
         }
@@ -77,8 +91,22 @@ public static class TawkMcpOptionsBinder
             error = "The backoff maximum must not be below the initial backoff.";
         }
 
-        return options with { Error = error };
+        return options with { Error = error ?? TranscriptionError(options) };
     }
+
+    // What the chosen engine needs, checked once every flag and variable has been read.
+    private static string? TranscriptionError(TawkMcpOptions options) => options.Transcribe switch
+    {
+        TranscriptionEngine.Http when options.TranscribeUrl is null => "--transcribe http needs --transcribe-url.",
+        TranscriptionEngine.Http when !options.TranscribeRemote && !options.TranscribeUrl.IsLoopback =>
+            "--transcribe-url must be on this machine (127.0.0.1 or localhost). --transcribe-remote on allows another machine: "
+            + "voice notes are then sent there.",
+        TranscriptionEngine.Command when string.IsNullOrWhiteSpace(options.TranscribeCommand) => "--transcribe command needs --transcribe-command.",
+        TranscriptionEngine.Off when options.TranscribeAuto == true => "--transcribe-auto on needs an engine: set --transcribe.",
+        _ when options.TranscribeLanguages?.Count > options.TranscribeMaxLanguages =>
+            "--transcribe-language names more languages than --transcribe-max-languages allows.",
+        _ => null,
+    };
 
     private static TawkMcpOptions Apply(TawkMcpOptions options, Func<string, string?> env, ref string? error)
     {
@@ -217,6 +245,66 @@ public static class TawkMcpOptionsBinder
             options = options with { ChannelOwn = OnOff("TAWKMCP_CHANNEL_OWN", channelOwn, ref error) };
         }
 
+        if (env("TAWKMCP_TRANSCRIBE") is { Length: > 0 } transcribe)
+        {
+            options = options with { Transcribe = Engine("TAWKMCP_TRANSCRIBE", transcribe, ref error) };
+        }
+
+        if (env("TAWKMCP_TRANSCRIBE_URL") is { Length: > 0 } transcribeUrl)
+        {
+            options = options with { TranscribeUrl = Address("TAWKMCP_TRANSCRIBE_URL", transcribeUrl, ref error) };
+        }
+
+        if (env("TAWKMCP_TRANSCRIBE_REMOTE") is { Length: > 0 } transcribeRemote)
+        {
+            options = options with { TranscribeRemote = OnOff("TAWKMCP_TRANSCRIBE_REMOTE", transcribeRemote, ref error) };
+        }
+
+        if (env("TAWKMCP_TRANSCRIBE_COMMAND") is { Length: > 0 } transcribeCommand)
+        {
+            options = options with { TranscribeCommand = transcribeCommand };
+        }
+
+        if (env("TAWKMCP_TRANSCRIBE_MODEL") is { Length: > 0 } transcribeModel)
+        {
+            options = options with { TranscribeModel = transcribeModel };
+        }
+
+        if (env("TAWKMCP_TRANSCRIBE_MODELS") is { Length: > 0 } transcribeModels)
+        {
+            options = options with { TranscribeModels = Names(transcribeModels) };
+        }
+
+        if (env("TAWKMCP_TRANSCRIBE_LANGUAGE") is { Length: > 0 } transcribeLanguage)
+        {
+            options = options with { TranscribeLanguages = Languages("TAWKMCP_TRANSCRIBE_LANGUAGE", transcribeLanguage, ref error) };
+        }
+
+        if (env("TAWKMCP_TRANSCRIBE_MAX_LANGUAGES") is { Length: > 0 } transcribeMaxLanguages)
+        {
+            options = options with { TranscribeMaxLanguages = Int("TAWKMCP_TRANSCRIBE_MAX_LANGUAGES", transcribeMaxLanguages, 1, 10, ref error) };
+        }
+
+        if (env("TAWKMCP_TRANSCRIBE_MAX_SECONDS") is { Length: > 0 } transcribeMaxSeconds)
+        {
+            options = options with { TranscribeMaxSeconds = Int("TAWKMCP_TRANSCRIBE_MAX_SECONDS", transcribeMaxSeconds, 1, 86_400, ref error) };
+        }
+
+        if (env("TAWKMCP_TRANSCRIBE_TIMEOUT_S") is { Length: > 0 } transcribeTimeout)
+        {
+            options = options with { TranscribeTimeoutS = Int("TAWKMCP_TRANSCRIBE_TIMEOUT_S", transcribeTimeout, 1, 3600, ref error) };
+        }
+
+        if (env("TAWKMCP_TRANSCRIBE_AUTO") is { Length: > 0 } transcribeAuto)
+        {
+            options = options with { TranscribeAuto = OnOff("TAWKMCP_TRANSCRIBE_AUTO", transcribeAuto, ref error) };
+        }
+
+        if (env("TAWKMCP_TRANSCRIBE_CONCURRENCY") is { Length: > 0 } transcribeConcurrency)
+        {
+            options = options with { TranscribeConcurrency = Int("TAWKMCP_TRANSCRIBE_CONCURRENCY", transcribeConcurrency, 1, 8, ref error) };
+        }
+
         if (env("TAWKMCP_CHANNEL") is { Length: > 0 } channel)
         {
             options = options with { Channel = Channel("TAWKMCP_CHANNEL", channel, ref error) };
@@ -224,6 +312,10 @@ public static class TawkMcpOptionsBinder
 
         return options;
     }
+
+    // An option or a command by its name, written with two dashes, one or none: --port, -port or port.
+    private static string Name(string arg) =>
+        arg.StartsWith("--", StringComparison.Ordinal) ? arg[2..] : arg.StartsWith('-') ? arg[1..] : arg;
 
     private static int Int(string name, string value, int min, int max, ref string? error)
     {
@@ -286,6 +378,62 @@ public static class TawkMcpOptionsBinder
                 error ??= $"{name} must be auto, on or off, not {value}.";
                 return ChannelMode.Off;
         }
+    }
+
+    private static TranscriptionEngine Engine(string name, string value, ref string? error)
+    {
+        switch (value.ToUpperInvariant())
+        {
+            case "OFF":
+                return TranscriptionEngine.Off;
+            case "HTTP":
+                return TranscriptionEngine.Http;
+            case "COMMAND":
+                return TranscriptionEngine.Command;
+            default:
+                error ??= $"{name} must be off, http or command, not {value}.";
+                return TranscriptionEngine.Off;
+        }
+    }
+
+    private static Uri? Address(string name, string value, ref string? error)
+    {
+        if (Uri.TryCreate(value, UriKind.Absolute, out var address) && (address.Scheme == Uri.UriSchemeHttp || address.Scheme == Uri.UriSchemeHttps))
+        {
+            return address;
+        }
+
+        error ??= $"{name} must be an http or https address, such as http://127.0.0.1:8080, not {value}.";
+        return null;
+    }
+
+    private static List<string> Names(string value) =>
+        [.. value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct(StringComparer.Ordinal)];
+
+    private static List<string> Languages(string name, string value, ref string? error)
+    {
+        var codes = new List<string>();
+        foreach (var part in Names(value))
+        {
+            if (TranscriptionPolicy.Language(part) is not { } code)
+            {
+                error ??= $"{name} must be ISO 639-1 codes such as en or af, or auto, separated by commas, not {value}.";
+                return [TranscriptionOptions.Auto];
+            }
+
+            if (!codes.Contains(code, StringComparer.Ordinal))
+            {
+                codes.Add(code);
+            }
+        }
+
+        if (codes.Count == 0)
+        {
+            error ??= $"{name} needs at least one language.";
+            return [TranscriptionOptions.Auto];
+        }
+
+        return codes;
     }
 
     private static MemoryMode Memory(string name, string value, ref string? error)

@@ -8,6 +8,12 @@ public sealed record TawkControlOptions
 
     public string Origin { get; init; } = "mcp";
 
+    /// <summary>
+    /// What tells this instance apart from other tawk-mcp processes in tawk's list of connected agents:
+    /// the folder it was started in and how it is run. Null sends none.
+    /// </summary>
+    public string? Label { get; init; }
+
     public int Protocol { get; init; } = 1;
 
     public TimeSpan HelloTimeout { get; init; } = TimeSpan.FromSeconds(10);

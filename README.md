@@ -114,12 +114,13 @@ scripts/docker-run.sh               # builds, runs as you, prints the token and 
 | Area | Read | Write |
 | --- | --- | --- |
 | Chats | `list_chats`, `read_messages`, `search_messages`, `unread_summary`, `get_chat_info` | `set_chat`, `set_chat_theme`, `clear_chat`, `delete_chat`, `export_chat`, `block`, `unblock` |
-| Messages | | `draft_message`, `send_message`, `react`, `mark_read`, `edit_message`, `delete_message`, `forward_message`, `retry_message`, `download_media` |
+| Messages | `view_image` | `draft_message`, `send_message`, `react`, `mark_read`, `edit_message`, `delete_message`, `forward_message`, `retry_message`, `download_media` |
 | Scheduled messages | `list_scheduled` | `schedule_message`, `cancel_scheduled`, `reschedule`, `send_scheduled_now` |
 | Statuses | `list_statuses`, `status_viewers`, `list_backgrounds` | `post_status`, `reply_status`, `like_status` |
 | Profile | `get_profile` | `set_profile`, `set_profile_photo`, `remove_profile_photo` |
 | Settings | `get_settings`, `list_themes` | `set_setting` |
-| tawk itself | `app_status`, `list_accounts` | `reconnect`, `decline_call` |
+| tawk itself | `app_status`, `list_accounts` | `describe_session`, `reconnect`, `decline_call` |
+| Voice notes (only with `--transcribe`) | `transcribe_message`, `get_transcript` | |
 | Your own waiting requests (only with an admin token file) | `list_pending` | `approve_pending` |
 | Audience categories | `list_categories` | `set_category`, `delete_category` |
 | Voices | `list_voices`, `get_voice`, `export_voice`, `check_voice` | `set_voice`, `set_voice_variant`, `import_voice`, `learn_voice`, `delete_voice` |

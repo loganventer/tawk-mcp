@@ -313,3 +313,28 @@ Each step ships with tests in the existing style: the fake tawk server for the c
 - **Whether "in process" may ever mean a child process.** This plan loads the model inside tawk-mcp, as asked. A supervised child (a whisper server tawk-mcp starts and restarts) would survive native crashes better, at the cost of a second program to ship. Kept out unless crashes prove to be a problem.
 - **Packages.** `Whisper.net`, its runtime and `Concentus` are new dependencies, to be checked for licence and for a clean build under warnings as errors on .NET 10.
 - **Automatic transcription.** Transcribing every incoming voice note without being asked is left out. It can be a later flag built on the same queue.
+
+## 12. Decisions made while building
+
+These replace what the sections above say where they differ.
+
+- **The user's choices live in tawk's settings panel.** Settings, Automation, Voice note transcription holds the model (a list to choose from: `tiny`, `base`, `small`, `medium`, `large-v3-turbo`, `large-v3`), the default languages, and a switch for transcribing every voice note as it arrives. They are in `[automation]`, so an agent can read them and cannot change them.
+- **tawk's settings override tawk-mcp's.** For the model, the languages and the automatic switch, tawk's panel comes first. `--transcribe-model`, `--transcribe-language` and `--transcribe-auto` stand in only for a tawk that does not have these settings or is not running. The built-in values are last: `tiny`, `auto`, off.
+- **The smallest model is the default.** `tiny`, until the user picks another.
+- **Automatic transcription is built**, as a switch, where section 11 had left it out. `AutoTranscriptionSink` offers each incoming voice note, and the switch is read as each one arrives, so a change in the panel takes hold within seconds.
+- **Two managers, not one.** `TranscriptionManager` takes requests and answers about jobs. `TranscriptionRunManager` runs them and announces the outcome. The automatic sink is an event sink that needs the first, and the second needs the event sinks, so one manager would have depended on itself.
+- **`ITranscriptionPreferences`** in resource access reads the choices with `get_settings` and keeps them for ten seconds.
+- **`download_media` also names the type and the chat** when the file is there: `{"path","type","chat":{"jid","name"}}`. The `media_ready` event carries the same.
+- **What stays in tawk-mcp's flags** is what belongs to the installation: the engine, the transcriber's address or command, whether it may be on another machine, the models an agent may ask for beyond the chosen one, and the limits.
+
+## 13. Where the work stands
+
+| Step | State |
+| --- | --- |
+| tawk: path in the `download_media` answer, `media_ready`, the settings and their submenu | Done on a branch, tests pass |
+| tawk-mcp: `view_image` | Done, tests pass |
+| tawk-mcp: job queue, worker, `http` and `command` engines, `transcribe_message`, `get_transcript`, channel and stream events | Done, tests pass |
+| tawk-mcp: several languages, per-call options, automatic transcription, settings read from tawk | Done, tests pass |
+| tawk-mcp: the in-process engine and failover (section 6.7) | Not started |
+| tawk-mcp: the contact's language as a default | Not started |
+| Docker mount, and the manual, configuration, intent and security documents | Not started |
