@@ -24,7 +24,7 @@ public sealed class ScheduleTools(IChatReadingManager reading, IMessageSendingMa
     [Description("Schedule a WhatsApp message to go out later from tawk. tawk-mcp moves the time by a random few seconds either way, "
         + "so it does not land on the exact minute." + ToolText.NeedsSend + " The user may edit the text while approving.")]
     public Task<CallToolResult> ScheduleMessageAsync(
-        [Description("The chat's jid or name.")] string chat,
+        [Description(ToolText.Recipient)] string chat,
         [Description(When)] string when,
         [Description("The message text.")] string text,
         [Description(ToolText.Account)] string? account = null,
