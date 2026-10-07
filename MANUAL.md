@@ -162,6 +162,16 @@ The total unread count, how many mention you, and the chats that have unread mes
 
 A chat's details: its about text, and for groups the members and which of them are admins.
 
+### `get_online_status`
+
+Whether the person in a one-to-one chat is online on WhatsApp now, or when they were last seen. One person per call.
+
+It is off until you switch on **Look up online status** in tawk, under Settings, Automation; until then the tool answers that it is not allowed. With it on, tawk asks WhatsApp about that person exactly as opening their chat does, and tawk-mcp waits a moment for the answer. What comes back is only what the person shares with you: "online", "offline, last seen …", offline without a time, or that nothing is known. Nothing can be learnt while tawk shows you as offline (idle for two minutes, or with "Appear online" off), about a group, or about a chat the agent may not use.
+
+The agent is told to use it when you ask about someone, not to keep watch on anyone, not to write to someone because they are online, and never to tell the other person it looked.
+
+Ask: "Is Sam online?"
+
 ### `list_statuses`
 
 Status updates, with whether you have viewed each. Statuses last a day; `includeArchived` also includes older ones, which tawk keeps in its archive for `status_keep_days` days.
@@ -459,7 +469,7 @@ Set `TAWKMCP_CHANNEL_READ=on` (or `--channel-read on`) and read receipts arrive 
 
 Three more kinds work the same way, each with its own option and each off by default: `TAWKMCP_CHANNEL_REACTIONS` (someone reacted to a message you sent, or took it back), `TAWKMCP_CHANNEL_EDITS` (someone changed or deleted a message they sent; an edit carries the new words, fenced as untrusted) and `TAWKMCP_CHANNEL_SCHEDULED` (a message you scheduled went out).
 
-Set `TAWKMCP_CHANNEL_PRESENCE=on` (or `--channel-presence on`) and online status arrives too: an event with `type="presence"` and `state="online"` or `state="offline"` when the person in a one-to-one chat comes online or leaves, with `last_seen` where they share it. It has no message id, it does not count as a round, and it is sent on a change, not over and over. tawk only knows this for a chat you have opened in tawk since it connected, and only for people who share it with you; the agent has no way to ask about anyone else. The agent is told to treat it as information about timing: not to tell the other person it saw them, not to write to someone because they came online, and not to keep a record of when people are online.
+Set `TAWKMCP_CHANNEL_PRESENCE=on` (or `--channel-presence on`) and online status arrives too: an event with `type="presence"` and `state="online"` or `state="offline"` when the person in a one-to-one chat comes online or leaves, with `last_seen` where they share it. It has no message id, it does not count as a round, and it is sent on a change, not over and over. tawk only knows this for a chat you have opened in tawk since it connected, and only for people who share it with you; the agent can ask about one person at a time with `get_online_status`, when you allow that in tawk. The agent is told to treat it as information about timing: not to tell the other person it saw them, not to write to someone because they came online, and not to keep a record of when people are online.
 
 tawk has its own switch for every kind, under Settings, Automation, Agent events. Received and sent messages are on by default there; read receipts, reactions, edits and deletes, scheduled sends and online status are off. With one off, tawk does not hand those messages to tawk-mcp at all, so nothing here can turn them back on. A kind reaches the agent only when both sides have it on: tawk's switch for it, and the matching `TAWKMCP_CHANNEL_…` option here.
 
