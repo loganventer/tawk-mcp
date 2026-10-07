@@ -15,7 +15,8 @@ public sealed class KnowledgeTools(IKnowledgeManager knowledge)
 
     [McpServerTool(Name = "record_observation", Destructive = false, ReadOnly = false, Idempotent = false, OpenWorld = false)]
     [Description("Record something worth remembering about a person, the user or a topic, in a sentence or two. It keeps who said it and how sure "
-        + "it is; an inferred one goes stale after about six months. Sensitive matters can only come from the user." + ToolText.Memory)]
+        + "it is; an inferred one goes stale after about six months. Sensitive matters can only come from the user. Read what is stored first, with "
+        + "list_observations or get_contact, and record only what is new: never the same thing twice." + ToolText.Memory)]
     public Task<CallToolResult> RecordObservationAsync(
         [Description("What it is about. " + Subject)] string about,
         [Description("The observation, in your own words. Never paste message text.")] string text,

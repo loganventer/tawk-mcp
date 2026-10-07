@@ -49,7 +49,8 @@ public sealed class ContactTools(IContactProfileManager profiles, IAccountScope 
         ToolResults.RunAsync(accounts, account, () => profiles.SetFieldsAsync(chat, fields, source, confidence, evidence, cancellationToken));
 
     [McpServerTool(Name = "add_contact_note", Destructive = false, ReadOnly = false, Idempotent = false, OpenWorld = false)]
-    [Description("Add a free-text note to a contact's profile, for anything no field covers." + ToolText.Memory)]
+    [Description("Add a free-text note to a contact's profile, for anything no field covers. Read the profile first with get_contact, and "
+        + "do not add what a field, a note or an observation already says: something recorded with record_observation needs no note as well." + ToolText.Memory)]
     public Task<CallToolResult> AddContactNoteAsync(
         [Description("The chat's jid or name.")] string chat,
         [Description("The note, in a sentence or two.")] string text,
