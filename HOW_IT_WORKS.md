@@ -35,7 +35,7 @@ sequenceDiagram
 
     S->>C: ConnectOnceAsync
     C->>T: connect to control.sock
-    C->>T: {"id":"1","op":"hello","args":{"client":"tawk-mcp","version":"0.6.1","protocol":1,"origin":"mcp"}}
+    C->>T: {"id":"1","op":"hello","args":{"client":"tawk-mcp","version":"0.7.0","protocol":1,"origin":"mcp"}}
     T-->>C: {"id":"1","ok":true,"result":{"protocol":1,"tawk":"0.6.4","access":"send",...}}
     C-->>L: ConnectionStateEvent(Connected)
     C-->>S: hello
@@ -215,7 +215,9 @@ Unread count changes (`{"evt":"chat"}`) update resources and go to `/events` as 
 
 `ChannelEventSink` ends a session's first channel event from each chat with a line naming the chat to read with `read_messages`, after the fenced text. `ChannelContextHints` remembers, per session, which chats have had one, and forgets a session when it ends. The line and the instructions both leave it to the agent: it gathers the history only when it lacks it.
 
-Which messages reach the channel is decided in two places. tawk sends a message event only when its push setting for that kind is on (received, or sent by the user). `ChannelEventSink` then passes on what other people sent, and what the user sent only when `TAWKMCP_CHANNEL_OWN` is on, marking each event with `from_me`. Read receipts, reactions, edits and deletes, and scheduled sends follow the same two steps, each with its own switch in tawk and its own option here, and none of them counts as a workflow round.
+Which messages reach the channel is decided in two places. tawk sends a message event only when its push setting for that kind is on (received, or sent by the user). `ChannelEventSink` then passes on what other people sent, and what the user sent only when `TAWKMCP_CHANNEL_OWN` is on, marking each event with `from_me`. Read receipts, reactions, edits and deletes, scheduled sends and online status follow the same two steps, each with its own switch in tawk and its own option here, and none of them counts as a workflow round.
+
+Online status is the one event that is not about a message. tawk sends `presence` when the person in a one-to-one chat the user opened comes online or leaves; `ControlLineCodec` reads it into a `PresenceEvent`, `NotificationFormatter.Presence` writes one plain line for it ("Online status: Mom came online in \"Mom\"."), and `ChannelEventSink` sends it with `type="presence"`, a `state`, and `last_seen` where it is known, when `TAWKMCP_CHANNEL_PRESENCE` is on. It carries no message id, and it does not point at the chat's history or use up the chat's first-event pointer, since it says nothing about what was written. tawk-mcp cannot ask tawk to watch anyone: what arrives is only what tawk already knows from the chat the user has open.
 
 ```mermaid
 flowchart LR

@@ -43,4 +43,30 @@ public class LiveUpdatesManagerTests
             Assert.That(second.Updates, Has.Count.EqualTo(3));
         });
     }
+
+    [Test]
+    public async Task Someone_coming_online_is_described_in_one_plain_line_under_the_account_it_is_about()
+    {
+        var parts = new TestParts();
+        var sink = new RecordingSink();
+        using var cts = new CancellationTokenSource();
+        var running = parts.LiveUpdates(sink).RunAsync(cts.Token);
+        while (parts.Control.ReaderCount == 0)
+        {
+            await Task.Delay(5);
+        }
+
+        parts.Control.Raise(Events.Presence() with { Account = new AccountRef(2, "work") });
+        while (sink.Updates.Count < 1)
+        {
+            await Task.Delay(5);
+        }
+
+        await cts.CancelAsync();
+        Assert.CatchAsync<OperationCanceledException>(async () => await running);
+
+        Assert.That(
+            sink.Updates.Single().ModelText,
+            Is.EqualTo("On the user's account \"work\" (account 2); pass that account when you act on this.\nOnline status: Mom came online in \"Mom\"."));
+    }
 }

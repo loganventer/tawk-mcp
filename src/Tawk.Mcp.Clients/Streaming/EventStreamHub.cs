@@ -46,6 +46,8 @@ public sealed class EventStreamHub : IEventSink, IEventStreamHub
             ChatUpdatedEvent c => ("chat", JsonSerializer.Serialize(new { chat = c.Chat, account = c.Account }, Json)),
             ConnectionStateEvent s => ("tawk", JsonSerializer.Serialize(new { state = TawkConnectionStates.ToWire(s.State) }, Json)),
             ReadEvent r => ("read", JsonSerializer.Serialize(new { chat = r.Chat, message_id = r.MessageId, reader = r.Reader, at = r.At, account = r.Account }, Json)),
+            PresenceEvent p => ("presence", JsonSerializer.Serialize(
+                new { chat = p.Chat, who = p.Who, state = p.Online ? "online" : "offline", last_seen = p.LastSeen, at = p.At, account = p.Account }, Json)),
             MessageActivityEvent a => (
                 ActivityNames.Of(a.Kind),
                 JsonSerializer.Serialize(new { chat = a.Chat, message_id = a.MessageId, who = a.Who, emoji = a.Emoji, message = a.Message, at = a.At, account = a.Account }, Json)),

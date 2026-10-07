@@ -69,6 +69,7 @@ Flags override environment variables, which override the defaults. A flag or a c
 | `--channel-reactions on\|off` | `TAWKMCP_CHANNEL_REACTIONS` | `off` | Also send reactions to your messages as channel events (`type="reaction"`). tawk's **Push reactions** must be on too |
 | `--channel-edits on\|off` | `TAWKMCP_CHANNEL_EDITS` | `off` | Also send other people's edits and deletes (`type="edit"`, `type="delete"`). tawk's **Push edits and deletes** must be on too |
 | `--channel-scheduled on\|off` | `TAWKMCP_CHANNEL_SCHEDULED` | `off` | Also send an event when a message you scheduled goes out (`type="scheduled_sent"`). tawk's **Push scheduled sends** must be on too |
+| `--channel-presence on\|off` | `TAWKMCP_CHANNEL_PRESENCE` | `off` | Also send an event when the person in a chat you have open in tawk comes online or leaves (`type="presence"`, with `state` and, where shared, `last_seen`). tawk's **Push online status** must be on too |
 | `--memory write\|read\|off` | `TAWKMCP_MEMORY` | `write` | Memory for voices, contacts and templates: `read` offers the tools but refuses changes, `off` removes them |
 | `--data-file PATH` | `TAWKMCP_DATA_FILE` | `~/.local/share/tawk-mcp/memory.db` | Where memory is kept |
 | `--sync-repo ADDRESS` | `TAWKMCP_SYNC_REPO` | none | The private git repository that holds the memory file: `owner/name` for one on GitHub, or an SSH address such as `git@github.com:owner/name.git` or `git@my-alias:owner/name.git`. See [Memory sync](#memory-sync) |

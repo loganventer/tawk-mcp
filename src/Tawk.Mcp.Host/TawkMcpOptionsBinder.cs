@@ -72,6 +72,7 @@ public static class TawkMcpOptionsBinder
                 "channel-reactions" => options with { ChannelReactions = OnOff(arg, Next(), ref error) },
                 "channel-edits" => options with { ChannelEdits = OnOff(arg, Next(), ref error) },
                 "channel-scheduled" => options with { ChannelScheduled = OnOff(arg, Next(), ref error) },
+                "channel-presence" => options with { ChannelPresence = OnOff(arg, Next(), ref error) },
                 "transcribe" => options with { Transcribe = Engine(arg, Next(), ref error) },
                 "transcribe-url" => options with { TranscribeUrl = Address(arg, Next(), ref error) },
                 "transcribe-remote" => options with { TranscribeRemote = OnOff(arg, Next(), ref error) },
@@ -237,6 +238,11 @@ public static class TawkMcpOptionsBinder
         if (env("TAWKMCP_CHANNEL_SCHEDULED") is { Length: > 0 } channelScheduled)
         {
             options = options with { ChannelScheduled = OnOff("TAWKMCP_CHANNEL_SCHEDULED", channelScheduled, ref error) };
+        }
+
+        if (env("TAWKMCP_CHANNEL_PRESENCE") is { Length: > 0 } channelPresence)
+        {
+            options = options with { ChannelPresence = OnOff("TAWKMCP_CHANNEL_PRESENCE", channelPresence, ref error) };
         }
 
         if (env("TAWKMCP_CHANNEL_READ") is { Length: > 0 } channelRead)

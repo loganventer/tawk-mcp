@@ -178,4 +178,26 @@ public class ControlLineCodecTests
             Assert.That(read.At, Is.EqualTo(1790791400));
         });
     }
+
+    [Test]
+    public void Reads_someone_coming_online_and_leaving()
+    {
+        var codec = new ControlLineCodec();
+        var came = (PresenceEvent)((ControlEventFrame)codec.Decode(
+            """{"evt":"presence","chat":{"jid":"27820000000@s.whatsapp.net","name":"Mom"},"who":{"jid":"27820000000@s.whatsapp.net","name":"Mom"},"state":"online","at":1791364000,"account":{"id":2,"label":"work"}}""")!).Event;
+        var left = (PresenceEvent)((ControlEventFrame)codec.Decode(
+            """{"evt":"presence","chat":{"jid":"27820000000@s.whatsapp.net","name":"Mom"},"who":{"jid":"27820000000@s.whatsapp.net","name":"Mom"},"state":"offline","last_seen":1791363900,"at":1791364100}""")!).Event;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(came.Online, Is.True);
+            Assert.That(came.LastSeen, Is.Null);
+            Assert.That(came.Chat.Name, Is.EqualTo("Mom"));
+            Assert.That(came.Who.Jid, Is.EqualTo("27820000000@s.whatsapp.net"));
+            Assert.That(came.At, Is.EqualTo(1791364000));
+            Assert.That(came.Account!.Label, Is.EqualTo("work"));
+            Assert.That(left.Online, Is.False);
+            Assert.That(left.LastSeen, Is.EqualTo(1791363900));
+        });
+    }
 }

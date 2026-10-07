@@ -192,4 +192,47 @@ public class ChannelEventSinkTests
             Assert.That(evicted, Is.EqualTo(new IClientSession[] { _other }));
         });
     }
+
+    [Test]
+    public async Task Someone_coming_online_is_pushed_only_when_asked_for_and_is_not_a_round()
+    {
+        var left = new LiveUpdate(Events.Presence(online: false, lastSeen: 1791363900), "Online status: Mom went offline in \"Mom\" (last seen 2026-10-07 09:05).");
+
+        await new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence, new ChannelContextHints()).OnUpdateAsync(left, CancellationToken.None);
+        var before = _claude.Sent.Count;
+        var everyRound = new WorkflowCadence(new WorkflowOptions(1, null));
+        await new ChannelEventSink(new ChannelOptions(ChannelMode.On, Presence: true), _sessions, everyRound, new ChannelContextHints()).OnUpdateAsync(left, CancellationToken.None);
+
+        var meta = _claude.Sent.Single().Parameters["meta"]!.AsObject();
+        Assert.Multiple(() =>
+        {
+            Assert.That(before, Is.Zero);
+            Assert.That((string?)meta["type"], Is.EqualTo("presence"));
+            Assert.That((string?)meta["state"], Is.EqualTo("offline"));
+            Assert.That((string?)meta["last_seen"], Is.EqualTo("1791363900"));
+            Assert.That((string?)meta["chat_jid"], Is.EqualTo(Samples.MomJid));
+            Assert.That((string?)meta["sender"], Is.EqualTo("Mom"));
+            Assert.That((string?)meta["ts"], Is.EqualTo("1791364000"));
+            Assert.That(meta.ContainsKey("message_id"), Is.False);
+            Assert.That(everyRound.TakeDue(), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task Someone_coming_online_does_not_point_at_the_chats_history_or_use_up_the_pointer()
+    {
+        var sink = new ChannelEventSink(new ChannelOptions(ChannelMode.On, Presence: true), _sessions, _cadence, new ChannelContextHints());
+
+        await sink.OnUpdateAsync(new LiveUpdate(Events.Presence(), "Online status: Mom came online in \"Mom\"."), CancellationToken.None);
+        await sink.OnUpdateAsync(Update(), CancellationToken.None);
+
+        var contents = _claude.Sent.Select(sent => (string)sent.Parameters["content"]!).ToList();
+        Assert.Multiple(() =>
+        {
+            Assert.That((string?)_claude.Sent[0].Parameters["meta"]!["state"], Is.EqualTo("online"));
+            Assert.That(_claude.Sent[0].Parameters["meta"]!.AsObject().ContainsKey("last_seen"), Is.False);
+            Assert.That(contents[0], Does.Not.Contain("Context:"));
+            Assert.That(contents[1], Does.Contain("Context:"));
+        });
+    }
 }
