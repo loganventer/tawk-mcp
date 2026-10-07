@@ -55,6 +55,9 @@ public sealed record TawkMcpOptions
     /// <summary>Also push a channel event when a scheduled message goes out. Off by default.</summary>
     public bool ChannelScheduled { get; init; }
 
+    /// <summary>Also push a channel event when the person in a chat the user opened comes online or leaves. Off by default.</summary>
+    public bool ChannelPresence { get; init; }
+
     /// <summary>Scheduled messages are moved by a random amount up to this many seconds either way. 0 turns it off.</summary>
     public int ScheduleJitterS { get; init; } = 60;
 

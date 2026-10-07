@@ -68,4 +68,23 @@ public class EventStreamHubTests
     {
         Assert.That(new EventStreamHub().Subscribe(null).Replay, Is.Empty);
     }
+
+    [Test]
+    public async Task Someone_coming_online_is_a_presence_event()
+    {
+        var hub = new EventStreamHub();
+        using var subscription = hub.Subscribe(null);
+
+        await hub.OnUpdateAsync(new LiveUpdate(Events.Presence(online: false, lastSeen: 1791363900)), CancellationToken.None);
+
+        subscription.Live.TryRead(out var presence);
+        var data = JsonNode.Parse(presence!.Data)!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(presence.Name, Is.EqualTo("presence"));
+            Assert.That((string?)data["state"], Is.EqualTo("offline"));
+            Assert.That((long?)data["last_seen"], Is.EqualTo(1791363900));
+            Assert.That((string?)data["who"]!["jid"], Is.EqualTo(Samples.MomJid));
+        });
+    }
 }

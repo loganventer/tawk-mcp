@@ -224,4 +224,16 @@ public class TawkMcpOptionsBinderTests
             }
         }
     }
+
+    [Test]
+    public void Online_status_events_are_off_until_asked_for_by_flag_or_environment()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(TawkMcpOptionsBinder.Bind([], Env()).ChannelPresence, Is.False);
+            Assert.That(TawkMcpOptionsBinder.Bind(["--channel-presence", "on"], Env()).ChannelPresence, Is.True);
+            Assert.That(TawkMcpOptionsBinder.Bind([], Env(("TAWKMCP_CHANNEL_PRESENCE", "on"))).ChannelPresence, Is.True);
+            Assert.That(TawkMcpOptionsBinder.Bind(["--channel-presence", "off"], Env(("TAWKMCP_CHANNEL_PRESENCE", "on"))).ChannelPresence, Is.False);
+        });
+    }
 }

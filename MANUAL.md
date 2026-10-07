@@ -436,7 +436,7 @@ The stdio instance connects to tawk by itself, next to any HTTP instance you run
 - finds Claude Code: `CLAUDE_BIN`, else the newest one the VS Code extension installed, else `claude` on your `PATH`
 - rebuilds tawk-mcp with `install.sh --no-service` when the checkout has a commit it has not built yet. `TAWK_MCP_SRC` names the checkout (default: the one the script is in), and `TAWK_MCP_PULL=1` pulls first
 - points `TAWKMCP_ADMIN_TOKEN_FILE` at tawk's `admin.token`, so the session can approve its own sends where you allowed that. `TAWK_MCP_ADMIN=0` leaves it out
-- turns on the channel events for your own messages, read receipts, reactions, edits and deletes, and scheduled sends. tawk's own switches still decide what is handed over
+- turns on the channel events for your own messages, read receipts, reactions, edits and deletes, scheduled sends and online status. tawk's own switches still decide what is handed over
 - loads the server registered as `tawk-channel`; `TAWK_MCP_SERVER` names another
 
 Claude Code shows a warning about development channels first; choose to continue. Your own messages are not pushed. On Team and Enterprise plans an admin must enable channels.
@@ -459,7 +459,9 @@ Set `TAWKMCP_CHANNEL_READ=on` (or `--channel-read on`) and read receipts arrive 
 
 Three more kinds work the same way, each with its own option and each off by default: `TAWKMCP_CHANNEL_REACTIONS` (someone reacted to a message you sent, or took it back), `TAWKMCP_CHANNEL_EDITS` (someone changed or deleted a message they sent; an edit carries the new words, fenced as untrusted) and `TAWKMCP_CHANNEL_SCHEDULED` (a message you scheduled went out).
 
-tawk has its own switch for every kind, under Settings, Automation, Agent events. Received and sent messages are on by default there; read receipts, reactions, edits and deletes, and scheduled sends are off. With one off, tawk does not hand those messages to tawk-mcp at all, so nothing here can turn them back on. A kind reaches the agent only when both sides have it on: tawk's switch for it, and the matching `TAWKMCP_CHANNEL_…` option here.
+Set `TAWKMCP_CHANNEL_PRESENCE=on` (or `--channel-presence on`) and online status arrives too: an event with `type="presence"` and `state="online"` or `state="offline"` when the person in a one-to-one chat comes online or leaves, with `last_seen` where they share it. It has no message id, it does not count as a round, and it is sent on a change, not over and over. tawk only knows this for a chat you have opened in tawk since it connected, and only for people who share it with you; the agent has no way to ask about anyone else. The agent is told to treat it as information about timing: not to tell the other person it saw them, not to write to someone because they came online, and not to keep a record of when people are online.
+
+tawk has its own switch for every kind, under Settings, Automation, Agent events. Received and sent messages are on by default there; read receipts, reactions, edits and deletes, scheduled sends and online status are off. With one off, tawk does not hand those messages to tawk-mcp at all, so nothing here can turn them back on. A kind reaches the agent only when both sides have it on: tawk's switch for it, and the matching `TAWKMCP_CHANNEL_…` option here.
 
 Anyone who can message you can put text in front of the model this way. Keep `access = read` if you only want to be told, and remember every write still needs your approval in tawk.
 
@@ -504,6 +506,7 @@ data: {"chat":{"jid":"27820000000@s.whatsapp.net","name":"Mom","unread":3,...}}
 | --- | --- |
 | `message` | `{"chat":{"jid","name"},"message":{...}}` for every new message, sent or received, in the fields of tawk's protocol |
 | `chat` | `{"chat":{...}}` when a chat's unread count changes |
+| `presence` | `{"chat":{"jid","name"},"who":{"jid","name"},"state":"online","last_seen":…,"at":…}` when the person in a chat you have open in tawk comes online or leaves, when tawk's **Push online status** is on |
 | `tawk` | `{"state":"connected"}`, `"waiting"` or `"circuit_open"` whenever the connection to tawk changes; the current state is also sent first. While it is not `connected` you may be missing messages |
 
 A `: heartbeat` comment is sent every 15 seconds. The last 200 events are kept: reconnect with `Last-Event-ID: <id>` (EventSource does this by itself) and you get every kept event after that id. The message text in `data` is untrusted, as everywhere else.

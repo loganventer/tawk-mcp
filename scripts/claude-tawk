@@ -49,6 +49,8 @@ export TAWKMCP_CHANNEL_READ="${TAWKMCP_CHANNEL_READ:-on}"
 export TAWKMCP_CHANNEL_REACTIONS="${TAWKMCP_CHANNEL_REACTIONS:-on}"
 export TAWKMCP_CHANNEL_EDITS="${TAWKMCP_CHANNEL_EDITS:-on}"
 export TAWKMCP_CHANNEL_SCHEDULED="${TAWKMCP_CHANNEL_SCHEDULED:-on}"
+# Who came online or left, in a chat you have open, once tawk's "Push online status" switch is on.
+export TAWKMCP_CHANNEL_PRESENCE="${TAWKMCP_CHANNEL_PRESENCE:-on}"
 
 # Memory sync is off unless TAWKMCP_SYNC_REPO names your own private repository; it is passed on as it is.
 

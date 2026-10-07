@@ -37,11 +37,14 @@ public sealed class ChannelEventSink(
 
         // A message or a transcript handed to the agent is a round, the same as a tool call; a read receipt is not.
         var round = update.Event is MessageEvent or TranscriptEvent;
+
+        // Someone coming online says nothing about the chat's history, so it neither points at it nor uses up the pointer.
+        var pointsAtHistory = update.Event is not PresenceEvent;
         foreach (var session in sessions.Sessions.Where(Wants))
         {
             // A session's first event from a chat points at its history, in case the agent lacks it. The
             // pointer goes after the fenced text, so nothing in a message can pose as it.
-            var content = !string.IsNullOrEmpty(chat) && hints.FirstEventOf(session, seenAs!)
+            var content = pointsAtHistory && !string.IsNullOrEmpty(chat) && hints.FirstEventOf(session, seenAs!)
                 ? update.ModelText + "\n" + TawkServerInstructions.ChannelContext(chat, account?.Id)
                 : update.ModelText;
             var parameters = new JsonObject { ["content"] = content, ["meta"] = meta.DeepClone() };
@@ -94,9 +97,31 @@ public sealed class ChannelEventSink(
             ["type"] = ActivityNames.Of(activity.Kind),
             ["from_me"] = activity.Kind == ActivityKind.ScheduledSent ? "true" : "false",
         },
+        PresenceEvent presence when options.Presence => Presence(presence),
         TranscriptEvent transcript => Transcript(transcript),
         _ => null,
     };
+
+    // There is no message here, so no message id; the state says which way it went.
+    private static JsonObject Presence(PresenceEvent presence)
+    {
+        var meta = new JsonObject
+        {
+            ["chat_jid"] = presence.Chat.Jid,
+            ["chat_name"] = presence.Chat.Name,
+            ["sender"] = presence.Who.Name ?? presence.Who.Jid,
+            ["ts"] = presence.At.ToString(CultureInfo.InvariantCulture),
+            ["type"] = "presence",
+            ["state"] = presence.Online ? "online" : "offline",
+            ["from_me"] = "false",
+        };
+        if (presence.LastSeen is { } seen)
+        {
+            meta["last_seen"] = seen.ToString(CultureInfo.InvariantCulture);
+        }
+
+        return meta;
+    }
 
     // A job the agent asked for always reports back, so no option turns this off but the channel itself.
     private static JsonObject Transcript(TranscriptEvent transcript)

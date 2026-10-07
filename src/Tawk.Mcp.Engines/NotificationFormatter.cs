@@ -1,9 +1,12 @@
+using System.Globalization;
 using Tawk.Mcp.Core;
 
 namespace Tawk.Mcp.Engines;
 
-public sealed class NotificationFormatter : INotificationFormatter
+public sealed class NotificationFormatter(TimeProvider? timeProvider = null) : INotificationFormatter
 {
+    private readonly TimeZoneInfo _timeZone = (timeProvider ?? TimeProvider.System).LocalTimeZone;
+
     public string Header(ChatRef chat, ChatMessage message)
     {
         ArgumentNullException.ThrowIfNull(chat);
@@ -36,6 +39,25 @@ public sealed class NotificationFormatter : INotificationFormatter
             ActivityKind.Deleted => $"Message deleted: {who} deleted their message in \"{chat}\" (id {id}).",
             _ => $"Scheduled message sent: the user's scheduled message {id} went out in \"{chat}\".",
         };
+    }
+
+    public string Presence(PresenceEvent presence)
+    {
+        ArgumentNullException.ThrowIfNull(presence);
+        var who = Name(string.IsNullOrWhiteSpace(presence.Who.Name) ? presence.Who.Jid : presence.Who.Name);
+        var chat = Name(presence.Chat.Name);
+        if (presence.Online)
+        {
+            return $"Online status: {who} came online in \"{chat}\".";
+        }
+
+        if (presence.LastSeen is not { } seconds)
+        {
+            return $"Online status: {who} went offline in \"{chat}\".";
+        }
+
+        var seen = TimeZoneInfo.ConvertTime(DateTimeOffset.FromUnixTimeSeconds(seconds), _timeZone);
+        return string.Create(CultureInfo.InvariantCulture, $"Online status: {who} went offline in \"{chat}\" (last seen {seen:yyyy-MM-dd HH:mm}).");
     }
 
     public string Account(AccountRef account)

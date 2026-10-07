@@ -88,6 +88,12 @@ public sealed class ControlLineCodec
             root.TryGetProperty("message_id", out var read) ? read.GetString() ?? string.Empty : string.Empty,
             Property<ReaderRef>(root, "reader"),
             root.TryGetProperty("at", out var at) && at.TryGetInt64(out var seconds) ? seconds : 0),
+        "presence" => new PresenceEvent(
+            Property<ChatRef>(root, "chat"),
+            Property<ReaderRef>(root, "who"),
+            root.TryGetProperty("state", out var presence) && presence.GetString() == "online",
+            root.TryGetProperty("last_seen", out var seen) && seen.TryGetInt64(out var lastSeen) && lastSeen > 0 ? lastSeen : null,
+            root.TryGetProperty("at", out var heard) && heard.TryGetInt64(out var heardAt) ? heardAt : 0),
         "reaction" => Activity(ActivityKind.Reaction, root),
         "edit" => Activity(ActivityKind.Edited, root),
         "delete" => Activity(ActivityKind.Deleted, root),
