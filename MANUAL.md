@@ -444,7 +444,7 @@ The stdio instance connects to tawk by itself, next to any HTTP instance you run
 **`scripts/claude-tawk`** does the second line for you, with the rest set up. Link it into a directory on your `PATH` (`ln -s "$PWD/scripts/claude-tawk" ~/.local/bin/`) and run `claude-tawk`. It works on Linux and macOS; arguments are passed on to Claude Code. It:
 
 - finds Claude Code: `CLAUDE_BIN`, else the newest one the VS Code extension installed, else `claude` on your `PATH`
-- rebuilds tawk-mcp with `install.sh --no-service` when the checkout has a commit it has not built yet. `TAWK_MCP_SRC` names the checkout (default: the one the script is in), and `TAWK_MCP_PULL=1` pulls first
+- updates tawk-mcp by itself: when the checkout's upstream has a newer version, it is pulled, and the checkout is rebuilt with `install.sh --no-service` whenever it has a commit that has not been built yet. Only a clean fast-forward is taken, so local commits and uncommitted changes are left alone, and the script says so. `TAWK_MCP_SRC` names the checkout (default: the one the script is in), `TAWK_MCP_PULL=0` starts with the checkout as it is, and `TAWK_MCP_PULL_TIMEOUT` is how many seconds the remote gets to answer (default 10) before the start carries on without it
 - points `TAWKMCP_ADMIN_TOKEN_FILE` at tawk's `admin.token`, so the session can approve its own sends where you allowed that. `TAWK_MCP_ADMIN=0` leaves it out
 - turns on the channel events for your own messages, read receipts, reactions, edits and deletes, scheduled sends and online status. tawk's own switches still decide what is handed over
 - loads the server registered as `tawk-channel`; `TAWK_MCP_SERVER` names another

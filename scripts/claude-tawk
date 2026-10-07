@@ -9,8 +9,9 @@ bin="${CLAUDE_BIN:-}"
 [ -n "$bin" ] || bin="$(command -v claude 2>/dev/null)"
 [ -n "$bin" ] && [ -x "$bin" ] || { echo "Claude Code was not found: set CLAUDE_BIN, or install it" >&2; exit 1; }
 
-# Runs the latest tawk-mcp: when the checkout has moved on since the last build, build it again.
-# TAWK_MCP_SRC names the checkout; without it, the one this file lives in (a copy outside it skips the build). TAWK_MCP_PULL=1 pulls from GitHub first.
+# Runs the latest tawk-mcp: a newer version on the remote is pulled, and when the checkout has moved on since the last build, it is built again.
+# TAWK_MCP_SRC names the checkout; without it, the one this file lives in (a copy outside it skips all of this).
+# TAWK_MCP_PULL=0 starts with the checkout as it is. The remote gets TAWK_MCP_PULL_TIMEOUT seconds (10) to answer, so no network does not hold the start up.
 self="$0"
 while [ -L "$self" ]; do                                   # run through a link: find the file it points at
     target="$(readlink "$self")"
@@ -19,7 +20,33 @@ done
 src="${TAWK_MCP_SRC:-$(cd "$(dirname "$self")/.." 2>/dev/null && pwd)}"
 stamp="${XDG_DATA_HOME:-$HOME/.local/share}/tawk-mcp/built-commit"
 if [ -f "$src/install.sh" ] && command -v git >/dev/null 2>&1; then
-    [ "${TAWK_MCP_PULL:-0}" = 1 ] && git -C "$src" pull --ff-only --quiet
+    # Follows the remote: when the checkout's upstream has a newer tawk-mcp, it is taken before the build check.
+    # Only a clean fast-forward is taken; local commits and uncommitted changes are left alone, and said so.
+    if [ "${TAWK_MCP_PULL:-1}" = 1 ]; then
+        git -C "$src" fetch --quiet 2>/dev/null &
+        fetch=$!
+        tick=1; step=10                                       # waits in tenths of a second where sleep can
+        sleep 0.1 2>/dev/null && { tick=0.1; step=1; }
+        left=$(( ${TAWK_MCP_PULL_TIMEOUT:-10} * 10 ))
+        while kill -0 "$fetch" 2>/dev/null && [ "$left" -gt 0 ]; do sleep "$tick"; left=$((left - step)); done
+        if kill -0 "$fetch" 2>/dev/null; then
+            kill "$fetch" 2>/dev/null
+            echo "tawk-mcp: the remote did not answer in time; not checking for a new version" >&2
+        fi
+        wait "$fetch" 2>/dev/null
+        was="$(git -C "$src" rev-parse HEAD 2>/dev/null)"
+        new="$(git -C "$src" rev-parse '@{upstream}' 2>/dev/null)"
+        if [ -n "$was" ] && [ -n "$new" ] && [ "$was" != "$new" ] && git -C "$src" merge-base --is-ancestor "$was" "$new" 2>/dev/null; then
+            if ! git -C "$src" diff --quiet 2>/dev/null || ! git -C "$src" diff --cached --quiet 2>/dev/null; then
+                echo "tawk-mcp: a new version is out, but the checkout has uncommitted changes; not updating" >&2
+            elif git -C "$src" merge --ff-only --quiet "$new" 2>/dev/null; then
+                echo "tawk-mcp: a new version is out, updating:" >&2
+                git -C "$src" log --format='  %h %s' "$was..$new" >&2
+            else
+                echo "tawk-mcp: a new version is out, but it could not be pulled; starting with the one installed" >&2
+            fi
+        fi
+    fi
     head="$(git -C "$src" rev-parse HEAD 2>/dev/null)"
     if [ -n "$head" ] && [ "$head" != "$(cat "$stamp" 2>/dev/null)" ]; then
         echo "tawk-mcp: building $(git -C "$src" log -1 --format='%h %s')" >&2
