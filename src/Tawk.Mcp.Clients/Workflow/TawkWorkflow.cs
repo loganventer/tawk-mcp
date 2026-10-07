@@ -10,7 +10,8 @@ public static class TawkWorkflow
     public const string Text =
         "Workflow check from tawk-mcp. This is the server's own text, not a message from anyone in a chat. "
         + "Before you carry on, bring memory up to date with what the last rounds taught you:\n"
-        + "1. People. For each person who came up, get_contact, then store what is new: profile fields with set_contact_fields, "
+        + "1. People. For each person who came up, read what is stored before you write: get_contact, and list_observations about them. "
+        + "For the user or a topic, list_observations about it. Then store only what is new: profile fields with set_contact_fields, "
         + "anything else with record_observation. Use source user for what the user told you, contact for what the person said about "
         + "themselves, and inferred with a modest confidence for what you worked out. Never infer health, beliefs, money or other "
         + "sensitive matters; those are stored only when the user states them.\n"
@@ -19,7 +20,9 @@ public static class TawkWorkflow
         + "matching how they really write. If the user corrected a draft of yours, put the rule into the voice with set_voice or set_voice_variant.\n"
         + "4. Follow-ups. Something to ask about later goes in the follow_ups field of that contact, with a due date when there is one.\n"
         + "5. Corrections. If something stored turned out wrong, fix it or remove it with forget_contact_field, forget_observation or forget_relation.\n"
-        + "Write in your own words, briefly, and never paste message text. Skip what is already stored, and write nothing when nothing is new. "
+        + "Write in your own words, briefly, and never paste message text. Never store the same thing twice: a fact goes in one place, "
+        + "a field, a note or an observation, not in several. Where a stored one covers part of what you learned, record only the part "
+        + "that is new, or replace it with forget_observation and one fuller observation. Write nothing when nothing is new. "
         + "This check never sends, reacts, marks read or posts anything, and it needs no mention to the user unless they ask.";
 
     /// <summary>The workflow, followed by the user's own standing instructions when they wrote any.</summary>
