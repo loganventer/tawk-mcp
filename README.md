@@ -113,7 +113,7 @@ scripts/docker-run.sh               # builds, runs as you, prints the token and 
 
 | Area | Read | Write |
 | --- | --- | --- |
-| Chats | `list_chats`, `read_messages`, `search_messages`, `unread_summary`, `get_chat_info` | `set_chat`, `set_chat_theme`, `clear_chat`, `delete_chat`, `export_chat`, `block`, `unblock` |
+| Chats | `list_chats`, `read_messages`, `search_messages`, `unread_summary`, `get_chat_info`, `get_online_status` | `set_chat`, `set_chat_theme`, `clear_chat`, `delete_chat`, `export_chat`, `block`, `unblock` |
 | Messages | `view_image` | `draft_message`, `send_message`, `react`, `mark_read`, `edit_message`, `delete_message`, `forward_message`, `retry_message`, `download_media` |
 | Scheduled messages | `list_scheduled` | `schedule_message`, `cancel_scheduled`, `reschedule`, `send_scheduled_now` |
 | Statuses | `list_statuses`, `status_viewers`, `list_backgrounds` | `post_status`, `reply_status`, `like_status` |

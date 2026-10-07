@@ -35,7 +35,7 @@ sequenceDiagram
 
     S->>C: ConnectOnceAsync
     C->>T: connect to control.sock
-    C->>T: {"id":"1","op":"hello","args":{"client":"tawk-mcp","version":"0.7.0","protocol":1,"origin":"mcp"}}
+    C->>T: {"id":"1","op":"hello","args":{"client":"tawk-mcp","version":"0.8.0","protocol":1,"origin":"mcp"}}
     T-->>C: {"id":"1","ok":true,"result":{"protocol":1,"tawk":"0.6.4","access":"send",...}}
     C-->>L: ConnectionStateEvent(Connected)
     C-->>S: hello
@@ -217,7 +217,9 @@ Unread count changes (`{"evt":"chat"}`) update resources and go to `/events` as 
 
 Which messages reach the channel is decided in two places. tawk sends a message event only when its push setting for that kind is on (received, or sent by the user). `ChannelEventSink` then passes on what other people sent, and what the user sent only when `TAWKMCP_CHANNEL_OWN` is on, marking each event with `from_me`. Read receipts, reactions, edits and deletes, scheduled sends and online status follow the same two steps, each with its own switch in tawk and its own option here, and none of them counts as a workflow round.
 
-Online status is the one event that is not about a message. tawk sends `presence` when the person in a one-to-one chat the user opened comes online or leaves; `ControlLineCodec` reads it into a `PresenceEvent`, `NotificationFormatter.Presence` writes one plain line for it ("Online status: Mom came online in \"Mom\"."), and `ChannelEventSink` sends it with `type="presence"`, a `state`, and `last_seen` where it is known, when `TAWKMCP_CHANNEL_PRESENCE` is on. It carries no message id, and it does not point at the chat's history or use up the chat's first-event pointer, since it says nothing about what was written. tawk-mcp cannot ask tawk to watch anyone: what arrives is only what tawk already knows from the chat the user has open.
+Online status is the one event that is not about a message. tawk sends `presence` when the person in a one-to-one chat the user opened comes online or leaves; `ControlLineCodec` reads it into a `PresenceEvent`, `NotificationFormatter.Presence` writes one plain line for it ("Online status: Mom came online in \"Mom\"."), and `ChannelEventSink` sends it with `type="presence"`, a `state`, and `last_seen` where it is known, when `TAWKMCP_CHANNEL_PRESENCE` is on. It carries no message id, and it does not point at the chat's history or use up the chat's first-event pointer, since it says nothing about what was written. What arrives is what tawk knows from a chat the user opened, or from a lookup.
+
+An agent can also ask. `get_online_status` (`PresenceTools`) goes to `PresenceManager`, which sends tawk's `presence` operation for one chat. tawk answers with what it knows and asks WhatsApp about that person, so the first answer is usually `unknown`; while tawk says it is watching, the manager waits through `IDelay` and asks again, up to `PresenceLookupOptions.Retries` times, and `PresenceFormatter` then says who is online, when someone offline was last seen, or why nothing is known. tawk refuses the operation unless the user switched on "Look up online status", and it never answers for a group or for a chat the agent may not use.
 
 ```mermaid
 flowchart LR

@@ -69,7 +69,7 @@ public static class TawkServerInstructions
 
     public const string ChannelPresence =
         " Online status may arrive the same way, with type=\"presence\" and state=\"online\" or \"offline\": the person in a chat the user "
-        + "has open came online or left. It is known only for chats the user opened, and you cannot ask for anyone else's. Treat it as "
+        + "has open, or one you looked up, came online or left. Treat it as "
         + "information about timing only: never tell the other person you saw it, never message someone because they came online, "
         + "and do not keep a record of when people are online.";
 

@@ -46,7 +46,7 @@ public static class TawkMcpComposition
 {
     public static string Version { get; } =
         typeof(TawkMcpComposition).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
-        ?? "0.7.0";
+        ?? "0.8.0";
 
     public static IMcpServerBuilder AddTawkMcp(this IServiceCollection services, TawkMcpOptions options)
     {
@@ -95,10 +95,13 @@ public static class TawkMcpComposition
         services.AddSingleton<ICatchUpPlanner, CatchUpPlanner>();
         services.AddSingleton<IDraftReplyPlanner, DraftReplyPlanner>();
         services.AddSingleton<INotificationFormatter, NotificationFormatter>();
+        services.AddSingleton<IPresenceFormatter, PresenceFormatter>();
+        services.AddSingleton(new PresenceLookupOptions());
         services.AddSingleton<IScheduleJitter>(new RandomScheduleJitter(TimeSpan.FromSeconds(options.ScheduleJitterS), Random.Shared.NextDouble));
 
         // Managers.
         services.AddSingleton<IChatReadingManager, ChatReadingManager>();
+        services.AddSingleton<IPresenceManager, PresenceManager>();
         services.AddSingleton<IMessageSendingManager, MessageSendingManager>();
         services.AddSingleton<IMessageManagementManager, MessageManagementManager>();
         services.AddSingleton<IChatManagementManager, ChatManagementManager>();
@@ -187,6 +190,7 @@ public static class TawkMcpComposition
                 }
             })
             .WithTools<ChatTools>()
+            .WithTools<PresenceTools>()
             .WithTools<MessageTools>()
             .WithTools<ScheduleTools>()
             .WithTools<StatusTools>()
