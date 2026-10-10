@@ -18,6 +18,7 @@
 - [Memory sync](#memory-sync)
 - [Resources](#resources)
 - [Prompts](#prompts)
+- [The owner's chat](#the-owners-chat)
 - [Claude Code channel](#claude-code-channel)
 - [The event stream](#the-event-stream)
 - [Connecting clients](#connecting-clients)
@@ -429,6 +430,23 @@ Both prompts take an optional `account`, a label or id, and then tell the model 
 ### `draft_reply`
 
 Drafts a reply for one chat (`chat`). It reads the last 30 messages and tells the model to show you the draft and stop, to offer `draft_message` if you like it, and never to send unless you ask. When memory has a voice, the prompt also carries how you write to that person and asks the model to run `check_voice` on the draft first.
+
+## The owner's chat
+
+With tawk 0.15.0 or later you can talk to the agent from WhatsApp. In tawk, open your own "message yourself" chat, open its contact card and switch on **This is my chat with the agent**; tawk's manual has the whole of it.
+
+From then on, what you type in that chat on your phone arrives in the agent's session as a channel event:
+
+```
+<channel source="tawk" type="owner_message" chat_jid="27821234567@s.whatsapp.net" message_id="..." sender="the user">
+The user wrote this to you from WhatsApp, in the owner's chat they named in tawk ... The user's message:
+what did I miss today?
+</channel>
+```
+
+Unlike every other event, its text is not fenced as untrusted: tawk vouches that you typed it. The agent treats it as your instruction and answers with `send_message` into the same chat, which tawk sends at once without asking you. A send to anyone else still waits for you, and tawk puts that request to you in the same chat as a card you can answer with `y` or `n`.
+
+It needs the channel, so a client started with `--stdio` and channels on, as in the next section. With several sessions on one tawk-mcp, one of them is handed each message. The agent will not delete, block, change settings or your profile, or write to someone new because you asked from the phone: it says that those need the terminal.
 
 ## Claude Code channel
 
