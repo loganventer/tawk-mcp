@@ -83,6 +83,16 @@ public sealed class ChatDirectoryFormatter : IChatDirectoryFormatter
             text.Append("\nAbout: ").Append(OneLine(info.About));
         }
 
+        if (info.Labels is { Count: > 0 } labels)
+        {
+            text.Append("\nLabels: ").Append(OneLine(string.Join(", ", labels)));
+        }
+
+        if (info.Reminder is { } reminder)
+        {
+            text.Append("\nPut aside ").Append(reminder.DueAt == 0 ? "until its person writes" : "until " + _transcript.FormatTimestamp(reminder.DueAt));
+        }
+
         if (info.Members is { Count: > 0 } members)
         {
             text.Append(CultureInfo.InvariantCulture, $"\nMembers ({members.Count}):");
