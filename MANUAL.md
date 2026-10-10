@@ -417,6 +417,8 @@ The interval is `TAWKMCP_WORKFLOW_EVERY` (0 turns it off). Your own standing ins
 
 Memory can be kept in step between your machines through a private git repository of your own, using git over SSH with a key on each machine. It is off until you set a repository on a machine; there is no default destination, and there are no tokens. [CONFIGURATION.md](CONFIGURATION.md#memory-sync) has the setup and the merge rules. `tawk-mcp sync` runs one cycle and says what happened.
 
+Sync runs by itself when tawk-mcp starts and then every two hours. To sync at once, ask your agent to sync memory: it calls `sync_memory`, which runs one cycle and says what was merged and pushed. The tool cannot set or change the repository, and in a session started without one it says that sync is off and does nothing. `tawk-mcp sync` does the same from a shell.
+
 ## Resources
 
 | Resource | Contents |
