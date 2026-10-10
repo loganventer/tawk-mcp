@@ -129,7 +129,7 @@ public sealed partial class TranscriptionRunManager : ITranscriptionRunManager
         {
             var transcript = await _transcriber
                 .TranscribeAsync(
-                    new TranscriptionPassRequest(path, pass.Language, request.Task, request.Model, request.Prompt),
+                    new TranscriptionPassRequest(path, pass.Language, request.Task, request.Model, request.Prompt) { Among = request.Among },
                     new PassProgress(_jobs, job.Id, pass.Language),
                     limit.Token)
                 .ConfigureAwait(false);

@@ -155,6 +155,18 @@ public class ControlLineCodecTests
             Assert.That(on.Transcribe, Is.True);
             Assert.That(off.Transcribe, Is.False);
             Assert.That(ready.Transcribe, Is.False);
+            Assert.That(on.Languages, Is.Null, "a chat that names no languages");
+        });
+
+        var named = (MessageEvent)((ControlEventFrame)_codec.Decode(
+            """{"evt":"message","chat":{"jid":"27820000000@s.whatsapp.net","name":"Mom"},"message":{},"languages":["af","en"]}""")!).Event;
+        var lookedAt = (Tawk.Mcp.Core.Transcription.TranscriptWantedEvent)((ControlEventFrame)_codec.Decode(
+            """{"evt":"transcript_wanted","chat":{"jid":"27820000000@s.whatsapp.net","name":"Mom"},"message_id":"OLD1","languages":["af"]}""")!).Event;
+        Assert.Multiple(() =>
+        {
+            Assert.That(named.Languages, Is.EqualTo(new[] { "af", "en" }));
+            Assert.That(lookedAt.Languages, Is.EqualTo(new[] { "af" }));
+            Assert.That(lookedAt.MessageId, Is.EqualTo("OLD1"));
         });
     }
 

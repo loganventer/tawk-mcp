@@ -30,7 +30,8 @@ public sealed class TranscriptionManager(
         return notices.Started(job, joined);
     }
 
-    public async Task<bool> StartAutomaticAsync(string messageId, string? account, CancellationToken cancellationToken)
+    public async Task<bool> StartAutomaticAsync(
+        string messageId, string? account, IReadOnlyList<string>? chatLanguages, CancellationToken cancellationToken)
     {
         var chosen = await preferences.ReadAsync(cancellationToken).ConfigureAwait(false);
         if (!policy.Automatic(chosen))
@@ -38,7 +39,7 @@ public sealed class TranscriptionManager(
             return false;
         }
 
-        jobs.Add(policy.Resolve(messageId, account, null, null, null, null, chosen), out _);
+        jobs.Add(policy.ResolveAutomatic(messageId, account, chatLanguages, chosen), out _);
         return true;
     }
 

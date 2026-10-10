@@ -40,6 +40,31 @@ public sealed partial class TranscriptionPolicy(TranscriptionOptions options) : 
             Prompt(prompt));
     }
 
+    public TranscriptionRequest ResolveAutomatic(
+        string messageId, string? account, IReadOnlyList<string>? chatLanguages, TranscriptionPreferences preferences)
+    {
+        var request = Resolve(messageId, account, [TranscriptionOptions.Auto], null, null, null, preferences);
+        var among = Spoken(chatLanguages) ?? Spoken(FromPanel(preferences.Languages) ?? options.Languages);
+        return among switch
+        {
+            null => request,
+            { Count: 1 } => request with { Languages = [among[0]] },
+            _ => request with { Among = among },
+        };
+    }
+
+    // The languages a list names, leaving out "auto" and anything that is not a language; null when none is left.
+    private static List<string>? Spoken(IEnumerable<string>? languages)
+    {
+        var codes = (languages ?? [])
+            .Select(Language)
+            .OfType<string>()
+            .Where(code => !string.Equals(code, TranscriptionOptions.Auto, StringComparison.Ordinal))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        return codes.Count == 0 ? null : codes;
+    }
+
     public bool Automatic(TranscriptionPreferences preferences)
     {
         ArgumentNullException.ThrowIfNull(preferences);

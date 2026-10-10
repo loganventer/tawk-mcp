@@ -7,6 +7,9 @@ namespace Tawk.Mcp.Core.Transcription;
 public sealed record TranscriptionRequest(
     string MessageId, string? Account, IReadOnlyList<string> Languages, TranscriptionTask Task, string Model, string? Prompt)
 {
+    /// <summary>The languages a note left to detection may be in (the chat's, or the user's); null for any.</summary>
+    public IReadOnlyList<string>? Among { get; init; }
+
     /// <summary>Two requests with the same key want the same work, so the second joins the first.</summary>
-    public string Key => string.Join('\u001f', MessageId, Account, string.Join(',', Languages), Task, Model, Prompt);
+    public string Key => string.Join('\u001f', MessageId, Account, string.Join(',', Languages), Task, Model, Prompt, string.Join(',', Among ?? []));
 }

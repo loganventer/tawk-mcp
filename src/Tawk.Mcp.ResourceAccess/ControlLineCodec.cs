@@ -82,7 +82,7 @@ public sealed class ControlLineCodec
     {
         "message" => new MessageEvent(
             Property<ChatRef>(root, "chat"),
-            Property<ChatMessage>(root, "message")) { Transcribe = MayTranscribe(root) },
+            Property<ChatMessage>(root, "message")) { Transcribe = MayTranscribe(root), Languages = SpokenIn(root) },
         "read" => new ReadEvent(
             Property<ChatRef>(root, "chat"),
             root.TryGetProperty("message_id", out var read) ? read.GetString() ?? string.Empty : string.Empty,
@@ -106,7 +106,7 @@ public sealed class ControlLineCodec
             root.TryGetProperty("type", out var mediaType) ? mediaType.GetString() : null) { Transcribe = MayTranscribe(root) },
         "transcript_wanted" => new Core.Transcription.TranscriptWantedEvent(
             root.TryGetProperty("chat", out var spokenChat) && spokenChat.ValueKind == JsonValueKind.Object ? Deserialize<ChatRef>(spokenChat) : null,
-            root.TryGetProperty("message_id", out var spokenId) ? spokenId.GetString() ?? string.Empty : string.Empty),
+            root.TryGetProperty("message_id", out var spokenId) ? spokenId.GetString() ?? string.Empty : string.Empty) { Languages = SpokenIn(root) },
         "summary_wanted" => new SummaryWantedEvent(
             Property<ChatRef>(root, "chat"),
             Property<ChatMessage>(root, "message"),
@@ -121,6 +121,22 @@ public sealed class ControlLineCodec
     /// <summary>tawk adds "transcribe":false to what it says about a chat whose voice notes are not to be transcribed.</summary>
     public static bool MayTranscribe(JsonElement root) =>
         root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("transcribe", out var allowed) || allowed.ValueKind != JsonValueKind.False;
+
+    /// <summary>The "languages" tawk adds for a chat whose voice note languages the user named; null when there are none.</summary>
+    public static IReadOnlyList<string>? SpokenIn(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("languages", out var list) || list.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        var codes = list.EnumerateArray()
+            .Where(code => code.ValueKind == JsonValueKind.String)
+            .Select(code => code.GetString()!)
+            .Where(code => code.Length > 0)
+            .ToList();
+        return codes.Count == 0 ? null : codes;
+    }
 
     private static MessageActivityEvent Activity(ActivityKind kind, JsonElement root) => new(
         kind,

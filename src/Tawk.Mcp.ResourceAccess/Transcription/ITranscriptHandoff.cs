@@ -12,5 +12,6 @@ public interface ITranscriptHandoff
     /// Returns whether tawk kept it. It does not when tawk is from before it kept transcripts, when the
     /// chat is switched off, or when tawk is down; none of these is an error for the caller.
     /// </summary>
-    Task<bool> HandOverAsync(string messageId, string language, Transcript transcript, CancellationToken cancellationToken);
+    /// <param name="replace">Take the place of every transcript the voice note has, in whatever language: it was written out again.</param>
+    Task<bool> HandOverAsync(string messageId, string language, Transcript transcript, bool replace, CancellationToken cancellationToken);
 }

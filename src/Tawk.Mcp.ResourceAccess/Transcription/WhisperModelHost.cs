@@ -18,6 +18,7 @@ public sealed partial class WhisperModelHost : IWhisperModelHost, IAsyncDisposab
     private readonly IBackoffPolicy _backoff;
     private readonly TranscriptionOptions _options;
     private readonly TimeProvider _clock;
+    private readonly ISpokenLanguageRule _spoken;
     private readonly ILogger<WhisperModelHost> _logger;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private WhisperFactory? _factory;
@@ -35,8 +36,10 @@ public sealed partial class WhisperModelHost : IWhisperModelHost, IAsyncDisposab
         IBackoffPolicy backoff,
         TranscriptionOptions options,
         TimeProvider clock,
+        ISpokenLanguageRule spoken,
         ILogger<WhisperModelHost> logger)
     {
+        _spoken = spoken;
         _files = files;
         _lock = modelLock;
         _runtime = runtime;
@@ -120,6 +123,33 @@ public sealed partial class WhisperModelHost : IWhisperModelHost, IAsyncDisposab
         _gate.Dispose();
     }
 
+    // What the engine hears at the start, in the middle and at the end of the note, handed to the rule.
+    private string? Detect(WhisperFactory factory, ReadOnlyMemory<float> samples, IReadOnlyList<string>? among)
+    {
+        const int Window = 30 * OggOpusDecoder.SampleRate;
+        var candidates = among is { Count: > 0 } ? among.ToArray() : null;
+        var others = (candidates ?? [.. WhisperFactory.GetSupportedLanguages()])
+            .Where(code => !string.Equals(code, "en", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        var starts = samples.Length <= Window + Window / 2
+            ? new[] { 0 }
+            : new[] { 0, (samples.Length - Window) / 2, samples.Length - Window }.Distinct().ToArray();
+
+        var readings = new List<LanguageReading>();
+        using var processor = factory.CreateBuilder().WithLanguageDetection().Build();
+        foreach (var start in starts)
+        {
+            var stretch = samples.Span.Slice(start, Math.Min(Window, samples.Length - start));
+            var top = candidates is null
+                ? processor.DetectLanguageWithProbability(stretch.ToArray())
+                : processor.DetectLanguageWithProbability(stretch, candidates);
+            var other = others.Length == 0 ? (language: null, probability: 0f) : processor.DetectLanguageWithProbability(stretch, others);
+            readings.Add(new LanguageReading(top.language, top.probability, other.language, other.probability));
+        }
+
+        return _spoken.Choose(readings);
+    }
+
     private async Task<Transcript> OnceAsync(
         ReadOnlyMemory<float> samples, TranscriptionPassRequest request, IProgress<TranscriptionProgress> progress, CancellationToken cancellationToken)
     {
@@ -135,7 +165,10 @@ public sealed partial class WhisperModelHost : IWhisperModelHost, IAsyncDisposab
         }
 
         var builder = factory.CreateBuilder().WithThreads(Math.Clamp(Environment.ProcessorCount / 2, 1, 8)).WithProgressHandler(Heard);
-        builder = request.LanguageHint is { } language ? builder.WithLanguage(language) : builder.WithLanguageDetection();
+        // Left to detect, the language is worked out first and then told to the engine, which otherwise leans
+        // towards English and writes a translation.
+        var spoken = request.LanguageHint ?? Detect(factory, samples, request.Among);
+        builder = spoken is { } language ? builder.WithLanguage(language) : builder.WithLanguageDetection();
         if (request.Task == TranscriptionTask.Translate)
         {
             builder = builder.WithTranslate();
@@ -165,7 +198,7 @@ public sealed partial class WhisperModelHost : IWhisperModelHost, IAsyncDisposab
 
         return new Transcript(
             text.ToString().Trim(),
-            request.LanguageHint is null ? heard : null,
+            request.LanguageHint is null ? spoken ?? heard : null,
             request.Model,
             seconds);
     }

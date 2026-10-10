@@ -41,9 +41,18 @@ public class AutoTranscriptionSinkTests
         Assert.Multiple(() =>
         {
             Assert.That(job.Request.MessageId, Is.EqualTo("3EB0C2A1F0"));
-            Assert.That(job.Request.Languages, Is.EqualTo(new[] { "af", "en" }));
+            Assert.That(job.Request.Languages, Is.EqualTo(new[] { "auto" }), "one transcript, in the language spoken");
+            Assert.That(job.Request.Among, Is.EqualTo(new[] { "af", "en" }), "worked out among the languages listed in tawk");
             Assert.That(job.Request.Account, Is.EqualTo("2"));
         });
+    }
+
+    [Test]
+    public async Task The_languages_the_user_named_for_the_chat_come_first()
+    {
+        await _sink.OnUpdateAsync(new LiveUpdate(Voice() with { Languages = ["zu", "en"] }), CancellationToken.None);
+
+        Assert.That(_jobs.Find("t1")!.Request.Among, Is.EqualTo(new[] { "zu", "en" }));
     }
 
     [Test]

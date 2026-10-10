@@ -20,20 +20,20 @@ public sealed partial class AutoTranscriptionSink(ITranscriptionManager transcri
         if (update.Event is TranscriptWantedEvent { MessageId.Length: > 0 } older)
         {
             // An older voice note the user looked at in tawk: the same switch decides, and the same queue takes it.
-            await StartAsync(older.MessageId, older.Account, cancellationToken).ConfigureAwait(false);
+            await StartAsync(older.MessageId, older.Account, older.Languages, cancellationToken).ConfigureAwait(false);
         }
         else if (update.Event is MessageEvent { Transcribe: true, Message: { Type: "audio", FromMe: false, Deleted: false } message } incoming)
         {
-            await StartAsync(message.Id, incoming.Account, cancellationToken).ConfigureAwait(false);
+            await StartAsync(message.Id, incoming.Account, incoming.Languages, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private async Task StartAsync(string messageId, AccountRef? account, CancellationToken cancellationToken)
+    private async Task StartAsync(string messageId, AccountRef? account, IReadOnlyList<string>? languages, CancellationToken cancellationToken)
     {
         try
         {
             await transcription
-                .StartAutomaticAsync(messageId, account?.Id.ToString(CultureInfo.InvariantCulture), cancellationToken)
+                .StartAutomaticAsync(messageId, account?.Id.ToString(CultureInfo.InvariantCulture), languages, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (TranscriptionException ex)
