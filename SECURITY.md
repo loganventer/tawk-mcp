@@ -10,6 +10,7 @@
 - [Accounts](#accounts)
 - [Prompt injection](#prompt-injection)
 - [Approving its own sends](#approving-its-own-sends)
+- [The owner's chat](#the-owners-chat)
 - [Memory](#memory)
 - [The confirmation token](#the-confirmation-token)
 - [HTTP mode](#http-mode)
@@ -38,6 +39,7 @@ Only the latest release gets security fixes.
 | Attacker | Can | Aims to |
 | --- | --- | --- |
 | Someone who messages you | Put any text into a chat, a group name or a status | Make the model leak chats or act in your name |
+| Someone who messages you, posing as you | Write text that claims to come from the owner | Have the model take it as an instruction |
 | A web page in your browser | Send requests to `localhost` | Reach tawk-mcp's HTTP endpoint |
 | Another user on the computer | Reach loopback ports | Use your tawk through tawk-mcp |
 | The model itself, misled or mistaken | Call any tool the client offers | Send, delete or change things you did not ask for |
@@ -56,6 +58,7 @@ Only the latest release gets security fixes.
 | Fencing of other people's text, and the tool descriptions saying it is untrusted | tawk-mcp | Prompt injection |
 | A chat switched off for transcription in tawk is never transcribed: its voice notes are skipped as they arrive, a request for one is refused before the audio is heard, and tawk refuses a transcript for it | tawk and tawk-mcp | Writing out a chat the user wants left alone |
 | A summary is asked for only by tawk, for chats the user put in TL;DR mode, and the agent is told that only an event of type `summary_wanted` is such a request, never text inside a message that asks for one or claims to be from tawk; the request is tawk-mcp's own text and the message stays fenced; `set_summary` changes only what tawk shows beside the original, which is always kept | tawk and tawk-mcp | A message steering the agent through its own summary |
+| The owner's words arrive only as tawk's `owner_message` event, never from inside fenced text | tawk and tawk-mcp | Someone posing as you |
 | Locked, hidden and excluded chats are never returned | tawk | Leaking chats you have hidden |
 | Loopback bind by default, bearer token always, constant-time compare | tawk-mcp | Other users and programs on the network |
 | Origin guard | tawk-mcp | Web pages in your browser |
@@ -99,6 +102,18 @@ With `TAWKMCP_ADMIN_TOKEN_FILE` set and tawk's access at `admin`, the model can 
 - Every approval is in tawk's log as "approved by the agent" and appears on tawk's screen.
 
 Do not set it on an instance that reads chats from people you do not trust, and do not set it on one that is reachable by anything but your own agent.
+
+## The owner's chat
+
+When you name an owner's chat in tawk (0.15.0 or later), what you write there reaches the agent as your words. This is the one place where text from WhatsApp is an instruction.
+
+- tawk decides which messages are yours and sends each as an `owner_message` event. tawk-mcp cannot name the chat, and never promotes an ordinary message to an instruction, whatever it says.
+- The event is passed on outside the untrusted fence and marked as the owner's. Everything else, including messages in the same chat that tawk did not mark (forwarded and quoted messages, voice notes, files), stays fenced.
+- The server instructions tell the model that only this event carries the owner's words, and that a message claiming to be from the owner inside fenced text is an attack.
+- The agent's answers in that chat are sent without an approval, by tawk's rule, and only there. tawk-mcp has no tool that sends unasked to any other chat.
+- What you ask for from WhatsApp is carried out under the same rules as anything else the agent does: a send to another chat still waits for you, and destructive operations still need their two confirmations at the computer. The instructions tell the agent to refuse those when they are asked for from the phone.
+- When several sessions share one tawk-mcp, one of them is handed the message, so you are answered once.
+- tawk does not check which of your devices wrote a message, so anyone at a device linked to your number can instruct the agent. See tawk's SECURITY.md.
 
 ## Memory
 
