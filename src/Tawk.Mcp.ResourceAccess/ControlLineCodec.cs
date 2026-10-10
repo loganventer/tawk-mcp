@@ -111,6 +111,7 @@ public sealed class ControlLineCodec
             Property<ChatRef>(root, "chat"),
             Property<ChatMessage>(root, "message"),
             root.TryGetProperty("max_chars", out var most) && most.TryGetInt32(out var chars) && chars > 0 ? chars : 400),
+        "owner_message" => new OwnerMessageEvent(Property<ChatRef>(root, "chat"), Property<ChatMessage>(root, "message")),
         "bye" => new ByeEvent(),
         "approval" => new ApprovalEvent(
             root.TryGetProperty("id", out var id) ? id.GetString() ?? string.Empty : string.Empty,
