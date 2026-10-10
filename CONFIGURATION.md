@@ -63,7 +63,7 @@ Flags override environment variables, which override the defaults. A flag or a c
 | `--token-file PATH` | `TAWKMCP_TOKEN_FILE` | `~/.config/tawk-mcp/token` | Where the bearer token is kept |
 | | `TAWKMCP_TOKEN` | | Use this token and keep no file, for container secrets |
 | `--socket PATH` | `TAWK_CONTROL_SOCKET` | see [The control socket](#the-control-socket) | tawk's control socket |
-| `--channel auto\|on\|off` | `TAWKMCP_CHANNEL` | `auto` | Claude Code channel events: `auto` for clients that identify as Claude Code, `on` for every client, `off` for none |
+| `--channel auto\|on\|off` | `TAWKMCP_CHANNEL` | `auto` | Claude Code channel events: `auto` for clients that identify as Claude Code, `on` for every client, `off` for none. Only `on` tells tawk that this session answers what tawk asks of an agent (TL;DR summaries, and what you write in the owner's chat): set it for a client you start with its channel, as `scripts/claude-tawk` does. In `auto` tawk-mcp cannot know whether the client listens, so it promises nothing |
 | `--channel-own on\|off` | `TAWKMCP_CHANNEL_OWN` | `off` | Also send the messages you send yourself as channel events, marked `from_me`. Off, only what other people send arrives |
 | `--channel-read on\|off` | `TAWKMCP_CHANNEL_READ` | `off` | Also send read receipts for the messages you sent as channel events, with `type="read"`. tawk's **Push read receipts** must be on too |
 | `--channel-reactions on\|off` | `TAWKMCP_CHANNEL_REACTIONS` | `off` | Also send reactions to your messages as channel events (`type="reaction"`). tawk's **Push reactions** must be on too |
