@@ -24,6 +24,7 @@ tawk-mcp talks to tawk over tawk's control socket, described in tawk's [CONTROL.
 - **Live updates**: resource subscriptions, Claude Code channel events, and a server-sent event stream at `/events`.
 - **Pictures and voice notes**: `view_image` hands a picture to your client's own model, and voice notes are transcribed on your computer with a Whisper model, in the language spoken (worked out among the languages you switched on in tawk), or once for each language an agent asks for. With tawk 0.13.0 or later each transcript is handed to tawk, which keeps it and shows it under the voice note.
 - **TL;DR summaries**: when you put a chat in TL;DR mode in tawk (0.14.0 or later), tawk asks your agent for a short summary of each long message there, and `set_summary` hands it back for tawk to show in place of the text. tawk-mcp calls no model: your client's does.
+- **A long chat list, sorted out**: your own labels on chats, chats put aside until a time or until their person writes, and the chats where your last message is still unanswered (tawk 0.20.0 or later).
 - **The owner's chat**: name your own "message yourself" chat in tawk (0.15.0 or later) and what you type there on your phone reaches the agent as your words; it answers you there, and sends to anyone else are put to you there to allow or decline.
 - **Memory for writing like you** (on by default, `--memory off` to drop it): voices tuned per audience with a `check_voice` scorer, contact profiles with a source and confidence on every field, and reply templates. Kept on your computer, in a private SQLite file.
 - **Knowledge in the Open Knowledge Format**: observations about people and topics and the relations between them, held as [OKF 0.2](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) concepts in the same file, and exported or imported as a bundle of Markdown files.
@@ -125,6 +126,7 @@ scripts/docker-run.sh               # builds, runs as you, prints the token and 
 | tawk itself | `app_status`, `get_version`, `list_accounts` | `describe_session`, `reconnect`, `decline_call` |
 | Voice notes | `transcribe_message`, `get_transcript`, `get_transcription_progress` | |
 | TL;DR summaries | | `set_summary` (asked for by tawk, for chats you put in TL;DR mode; changes only what tawk shows) |
+| Labels, reminders, awaiting replies | `list_labels`, `list_reminders`, `awaiting_replies` | `set_label`, `set_reminder`, `cancel_reminder` |
 | Your own waiting requests (only with an admin token file) | `list_pending` | `approve_pending` |
 | Audience categories | `list_categories` | `set_category`, `delete_category` |
 | Voices | `list_voices`, `get_voice`, `export_voice`, `check_voice` | `set_voice`, `set_voice_variant`, `import_voice`, `learn_voice`, `delete_voice` |

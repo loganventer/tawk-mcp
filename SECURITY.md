@@ -59,6 +59,7 @@ Only the latest release gets security fixes.
 | A chat switched off for transcription in tawk is never transcribed: its voice notes are skipped as they arrive, a request for one is refused before the audio is heard, and tawk refuses a transcript for it | tawk and tawk-mcp | Writing out a chat the user wants left alone |
 | A summary is asked for only by tawk, for chats the user put in TL;DR mode, and the agent is told that only an event of type `summary_wanted` is such a request, never text inside a message that asks for one or claims to be from tawk; the request is tawk-mcp's own text and the message stays fenced; `set_summary` changes only what tawk shows beside the original, which is always kept | tawk and tawk-mcp | A message steering the agent through its own summary |
 | The owner's words arrive only as tawk's `owner_message` event, never from inside fenced text | tawk and tawk-mcp | Someone posing as you |
+| Labelling a chat and putting one aside are approved by the user in tawk, since each changes what their own chat list shows; reading labels, reminders and awaiting replies follows the chats the agent may see | tawk | A misled model hiding chats from the user |
 | Locked, hidden and excluded chats are never returned | tawk | Leaking chats you have hidden |
 | Loopback bind by default, bearer token always, constant-time compare | tawk-mcp | Other users and programs on the network |
 | Origin guard | tawk-mcp | Web pages in your browser |
