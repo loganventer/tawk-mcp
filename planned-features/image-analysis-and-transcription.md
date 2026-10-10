@@ -144,6 +144,8 @@ Behind this sits one `ITranscriber` interface in `ResourceAccess` with an implem
 
 ### 6.4 Several languages in one call
 
+Since 0.10.2 this holds for a job an agent asks for. A voice note transcribed as it arrives gets one transcript, in the language spoken, chosen among the languages the user switched on in tawk; see the manual, "The language spoken".
+
 Whisper-style engines handle one language for each run. Told a voice note is Afrikaans, they write the English parts badly or render them in Afrikaans, and `auto` picks whichever language the first seconds are in. For a note that switches language, the useful answer is several transcriptions of the same audio, one for each language, which the agent reads side by side.
 
 - A job has one **pass** for each language asked for. Duplicates are dropped and the order asked for is kept. `auto` counts as a language and may be listed with others, for example `["auto","af","en"]`.

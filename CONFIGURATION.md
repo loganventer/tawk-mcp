@@ -88,7 +88,7 @@ Flags override environment variables, which override the defaults. A flag or a c
 | `--transcribe-command TEXT` | `TAWKMCP_TRANSCRIBE_COMMAND` | none | The program for `command`, run once for each language with `{file}`, `{language}`, `{model}`, `{task}` and `{prompt}` filled in, no shell. What it prints is the transcript |
 | `--transcribe-model NAME` | `TAWKMCP_TRANSCRIBE_MODEL` | `large-v3-turbo` | The model, when tawk's settings do not name one |
 | `--transcribe-models A,B` | `TAWKMCP_TRANSCRIBE_MODELS` | none | Other models an agent may ask for by name |
-| `--transcribe-language A,B` | `TAWKMCP_TRANSCRIBE_LANGUAGE` | `auto` | The default languages, when tawk's settings do not name any |
+| `--transcribe-language A,B` | `TAWKMCP_TRANSCRIBE_LANGUAGE` | `auto` | The default languages, when tawk's settings do not name any. For a job an agent asks for, one transcription is made for each; for a voice note transcribed as it arrives, they are the languages the engine chooses among |
 | `--transcribe-auto on\|off` | `TAWKMCP_TRANSCRIBE_AUTO` | `off` | Transcribe every voice note others send, when tawk's settings have no such switch |
 | `--transcribe-max-languages N` | `TAWKMCP_TRANSCRIBE_MAX_LANGUAGES` | `3` | The most languages one call may ask for (1 to 10) |
 | `--transcribe-max-seconds N` | `TAWKMCP_TRANSCRIBE_MAX_SECONDS` | `3600` | The longest recording whose text is handed over |
