@@ -71,6 +71,23 @@ public class TranscriptionManagerTests
     private TranscriptEvent Ended => (TranscriptEvent)_sink.Updates.Single().Event;
 
     [Test]
+    public async Task A_chat_switched_off_in_tawk_is_refused_before_any_audio_is_heard()
+    {
+        _media.Files["3EB0"] = _media.Files["3EB0"] with { Transcribe = false };
+        var manager = Manager();
+        manager.Start("3EB0", null, ["af"], null, null, null);
+
+        await manager.RunNextAsync(CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(_transcriber.Passes, Is.Empty, "the audio reaches no transcriber");
+            Assert.That(Ended.Job.State, Is.EqualTo(TranscriptionState.Failed));
+            Assert.That(Ended.Job.Failure, Is.EqualTo(TranscriptionRunManager.ChatSwitchedOff));
+        });
+    }
+
+    [Test]
     public void Starting_answers_at_once_and_runs_nothing()
     {
         var answer = Manager().Start("3EB0", null, ["af", "en"], null, null, null);

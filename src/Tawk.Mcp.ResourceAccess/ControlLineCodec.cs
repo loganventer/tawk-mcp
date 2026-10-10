@@ -82,7 +82,7 @@ public sealed class ControlLineCodec
     {
         "message" => new MessageEvent(
             Property<ChatRef>(root, "chat"),
-            Property<ChatMessage>(root, "message")),
+            Property<ChatMessage>(root, "message")) { Transcribe = MayTranscribe(root) },
         "read" => new ReadEvent(
             Property<ChatRef>(root, "chat"),
             root.TryGetProperty("message_id", out var read) ? read.GetString() ?? string.Empty : string.Empty,
@@ -103,13 +103,24 @@ public sealed class ControlLineCodec
             root.TryGetProperty("chat", out var mediaChat) && mediaChat.ValueKind == JsonValueKind.Object ? Deserialize<ChatRef>(mediaChat) : null,
             root.TryGetProperty("message_id", out var mediaId) ? mediaId.GetString() ?? string.Empty : string.Empty,
             root.TryGetProperty("path", out var mediaPath) ? mediaPath.GetString() ?? string.Empty : string.Empty,
-            root.TryGetProperty("type", out var mediaType) ? mediaType.GetString() : null),
+            root.TryGetProperty("type", out var mediaType) ? mediaType.GetString() : null) { Transcribe = MayTranscribe(root) },
+        "transcript_wanted" => new Core.Transcription.TranscriptWantedEvent(
+            root.TryGetProperty("chat", out var spokenChat) && spokenChat.ValueKind == JsonValueKind.Object ? Deserialize<ChatRef>(spokenChat) : null,
+            root.TryGetProperty("message_id", out var spokenId) ? spokenId.GetString() ?? string.Empty : string.Empty),
+        "summary_wanted" => new SummaryWantedEvent(
+            Property<ChatRef>(root, "chat"),
+            Property<ChatMessage>(root, "message"),
+            root.TryGetProperty("max_chars", out var most) && most.TryGetInt32(out var chars) && chars > 0 ? chars : 400),
         "bye" => new ByeEvent(),
         "approval" => new ApprovalEvent(
             root.TryGetProperty("id", out var id) ? id.GetString() ?? string.Empty : string.Empty,
             root.TryGetProperty("state", out var state) ? state.GetString() ?? string.Empty : string.Empty),
         _ => new UnknownEvent(name),
     };
+
+    /// <summary>tawk adds "transcribe":false to what it says about a chat whose voice notes are not to be transcribed.</summary>
+    public static bool MayTranscribe(JsonElement root) =>
+        root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("transcribe", out var allowed) || allowed.ValueKind != JsonValueKind.False;
 
     private static MessageActivityEvent Activity(ActivityKind kind, JsonElement root) => new(
         kind,

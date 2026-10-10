@@ -9,7 +9,7 @@
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <Version>0.8.1</Version>
+    <Version>0.10.0</Version>
     <Authors>Logan Venter</Authors>
     <Copyright>Copyright (c) 2026 Logan Venter</Copyright>
     <Product>tawk-mcp</Product>

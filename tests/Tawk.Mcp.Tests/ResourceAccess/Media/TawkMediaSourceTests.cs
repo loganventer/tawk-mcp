@@ -27,6 +27,28 @@ public class TawkMediaSourceTests
     }
 
     [Test]
+    public async Task A_chat_whose_voice_notes_are_not_transcribed_says_so_either_way()
+    {
+        var here = new FakeTawkControl().Answer(
+            "download_media", """{"path":"/cache/media/a.ogg","type":"audio","chat":{"jid":"27820000000@s.whatsapp.net","name":"Mom"},"transcribe":false}""");
+        var later = new FakeTawkControl();
+        later.Answer("download_media", _ =>
+        {
+            later.Raise(new MediaReadyEvent(null, "3EB0", "/cache/media/a.ogg", "audio") { Transcribe = false });
+            return JsonDocument.Parse("{}").RootElement.Clone();
+        });
+
+        var already = await new TawkMediaSource(here).LocateAsync("3EB0", Wait, CancellationToken.None);
+        var fetched = await new TawkMediaSource(later).LocateAsync("3EB0", Wait, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(already!.Transcribe, Is.False);
+            Assert.That(fetched!.Transcribe, Is.False);
+        });
+    }
+
+    [Test]
     public async Task A_download_that_ends_later_is_named_by_the_media_ready_event()
     {
         var control = new FakeTawkControl();

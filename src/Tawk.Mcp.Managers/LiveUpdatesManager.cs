@@ -48,6 +48,7 @@ public sealed partial class LiveUpdatesManager : ILiveUpdatesManager
                 ReadEvent read => _notification.Read(read.Chat, read.MessageId, read.Reader),
                 MessageActivityEvent activity => Describe(activity),
                 PresenceEvent presence => _notification.Presence(presence),
+                SummaryWantedEvent wanted => Describe(wanted),
                 _ => null,
             };
 
@@ -83,6 +84,11 @@ public sealed partial class LiveUpdatesManager : ILiveUpdatesManager
     private string Describe(MessageEvent message) =>
         _notification.Header(message.Chat, message.Message) + "\n"
         + _fence.Wrap("a new WhatsApp message", _transcript.FormatMessage(message.Message));
+
+    // The request is tawk-mcp's own text; the message it is about is fenced like any other.
+    private string Describe(SummaryWantedEvent wanted) =>
+        SummaryRequestText.For(wanted.Message.Id, wanted.MaxChars) + "\n"
+        + _fence.Wrap("the WhatsApp message to summarise", _transcript.FormatMessage(wanted.Message));
 
     // An edit carries the other person's new words, which are fenced like any message.
     private string Describe(MessageActivityEvent activity) =>

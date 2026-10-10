@@ -136,6 +136,29 @@ public class ControlLineCodecTests
     }
 
     [Test]
+    public void Reads_what_tawk_can_do_and_which_chats_are_not_transcribed()
+    {
+        var hello = ControlLineCodec.Deserialize<HelloInfo>(((ControlResponse)_codec.Decode(
+            """{"id":"1","ok":true,"result":{"protocol":1,"tawk":"0.13.0","access":"send","connected":true,"features":["transcripts"]}}""")!).Result);
+        var older = ControlLineCodec.Deserialize<HelloInfo>(((ControlResponse)_codec.Decode(Samples.HelloAnswer)!).Result);
+        var on = (MessageEvent)((ControlEventFrame)_codec.Decode(
+            """{"evt":"message","chat":{"jid":"27820000000@s.whatsapp.net","name":"Mom"},"message":{}}""")!).Event;
+        var off = (MessageEvent)((ControlEventFrame)_codec.Decode(
+            """{"evt":"message","chat":{"jid":"27820000000@s.whatsapp.net","name":"Mom"},"message":{},"transcribe":false}""")!).Event;
+        var ready = (Tawk.Mcp.Core.Media.MediaReadyEvent)((ControlEventFrame)_codec.Decode(
+            """{"evt":"media_ready","chat":{"jid":"27820000000@s.whatsapp.net","name":"Mom"},"message_id":"3EB0","path":"/m/a.ogg","type":"audio","transcribe":false}""")!).Event;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(hello.Has(TawkFeatures.Transcripts), Is.True);
+            Assert.That(older.Has(TawkFeatures.Transcripts), Is.False, "a tawk that sends no list can do none of it");
+            Assert.That(on.Transcribe, Is.True);
+            Assert.That(off.Transcribe, Is.False);
+            Assert.That(ready.Transcribe, Is.False);
+        });
+    }
+
+    [Test]
     public void Decodes_chat_bye_approval_and_unknown_notifications()
     {
         Assert.Multiple(() =>
