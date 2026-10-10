@@ -133,8 +133,9 @@ scripts/docker-run.sh               # builds, runs as you, prints the token and 
 | Contact profiles | `list_contact_fields`, `get_contact`, `list_contacts`, `due_follow_ups` | `set_contact_fields`, `add_contact_note`, `forget_contact_field`, `set_contact_categories`, `delete_contact` |
 | Knowledge | `list_observations`, `get_knowledge`, `get_workflow` | `record_observation`, `record_relation`, `forget_observation`, `forget_relation` |
 | Reply templates | `list_templates`, `get_template`, `render_template` | `set_template`, `delete_template`, `draft_template` |
+| Memory sync | | `sync_memory` (one sync with your own repository, now; does nothing when none is set) |
 
-The last five areas are tawk-mcp's own memory and never touch WhatsApp, except `draft_template`, which puts text into tawk's input box like `draft_message`.
+The last six areas are tawk-mcp's own memory and never touch WhatsApp, except `draft_template`, which puts text into tawk's input box like `draft_message`.
 
 With several WhatsApp accounts in tawk, the tools that reach WhatsApp take an optional `account`, and each account has its own level for agents, set in tawk. See [Accounts](MANUAL.md#accounts).
 
