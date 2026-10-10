@@ -46,7 +46,7 @@ public static class TawkMcpComposition
 {
     public static string Version { get; } =
         typeof(TawkMcpComposition).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
-        ?? "0.10.1";
+        ?? "0.10.2";
 
     public static IMcpServerBuilder AddTawkMcp(this IServiceCollection services, TawkMcpOptions options)
     {
@@ -279,6 +279,7 @@ public static class TawkMcpComposition
             Path.Combine(transcription.ModelDirectory, ".loaded.lock"), sp.GetRequiredService<TimeProvider>()));
         services.AddSingleton<IAudioDecoder, OggOpusDecoder>();
         services.AddSingleton<IWhisperRuntime>(new BundledWhisperRuntime(typeof(TawkMcpComposition).Assembly, transcription));
+        services.AddSingleton<ISpokenLanguageRule, SpokenLanguageRule>();
         services.AddSingleton<IWhisperModelHost, WhisperModelHost>();
         services.AddSingleton<EmbeddedTranscriber>();
 

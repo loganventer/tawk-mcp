@@ -11,11 +11,11 @@ public class TranscriptHandoffSinkTests
 {
     private sealed class RecordingHandoff(IAccountScope accounts) : ITranscriptHandoff
     {
-        public List<(string MessageId, string Language, string Text, string? Account)> Handed { get; } = [];
+        public List<(string MessageId, string Language, string Text, string? Account, bool Replace)> Handed { get; } = [];
 
-        public Task<bool> HandOverAsync(string messageId, string language, Transcript transcript, CancellationToken cancellationToken)
+        public Task<bool> HandOverAsync(string messageId, string language, Transcript transcript, bool replace, CancellationToken cancellationToken)
         {
-            Handed.Add((messageId, language, transcript.Text, accounts.Current));
+            Handed.Add((messageId, language, transcript.Text, accounts.Current, replace));
             return Task.FromResult(true);
         }
     }
@@ -47,6 +47,8 @@ public class TranscriptHandoffSinkTests
             Assert.That(handoff.Handed.Select(h => h.Language), Is.EqualTo(new[] { "af", "nl" }), "a pass that failed has nothing to hand over");
             Assert.That(handoff.Handed.Select(h => h.MessageId), Is.All.EqualTo("3EB0"));
             Assert.That(handoff.Handed.Select(h => h.Account), Is.All.EqualTo("2"));
+            Assert.That(handoff.Handed.Select(h => h.Replace), Is.EqualTo(new[] { true, false }),
+                "the job's first transcript takes the place of what tawk kept, and the rest are added beside it");
             Assert.That(_accounts.Current, Is.Null, "the account is let go afterwards");
         });
     }

@@ -22,11 +22,15 @@ public sealed class TranscriptHandoffSink(ITranscriptHandoff handoff, IAccountSc
         // The job ended outside the call that asked for it, so it names its account again.
         using (accounts.Use(job.Request.Account))
         {
+            // A job writes the voice note out afresh: its first transcript takes the place of what tawk
+            // kept before, in whatever language, and the rest of the job's languages are added beside it.
+            var replace = true;
             foreach (var pass in job.Passes)
             {
                 if (pass.Transcript is { } transcript)
                 {
-                    await handoff.HandOverAsync(job.Request.MessageId, pass.Language, transcript, cancellationToken).ConfigureAwait(false);
+                    await handoff.HandOverAsync(job.Request.MessageId, pass.Language, transcript, replace, cancellationToken).ConfigureAwait(false);
+                    replace = false;
                 }
             }
         }

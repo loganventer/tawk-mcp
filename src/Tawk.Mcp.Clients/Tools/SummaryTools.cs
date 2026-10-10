@@ -18,7 +18,7 @@ public sealed class SummaryTools(ISummaryManager summaries, IAccountScope accoun
         + "few words do for a short message. Nothing is sent to WhatsApp and the user is not asked.")]
     public Task<CallToolResult> SetSummaryAsync(
         [Description("The id of the message, from the summary_wanted event.")] string messageId,
-        [Description("The summary: one plain paragraph, no formatting.")] string text,
+        [Description("The summary: one plain paragraph, no formatting, in the language the message is written in (the one most of it is in when it mixes languages). Never a translation.")] string text,
         [Description("The name of the model writing it, when you know it.")] string? model = null,
         [Description(ToolText.Account)] string? account = null,
         CancellationToken cancellationToken = default) =>

@@ -23,7 +23,8 @@ public class TranscriptionManagerTests
         public string Start(string messageId, string? account, IReadOnlyList<string>? languages, string? task, string? model, string? prompt) =>
             Requests.StartAsync(messageId, account, languages, task, model, prompt, CancellationToken.None).GetAwaiter().GetResult();
 
-        public Task<bool> StartAutomaticAsync(string messageId) => Requests.StartAutomaticAsync(messageId, null, CancellationToken.None);
+        public Task<bool> StartAutomaticAsync(string messageId, IReadOnlyList<string>? chatLanguages = null) =>
+            Requests.StartAutomaticAsync(messageId, null, chatLanguages, CancellationToken.None);
 
         public string Read(string jobId) => Requests.Read(jobId);
 
@@ -84,6 +85,38 @@ public class TranscriptionManagerTests
             Assert.That(_transcriber.Passes, Is.Empty, "the audio reaches no transcriber");
             Assert.That(Ended.Job.State, Is.EqualTo(TranscriptionState.Failed));
             Assert.That(Ended.Job.Failure, Is.EqualTo(TranscriptionRunManager.ChatSwitchedOff));
+        });
+    }
+
+    [Test]
+    public async Task A_voice_note_that_arrives_is_written_in_the_language_spoken_among_the_chats_own_first()
+    {
+        _preferences.Chosen = new TranscriptionPreferences("small", "af,en", true);
+        var manager = Manager();
+
+        await manager.StartAutomaticAsync("3EB0", ["zu", "en"]);
+        await manager.RunNextAsync(CancellationToken.None);
+        var chat = _transcriber.Passes.Single();
+        _transcriber.Passes.Clear();
+        _media.Files["3EB1"] = _media.Files["3EB0"] with { MessageId = "3EB1" };
+        await manager.StartAutomaticAsync("3EB1", ["af"]);
+        await manager.RunNextAsync(CancellationToken.None);
+        var single = _transcriber.Passes.Single();
+        _transcriber.Passes.Clear();
+        _preferences.Chosen = new TranscriptionPreferences("small", "auto", true);
+        _media.Files["3EB2"] = _media.Files["3EB0"] with { MessageId = "3EB2" };
+        await manager.StartAutomaticAsync("3EB2");
+        await manager.RunNextAsync(CancellationToken.None);
+        var any = _transcriber.Passes.Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(chat.Language, Is.EqualTo("auto"));
+            Assert.That(chat.Among, Is.EqualTo(new[] { "zu", "en" }), "the chat's own languages come before the ones listed for every chat");
+            Assert.That(single.Language, Is.EqualTo("af"), "a chat with one language needs no working out");
+            Assert.That(single.Among, Is.Null);
+            Assert.That(any.Language, Is.EqualTo("auto"));
+            Assert.That(any.Among, Is.Null, "with no language named anywhere, every language is a candidate");
         });
     }
 
@@ -231,7 +264,9 @@ public class TranscriptionManagerTests
         {
             Assert.That(before, Is.False, "off in tawk, nothing is transcribed unasked");
             Assert.That(after, Is.True);
-            Assert.That(_transcriber.Passes.Select(p => p.Language), Is.EqualTo(new[] { "af", "en" }));
+            Assert.That(_transcriber.Passes.Select(p => p.Language), Is.EqualTo(new[] { "auto" }),
+                "one transcript, in whichever language is spoken");
+            Assert.That(_transcriber.Passes.Single().Among, Is.EqualTo(new[] { "af", "en" }), "chosen among the languages listed in tawk");
             Assert.That(_transcriber.Passes.Select(p => p.Model), Is.All.EqualTo("small"));
         });
     }

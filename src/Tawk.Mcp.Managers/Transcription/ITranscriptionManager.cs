@@ -20,7 +20,7 @@ public interface ITranscriptionManager
     /// Queues a transcription of a voice note that just arrived, with the user's defaults, when the user
     /// turned automatic transcription on. Returns whether it did.
     /// </summary>
-    Task<bool> StartAutomaticAsync(string messageId, string? account, CancellationToken cancellationToken);
+    Task<bool> StartAutomaticAsync(string messageId, string? account, IReadOnlyList<string>? chatLanguages, CancellationToken cancellationToken);
 
     /// <summary>A job as it stands, for a client without channels.</summary>
     string Read(string jobId);

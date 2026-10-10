@@ -6,7 +6,7 @@ namespace Tawk.Mcp.ResourceAccess.Transcription;
 
 public sealed class TawkTranscriptHandoff(ITawkControl control) : ITranscriptHandoff
 {
-    public async Task<bool> HandOverAsync(string messageId, string language, Transcript transcript, CancellationToken cancellationToken)
+    public async Task<bool> HandOverAsync(string messageId, string language, Transcript transcript, bool replace, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(messageId);
         ArgumentNullException.ThrowIfNull(transcript);
@@ -30,6 +30,11 @@ public sealed class TawkTranscriptHandoff(ITawkControl control) : ITranscriptHan
                 ["text"] = transcript.Text,
                 ["model"] = transcript.Model ?? string.Empty,
             };
+            if (replace)
+            {
+                args["replace"] = true;
+            }
+
             await control.RequestAsync("set_transcript", args, cancellationToken).ConfigureAwait(false);
             return true;
         }

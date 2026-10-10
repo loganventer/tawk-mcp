@@ -19,6 +19,13 @@ public interface ITranscriptionPolicy
         string? prompt,
         TranscriptionPreferences preferences);
 
+    /// <summary>
+    /// The request for a voice note transcribed without being asked: one transcript, in the language spoken.
+    /// The engine chooses among <paramref name="chatLanguages"/> when the user named the chat's languages,
+    /// else among the languages the user listed in tawk, else among all; a single language is simply used.
+    /// </summary>
+    TranscriptionRequest ResolveAutomatic(string messageId, string? account, IReadOnlyList<string>? chatLanguages, TranscriptionPreferences preferences);
+
     /// <summary>Whether every voice note is transcribed without being asked.</summary>
     bool Automatic(TranscriptionPreferences preferences);
 }
