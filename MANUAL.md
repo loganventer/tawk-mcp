@@ -270,6 +270,21 @@ These need `access = manage` (or `admin`). Each is shown to you in tawk to appro
 
 In tawk you can put a chat in TL;DR mode on its contact card (tawk 0.14.0 or later). tawk then asks one agent for the summary of each message there, in the language the message is written in (every message from tawk 0.14.1, or only those above a length you set), with a channel event of `type="summary_wanted"` carrying the message, fenced as untrusted, its `message_id` and a `max_chars`. The agent answers by calling `set_summary`, at once and without asking you: switching TL;DR on for the chat is your go-ahead, and the server instructions, the request and the tool all say so (from 0.10.3; before that an agent could hold the request back and ask). If your agent still asks, add a line to your standing instructions (`~/.config/tawk-mcp/instructions.md`) telling it to answer `summary_wanted` events without asking. tawk-mcp writes no summary and calls no model: the model of the agent you connected does, so the text of those messages goes to that model's service. Which agent is asked is chosen in tawk's Agents list (your default agent); when several sessions share one tawk-mcp, the first that takes channel events writes it. This needs channel events, so a client without them is never asked. From 0.10.1 tawk-mcp tells tawk when it connects what it can do (`features` in its hello: `transcripts` unless transcription is off, `summaries` unless the channel is off), and tawk 0.14.1 asks only an agent that says it can, so a session still running an older tawk-mcp is passed over. tawk refuses a summary for a chat that is not in TL;DR mode.
 
+### Labels, reminders and awaiting replies
+
+With tawk 0.20.0 or later. These reach three things tawk keeps on your computer to help with a long chat list; none of them sends anything to WhatsApp.
+
+| Tool | Arguments | What it does |
+| --- | --- | --- |
+| `list_labels` | `chat` (optional) | Your own labels on chats: every label in use, or one chat's |
+| `set_label` | `chat`, `label`, `on` | Puts a label on a chat or takes it off. Needs `manage`, and you approve it in tawk |
+| `list_reminders` | | The chats you put aside with `/remind`, and until when |
+| `set_reminder` | `chat`, `when` | Puts a chat aside until a time (`9:00`, `tomorrow`, `+2h`, `fri 17:30`) or until its person writes (`reply`). It leaves your chat list meanwhile, so you approve it in tawk |
+| `cancel_reminder` | `chat` | Brings a chat back into the list. You approve it in tawk |
+| `awaiting_replies` | `days` (optional) | The one-to-one chats where your last message has gone unanswered for that many days (your own setting in tawk when left out, 3 to begin with) |
+
+`get_chat_info` also shows a chat's labels and whether it is put aside. A chat you hid from agents in tawk appears in none of these. Ask "who has not answered me this week?" and the agent uses `awaiting_replies` beside `due_follow_ups`.
+
 ### Pictures and voice notes
 
 | Tool | Arguments | What it does |
