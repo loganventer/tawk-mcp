@@ -67,6 +67,9 @@ if [ "${TAWK_MCP_ADMIN:-1}" = 1 ] && [ -z "${TAWKMCP_ADMIN_TOKEN_FILE:-}" ]; the
     export TAWKMCP_ADMIN_TOKEN_FILE="$run/admin.token"
 fi
 
+# This session is started with the channel, so tawk-mcp may promise tawk that it answers what tawk asks of
+# an agent: TL;DR summaries, and what you write in the owner's chat. A session started without it promises nothing.
+export TAWKMCP_CHANNEL="${TAWKMCP_CHANNEL:-on}"
 # The messages you send arrive on the channel as well as the ones you receive. tawk's own switches
 # (Settings > Automation > Push ...) decide whether either kind is handed over at all.
 export TAWKMCP_CHANNEL_OWN="${TAWKMCP_CHANNEL_OWN:-on}"
