@@ -46,7 +46,7 @@ public static class TawkMcpComposition
 {
     public static string Version { get; } =
         typeof(TawkMcpComposition).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
-        ?? "0.8.1";
+        ?? "0.10.0";
 
     public static IMcpServerBuilder AddTawkMcp(this IServiceCollection services, TawkMcpOptions options)
     {
@@ -102,6 +102,7 @@ public static class TawkMcpComposition
         // Managers.
         services.AddSingleton<IChatReadingManager, ChatReadingManager>();
         services.AddSingleton<IPresenceManager, PresenceManager>();
+        services.AddSingleton<ISummaryManager, SummaryManager>();
         services.AddSingleton<IMessageSendingManager, MessageSendingManager>();
         services.AddSingleton<IMessageManagementManager, MessageManagementManager>();
         services.AddSingleton<IChatManagementManager, ChatManagementManager>();
@@ -175,6 +176,7 @@ public static class TawkMcpComposition
                     + TawkServerInstructions.Media
                     + TawkServerInstructions.Transcription
                     + (options.Channel == ChannelMode.Off ? string.Empty : TawkServerInstructions.Channel)
+                    + (options.Channel == ChannelMode.Off ? string.Empty : TawkServerInstructions.Summaries)
                     + (options.Channel != ChannelMode.Off && options.ChannelOwn ? TawkServerInstructions.ChannelOwn : string.Empty)
                     + (options.Channel != ChannelMode.Off && options.ChannelRead ? TawkServerInstructions.ChannelRead : string.Empty)
                     + (options.Channel != ChannelMode.Off && (options.ChannelReactions || options.ChannelEdits || options.ChannelScheduled)
@@ -191,6 +193,7 @@ public static class TawkMcpComposition
             })
             .WithTools<ChatTools>()
             .WithTools<PresenceTools>()
+            .WithTools<SummaryTools>()
             .WithTools<MessageTools>()
             .WithTools<ScheduleTools>()
             .WithTools<StatusTools>()
@@ -313,6 +316,9 @@ public static class TawkMcpComposition
         services.AddSingleton<ITranscriptionPreferences, TawkTranscriptionPreferences>();
         // Whether a voice note is transcribed unasked is read as it arrives, so the sink is always there.
         services.AddSingleton<IEventSink, AutoTranscriptionSink>();
+        // A finished transcript goes to tawk, which keeps and shows it.
+        services.AddSingleton<ITranscriptHandoff, TawkTranscriptHandoff>();
+        services.AddSingleton<IEventSink, TranscriptHandoffSink>();
 
         services.AddHostedService<TranscriptionWorker>();
     }

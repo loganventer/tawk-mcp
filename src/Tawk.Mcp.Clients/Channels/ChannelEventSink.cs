@@ -39,8 +39,10 @@ public sealed class ChannelEventSink(
         var round = update.Event is MessageEvent or TranscriptEvent;
 
         // Someone coming online says nothing about the chat's history, so it neither points at it nor uses up the pointer.
-        var pointsAtHistory = update.Event is not PresenceEvent;
-        foreach (var session in sessions.Sessions.Where(Wants))
+        var pointsAtHistory = update.Event is not (PresenceEvent or SummaryWantedEvent);
+        // A summary is written once: when several sessions share this tawk-mcp, the first that takes channel events writes it.
+        var listeners = sessions.Sessions.Where(Wants);
+        foreach (var session in update.Event is SummaryWantedEvent ? listeners.Take(1) : listeners)
         {
             // A session's first event from a chat points at its history, in case the agent lacks it. The
             // pointer goes after the fenced text, so nothing in a message can pose as it.
@@ -99,6 +101,17 @@ public sealed class ChannelEventSink(
         },
         PresenceEvent presence when options.Presence => Presence(presence),
         TranscriptEvent transcript => Transcript(transcript),
+        SummaryWantedEvent wanted => new JsonObject
+        {
+            ["chat_jid"] = wanted.Chat.Jid,
+            ["chat_name"] = wanted.Chat.Name,
+            ["message_id"] = wanted.Message.Id,
+            ["sender"] = wanted.Message.SenderName ?? wanted.Message.Sender ?? string.Empty,
+            ["ts"] = wanted.Message.Ts.ToString(CultureInfo.InvariantCulture),
+            ["type"] = "summary_wanted",
+            ["max_chars"] = wanted.MaxChars.ToString(CultureInfo.InvariantCulture),
+            ["from_me"] = "false",
+        },
         _ => null,
     };
 

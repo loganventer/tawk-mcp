@@ -121,6 +121,7 @@ scripts/docker-run.sh               # builds, runs as you, prints the token and 
 | Settings | `get_settings`, `list_themes` | `set_setting` |
 | tawk itself | `app_status`, `get_version`, `list_accounts` | `describe_session`, `reconnect`, `decline_call` |
 | Voice notes | `transcribe_message`, `get_transcript`, `get_transcription_progress` | |
+| TL;DR summaries | | `set_summary` (asked for by tawk, for chats you put in TL;DR mode; changes only what tawk shows) |
 | Your own waiting requests (only with an admin token file) | `list_pending` | `approve_pending` |
 | Audience categories | `list_categories` | `set_category`, `delete_category` |
 | Voices | `list_voices`, `get_voice`, `export_voice`, `check_voice` | `set_voice`, `set_voice_variant`, `import_voice`, `learn_voice`, `delete_voice` |

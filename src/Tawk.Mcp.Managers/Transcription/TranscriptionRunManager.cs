@@ -10,6 +10,9 @@ namespace Tawk.Mcp.Managers.Transcription;
 
 public sealed partial class TranscriptionRunManager : ITranscriptionRunManager
 {
+    public const string ChatSwitchedOff =
+        "voice notes in this chat are not transcribed: the user switched that off on the chat's contact card in tawk";
+
     private readonly ITranscriptionJobStore _jobs;
     private readonly ITawkMediaSource _media;
     private readonly IMediaFiles _files;
@@ -84,6 +87,12 @@ public sealed partial class TranscriptionRunManager : ITranscriptionRunManager
             if (file.Type is { Length: > 0 } type && type is not ("audio" or "video"))
             {
                 return End(job with { Chat = file.Chat }, $"that message is {type}, not a voice note");
+            }
+
+            if (!file.Transcribe)
+            {
+                // The user switched this chat off in tawk: the audio is not handed to any model.
+                return End(job with { Chat = file.Chat }, ChatSwitchedOff);
             }
 
             _files.Check(file.Path, _mediaOptions.MaxAudioBytes);

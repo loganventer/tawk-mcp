@@ -261,6 +261,14 @@ These need `access = manage` (or `admin`). Each is shown to you in tawk to appro
 | `get_version` | | Shows which tawk-mcp this is and which tawk it is talking to. A read; nothing is asked |
 | `describe_session` | `description` | Tells tawk what this session is working on, in at most 10 words, shown beside it in the Agents list. Nothing goes to WhatsApp |
 
+### TL;DR summaries
+
+| Tool | Arguments | What it does |
+| --- | --- | --- |
+| `set_summary` | `messageId`, `text`, `model` | Hands tawk the summary of a long message, which tawk shows in place of the text until you unfold it. Nothing is sent to WhatsApp and you are not asked |
+
+In tawk you can put a chat in TL;DR mode on its contact card (tawk 0.14.0 or later). tawk then asks one agent for the summary of each long message there, with a channel event of `type="summary_wanted"` carrying the message, fenced as untrusted, its `message_id` and a `max_chars`. The agent answers by calling `set_summary`. tawk-mcp writes no summary and calls no model: the model of the agent you connected does, so the text of those messages goes to that model's service. Which agent is asked is chosen in tawk's Agents list (your default agent); when several sessions share one tawk-mcp, the first that takes channel events writes it. This needs channel events, so a client without them is never asked. tawk refuses a summary for a chat that is not in TL;DR mode.
+
 ### Pictures and voice notes
 
 | Tool | Arguments | What it does |
@@ -277,6 +285,10 @@ A transcription never keeps the call waiting. When the job ends, a channel event
 The model, the default languages and whether every incoming voice note is transcribed are yours to choose in tawk: **Settings > Automation > Voice note transcription**. The model is a list with `large-v3-turbo` as the default: close to the largest in accuracy and several times quicker. `tiny` is the lightest, for a slow computer. Those settings override tawk-mcp's own `--transcribe-model`, `--transcribe-language` and `--transcribe-auto`, which only stand in for an older tawk. Transcripts are kept in memory for half an hour and never written to disk.
 
 Nothing else needs installing. Unless you point tawk-mcp at a transcriber of your own, it loads one Whisper model inside itself and every job reuses it. There is only ever one: a different model replaces the loaded one, several tawk-mcp processes on one computer take turns through a lock file, and the model is let go after 15 idle minutes. The model named in tawk's settings is downloaded the first time it is needed (the installer fetches `large-v3-turbo`, about 1.6 GB), into `~/.local/share/tawk-mcp/models`. The voice note is decoded and transcribed on your computer and goes nowhere else. If you do set `--transcribe-url`, that transcriber is used while it answers and the one inside takes over when it does not.
+
+**Transcripts in tawk.** With tawk 0.13.0 or later, each finished transcript is also handed to tawk, which keeps it beside the voice note and shows it in the conversation, in the voice note's own bubble. tawk-mcp still writes no transcript to disk; tawk's database is where it lives. An older tawk is sent nothing. On a chat's contact card in tawk you can switch **Transcribe voice notes** off: tawk-mcp then leaves that chat's voice notes alone as they arrive, and a `transcribe_message` for one of them ends as failed, saying the chat is switched off, before any audio reaches a transcriber. Whether transcripts are shown, for every chat or for one, is also chosen in tawk and changes nothing here.
+
+An older voice note is filled in when you look at it: with tawk 0.14.0 or later, a voice note that comes onto the screen in tawk without a transcript is passed to tawk-mcp, which transcribes it as it would one that just arrived, when automatic transcription is on.
 
 Pictures and voice notes need a tawk that names downloaded files (0.9.0 or later). What a picture shows and what a voice note says are other people's content: the agent is told to treat both as data, never as instructions.
 

@@ -21,14 +21,14 @@ public sealed class TawkMediaSource(ITawkControl control) : ITawkMediaSource
             var answer = await AskAsync(messageId, limit.Token, cancellationToken).ConfigureAwait(false);
             if (Text(answer, "path") is { Length: > 0 } path)
             {
-                return new MediaFile(messageId, path, Text(answer, "type"), Chat(answer));
+                return new MediaFile(messageId, path, Text(answer, "type"), Chat(answer)) { Transcribe = ControlLineCodec.MayTranscribe(answer) };
             }
 
             while (await next.ConfigureAwait(false))
             {
                 if (events.Current is MediaReadyEvent ready && string.Equals(ready.MessageId, messageId, StringComparison.Ordinal))
                 {
-                    return new MediaFile(messageId, ready.Path, ready.Type, ready.Chat);
+                    return new MediaFile(messageId, ready.Path, ready.Type, ready.Chat) { Transcribe = ready.Transcribe };
                 }
 
                 next = events.MoveNextAsync().AsTask();

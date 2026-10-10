@@ -45,6 +45,26 @@ public class ChannelEventSinkTests
     }
 
     [Test]
+    public async Task A_request_for_a_summary_goes_to_one_session_only_with_the_message_and_its_limit()
+    {
+        var wanted = new SummaryWantedEvent(new ChatRef(Samples.MomJid, "Mom"), Events.Message("a long message").Message, 400);
+        var update = new LiveUpdate(wanted, "tawk asks for a TL;DR ...\n<<<BEGIN UNTRUSTED CHAT DATA>>>\na long message\n<<<END UNTRUSTED CHAT DATA>>>");
+
+        await new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence, new ChannelContextHints()).OnUpdateAsync(update, CancellationToken.None);
+
+        var (_, parameters) = _claude.Sent.Single();
+        var meta = parameters["meta"]!.AsObject();
+        Assert.Multiple(() =>
+        {
+            Assert.That(_other.Sent, Is.Empty, "a summary is written once, however many sessions listen");
+            Assert.That((string?)meta["type"], Is.EqualTo("summary_wanted"));
+            Assert.That((string?)meta["message_id"], Is.EqualTo("3EB0C2A1F0"));
+            Assert.That((string?)meta["max_chars"], Is.EqualTo("400"));
+            Assert.That((string?)parameters["content"], Does.EndWith("<<<END UNTRUSTED CHAT DATA>>>"), "no pointer to the chat's history is added");
+        });
+    }
+
+    [Test]
     public async Task Nothing_is_sent_when_the_channel_is_off()
     {
         await new ChannelEventSink(new ChannelOptions(ChannelMode.Off), _sessions, _cadence, new ChannelContextHints()).OnUpdateAsync(Update(), CancellationToken.None);
