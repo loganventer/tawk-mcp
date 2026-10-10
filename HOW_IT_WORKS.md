@@ -250,15 +250,17 @@ sequenceDiagram
     participant R as TranscriptionRunManager
     participant W as Whisper, in process
     participant H as TranscriptHandoffSink
-    T->>S: message event (audio), or transcript_wanted for an older one
+    T->>S: message event (audio), or transcript_wanted for an older one,<br/>with the chat's languages when the user named them
     Note over S: skipped when "transcribe" is false,<br/>or automatic transcription is off
     S->>R: a job on the queue
     R->>T: download_media
     T-->>R: the path ("transcribe":false ends the job here)
-    R->>W: one pass for each language
+    R->>W: what is heard at the start, middle and end
+    W-->>R: readings, from which SpokenLanguageRule chooses
+    R->>W: one pass in that language (or one for each language an agent asked for)
     W-->>R: the text
     R->>H: TranscriptEvent, to every sink
-    H->>T: set_transcript, one for each language
+    H->>T: set_transcript, the first with replace
     Note over T: kept in tawk.db, drawn under the voice note
 ```
 
