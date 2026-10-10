@@ -4,7 +4,7 @@ public sealed record TawkControlOptions
 {
     public string Client { get; init; } = "tawk-mcp";
 
-    public string Version { get; init; } = "0.8.1";
+    public string Version { get; init; } = "0.10.1";
 
     public string Origin { get; init; } = "mcp";
 
@@ -15,6 +15,12 @@ public sealed record TawkControlOptions
     public string? Label { get; init; }
 
     public int Protocol { get; init; } = 1;
+
+    /// <summary>
+    /// What this instance can do when tawk asks, by the names in <see cref="Core.TawkFeatures"/>: transcribe
+    /// a voice note, write a summary. tawk asks only an agent that says it can. Empty sends none.
+    /// </summary>
+    public IReadOnlyList<string> Features { get; init; } = [];
 
     public TimeSpan HelloTimeout { get; init; } = TimeSpan.FromSeconds(10);
 

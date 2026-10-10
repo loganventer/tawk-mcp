@@ -32,6 +32,7 @@ public class UnixSocketTawkControlTests
             Assert.That((string?)first["op"], Is.EqualTo("hello"));
             Assert.That((string?)first["args"]!["origin"], Is.EqualTo("mcp"));
             Assert.That((int?)first["args"]!["protocol"], Is.EqualTo(1));
+            Assert.That(first["args"]!["features"], Is.Null, "an instance that can do nothing for tawk names nothing");
         });
     }
 

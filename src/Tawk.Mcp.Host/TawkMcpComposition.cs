@@ -46,7 +46,7 @@ public static class TawkMcpComposition
 {
     public static string Version { get; } =
         typeof(TawkMcpComposition).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
-        ?? "0.10.0";
+        ?? "0.10.1";
 
     public static IMcpServerBuilder AddTawkMcp(this IServiceCollection services, TawkMcpOptions options)
     {
@@ -66,6 +66,7 @@ public static class TawkMcpComposition
         {
             Version = Version,
             Label = ConnectionLabel(options),
+            Features = WhatItCanDo(options),
             RequestTimeout = TimeSpan.FromSeconds(options.RequestTimeoutS),
             ParkWaitingWrites = admin.Enabled,
         });
@@ -321,6 +322,24 @@ public static class TawkMcpComposition
         services.AddSingleton<IEventSink, TranscriptHandoffSink>();
 
         services.AddHostedService<TranscriptionWorker>();
+    }
+
+    // A voice note is transcribed unless transcription is off, and a summary is written by the agent, which
+    // hears tawk's request only through a channel event.
+    private static List<string> WhatItCanDo(TawkMcpOptions options)
+    {
+        var can = new List<string>();
+        if (options.Transcribe != TranscriptionEngine.Off)
+        {
+            can.Add(TawkFeatures.Transcripts);
+        }
+
+        if (options.Channel != ChannelMode.Off)
+        {
+            can.Add(TawkFeatures.Summaries);
+        }
+
+        return can;
     }
 
     private static IMcpServerBuilder WithAdmin(this IMcpServerBuilder builder, AdminOptions admin) =>

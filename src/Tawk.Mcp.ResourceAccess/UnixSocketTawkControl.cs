@@ -297,6 +297,11 @@ public sealed class UnixSocketTawkControl : ITawkControl, ITawkApprovals, ITawkC
             args["label"] = _options.Label;
         }
 
+        if (_options.Features.Count > 0)
+        {
+            args["features"] = new JsonArray([.. _options.Features.Select(f => (JsonNode?)JsonValue.Create(f))]);
+        }
+
         try
         {
             var result = await connection.SendAsync(
