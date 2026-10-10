@@ -46,7 +46,7 @@ public static class TawkMcpComposition
 {
     public static string Version { get; } =
         typeof(TawkMcpComposition).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
-        ?? "0.12.0";
+        ?? "0.12.1";
 
     public static IMcpServerBuilder AddTawkMcp(this IServiceCollection services, TawkMcpOptions options)
     {
@@ -239,7 +239,7 @@ public static class TawkMcpComposition
 
         var folder = Path.GetFileName(Environment.CurrentDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
         return string.Create(
-            CultureInfo.InvariantCulture, $"{(folder.Length == 0 ? "/" : folder)} (stdio, pid {Environment.ProcessId})");
+            CultureInfo.InvariantCulture, $"{(folder.Length == 0 ? "/" : folder)} (stdio{ChannelClaims.LabelMark(options.Channel)}, pid {Environment.ProcessId})");
     }
 
     /// <summary>The model files and their manager alone, for `tawk-mcp fetch-model`, which does not serve MCP.</summary>
@@ -328,8 +328,9 @@ public static class TawkMcpComposition
         services.AddHostedService<TranscriptionWorker>();
     }
 
-    // A voice note is transcribed unless transcription is off, and a summary is written by the agent, which
-    // hears tawk's request only through a channel event.
+    // A voice note is transcribed unless transcription is off. A summary is written by the agent, and the user is
+    // answered by it, and it hears tawk only through a channel event: so only a session told that its client has
+    // the channel (--channel on) says it will do either. One that merely might have it would swallow the requests.
     private static List<string> WhatItCanDo(TawkMcpOptions options)
     {
         var can = new List<string>();
@@ -338,7 +339,7 @@ public static class TawkMcpComposition
             can.Add(TawkFeatures.Transcripts);
         }
 
-        if (options.Channel != ChannelMode.Off)
+        if (ChannelClaims.AnswersTawk(options.Channel))
         {
             can.Add(TawkFeatures.Summaries);
             can.Add(TawkFeatures.OwnerChat);
