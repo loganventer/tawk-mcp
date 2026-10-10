@@ -46,7 +46,7 @@ public static class TawkMcpComposition
 {
     public static string Version { get; } =
         typeof(TawkMcpComposition).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
-        ?? "0.10.3";
+        ?? "0.11.0";
 
     public static IMcpServerBuilder AddTawkMcp(this IServiceCollection services, TawkMcpOptions options)
     {
@@ -178,6 +178,7 @@ public static class TawkMcpComposition
                     + TawkServerInstructions.Transcription
                     + (options.Channel == ChannelMode.Off ? string.Empty : TawkServerInstructions.Channel)
                     + (options.Channel == ChannelMode.Off ? string.Empty : TawkServerInstructions.Summaries)
+                    + (options.Channel == ChannelMode.Off ? string.Empty : TawkServerInstructions.OwnerChat)
                     + (options.Channel != ChannelMode.Off && options.ChannelOwn ? TawkServerInstructions.ChannelOwn : string.Empty)
                     + (options.Channel != ChannelMode.Off && options.ChannelRead ? TawkServerInstructions.ChannelRead : string.Empty)
                     + (options.Channel != ChannelMode.Off && (options.ChannelReactions || options.ChannelEdits || options.ChannelScheduled)
@@ -338,6 +339,7 @@ public static class TawkMcpComposition
         if (options.Channel != ChannelMode.Off)
         {
             can.Add(TawkFeatures.Summaries);
+            can.Add(TawkFeatures.OwnerChat);
         }
 
         return can;

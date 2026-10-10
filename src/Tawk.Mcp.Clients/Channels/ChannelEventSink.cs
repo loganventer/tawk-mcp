@@ -36,13 +36,13 @@ public sealed class ChannelEventSink(
         var seenAs = account is null ? chat : string.Create(CultureInfo.InvariantCulture, $"{account.Id}/{chat}");
 
         // A message or a transcript handed to the agent is a round, the same as a tool call; a read receipt is not.
-        var round = update.Event is MessageEvent or TranscriptEvent;
+        var round = update.Event is MessageEvent or TranscriptEvent or OwnerMessageEvent;
 
         // Someone coming online says nothing about the chat's history, so it neither points at it nor uses up the pointer.
-        var pointsAtHistory = update.Event is not (PresenceEvent or SummaryWantedEvent);
-        // A summary is written once: when several sessions share this tawk-mcp, the first that takes channel events writes it.
+        var pointsAtHistory = update.Event is not (PresenceEvent or SummaryWantedEvent or OwnerMessageEvent);
+        // A summary is written once, and the user is answered once: when several sessions share this tawk-mcp, the first that takes channel events does it.
         var listeners = sessions.Sessions.Where(Wants);
-        foreach (var session in update.Event is SummaryWantedEvent ? listeners.Take(1) : listeners)
+        foreach (var session in update.Event is SummaryWantedEvent or OwnerMessageEvent ? listeners.Take(1) : listeners)
         {
             // A session's first event from a chat points at its history, in case the agent lacks it. The
             // pointer goes after the fenced text, so nothing in a message can pose as it.
@@ -111,6 +111,16 @@ public sealed class ChannelEventSink(
             ["type"] = "summary_wanted",
             ["max_chars"] = wanted.MaxChars.ToString(CultureInfo.InvariantCulture),
             ["from_me"] = "false",
+        },
+        OwnerMessageEvent owner => new JsonObject
+        {
+            ["chat_jid"] = owner.Chat.Jid,
+            ["chat_name"] = owner.Chat.Name,
+            ["message_id"] = owner.Message.Id,
+            ["sender"] = "the user",
+            ["ts"] = owner.Message.Ts.ToString(CultureInfo.InvariantCulture),
+            ["type"] = "owner_message",
+            ["from_me"] = "true",
         },
         _ => null,
     };

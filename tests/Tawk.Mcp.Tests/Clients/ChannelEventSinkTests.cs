@@ -2,6 +2,7 @@ using Tawk.Mcp.Clients.Channels;
 using Tawk.Mcp.Clients.Sessions;
 using Tawk.Mcp.Clients.Workflow;
 using Tawk.Mcp.Core;
+using Tawk.Mcp.Engines;
 using Tawk.Mcp.Tests.Fakes;
 
 namespace Tawk.Mcp.Tests.Clients;
@@ -61,6 +62,28 @@ public class ChannelEventSinkTests
             Assert.That((string?)meta["message_id"], Is.EqualTo("3EB0C2A1F0"));
             Assert.That((string?)meta["max_chars"], Is.EqualTo("400"));
             Assert.That((string?)parameters["content"], Does.EndWith("<<<END UNTRUSTED CHAT DATA>>>"), "no pointer to the chat's history is added");
+        });
+    }
+
+    [Test]
+    public async Task What_the_user_writes_in_the_owners_chat_goes_to_one_session_marked_as_the_users()
+    {
+        var owner = new OwnerMessageEvent(new ChatRef("27830000000@s.whatsapp.net", "You"), Events.Message("what did I miss today?").Message);
+        var update = new LiveUpdate(owner, OwnerMessageText.For("what did I miss today?"));
+
+        await new ChannelEventSink(new ChannelOptions(ChannelMode.On), _sessions, _cadence, new ChannelContextHints()).OnUpdateAsync(update, CancellationToken.None);
+
+        var (_, parameters) = _claude.Sent.Single();
+        var meta = parameters["meta"]!.AsObject();
+        var content = (string?)parameters["content"];
+        Assert.Multiple(() =>
+        {
+            Assert.That(_other.Sent, Is.Empty, "the user is answered once, however many sessions listen");
+            Assert.That((string?)meta["type"], Is.EqualTo("owner_message"));
+            Assert.That((string?)meta["chat_jid"], Is.EqualTo("27830000000@s.whatsapp.net"));
+            Assert.That((string?)meta["sender"], Is.EqualTo("the user"));
+            Assert.That(content, Does.EndWith("The user's message:\nwhat did I miss today?"), "the words are the user's, so no fence and no pointer follow them");
+            Assert.That(content, Does.Not.Contain("UNTRUSTED"));
         });
     }
 

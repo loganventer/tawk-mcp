@@ -49,6 +49,8 @@ public sealed partial class LiveUpdatesManager : ILiveUpdatesManager
                 MessageActivityEvent activity => Describe(activity),
                 PresenceEvent presence => _notification.Presence(presence),
                 SummaryWantedEvent wanted => Describe(wanted),
+                // The one event that is not fenced: tawk vouches that these are the user's own words.
+                OwnerMessageEvent owner => OwnerMessageText.For(owner.Message.Text),
                 _ => null,
             };
 

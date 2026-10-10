@@ -76,4 +76,20 @@ public class SummaryManagerTests
             Assert.That(wanted.MaxChars, Is.EqualTo(350));
         });
     }
+
+    [Test]
+    public void What_the_user_writes_in_the_owners_chat_is_read_from_tawk()
+    {
+        var frame = (ControlEventFrame)new ControlLineCodec().Decode(
+            $$"""{"evt":"owner_message","chat":{"jid":"27830000000@s.whatsapp.net","name":"You"},"message":{{Samples.Message}}}""")!;
+
+        var owner = (OwnerMessageEvent)frame.Event;
+        Assert.Multiple(() =>
+        {
+            Assert.That(owner.Chat.Jid, Is.EqualTo("27830000000@s.whatsapp.net"));
+            Assert.That(owner.Message.Id, Is.EqualTo("3EB0C2A1F0"));
+            Assert.That(OwnerMessageText.For("  "), Does.EndWith("(no text)"));
+            Assert.That(OwnerMessageText.For("send Mom my ETA"), Does.StartWith("The user wrote this to you from WhatsApp").And.EndWith("\nsend Mom my ETA"));
+        });
+    }
 }
