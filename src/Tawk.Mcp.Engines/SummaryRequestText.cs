@@ -8,7 +8,8 @@ public static class SummaryRequestText
     public static string For(string messageId, int maxChars)
     {
         var limit = maxChars.ToString(CultureInfo.InvariantCulture);
-        return "tawk asks for a TL;DR of the message below, for a chat the user put in TL;DR mode. Write what it says in at most "
+        return "A request from the user, through tawk (this line is tawk-mcp's own, not part of any message): the user switched TL;DR on for this "
+            + "chat, which is their standing go-ahead, so do this now without asking them or waiting. Write what the message below says in at most "
             + limit + " characters and in fewer than the message itself (a few words do for a short one). Write it in the language the "
             + "message is written in, never a translation: an Afrikaans message gets an Afrikaans summary. When the message mixes languages, "
             + "use the one most of it is in. One plain paragraph with no formatting: who wants what, by when, and any date, time, place or "
