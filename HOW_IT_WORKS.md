@@ -10,6 +10,8 @@
 - [A send the agent approves itself](#a-send-the-agent-approves-itself)
 - [A destructive request in two steps](#a-destructive-request-in-two-steps)
 - [New messages](#new-messages)
+- [A voice note's transcript](#a-voice-notes-transcript)
+- [A TL;DR summary](#a-tldr-summary)
 - [Reconnecting](#reconnecting)
 - [The circuit breaker](#the-circuit-breaker)
 - [A hung tawk](#a-hung-tawk)
@@ -238,6 +240,49 @@ flowchart LR
     ROPT -- yes --> CH3["Channel event, type read"]
     ROPT -- no --> KEEP2["The event stream only"]
 ```
+
+## A voice note's transcript
+
+```mermaid
+sequenceDiagram
+    participant T as tawk
+    participant S as AutoTranscriptionSink
+    participant R as TranscriptionRunManager
+    participant W as Whisper, in process
+    participant H as TranscriptHandoffSink
+    T->>S: message event (audio), or transcript_wanted for an older one
+    Note over S: skipped when "transcribe" is false,<br/>or automatic transcription is off
+    S->>R: a job on the queue
+    R->>T: download_media
+    T-->>R: the path ("transcribe":false ends the job here)
+    R->>W: one pass for each language
+    W-->>R: the text
+    R->>H: TranscriptEvent, to every sink
+    H->>T: set_transcript, one for each language
+    Note over T: kept in tawk.db, drawn under the voice note
+```
+
+A job an agent asked for with `transcribe_message` takes the same path from the queue on. The channel sink tells the agent the result as before; the handoff sink is one more listener of the same event, so nothing about a job changed. tawk-mcp writes none of it to disk. A tawk whose `hello` lists no `transcripts` feature is sent nothing.
+
+## A TL;DR summary
+
+```mermaid
+sequenceDiagram
+    participant T as tawk
+    participant L as LiveUpdatesManager
+    participant C as ChannelEventSink
+    participant A as the agent's model
+    participant M as SummaryManager
+    T->>L: summary_wanted (chat, message, max_chars)
+    Note over L: SummaryRequestText, then the message inside the fence
+    L->>C: LiveUpdate
+    C->>A: channel event, type summary_wanted, to one session
+    A->>M: set_summary (messageId, text)
+    M->>T: set_summary
+    T-->>M: {} or tldr_off
+```
+
+tawk chooses the agent and the messages; tawk-mcp only carries the request and the answer. The request needs channel events, so a client without them is never asked. The message is untrusted data like any other: the words telling the agent what to write are tawk-mcp's own and sit outside the fence.
 
 ## Reconnecting
 

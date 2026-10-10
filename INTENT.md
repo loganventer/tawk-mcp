@@ -12,6 +12,7 @@ In scope:
 - The two-step confirmation for destructive operations, with the user asked directly through MCP elicitation.
 - Live updates: MCP resource subscriptions, Claude Code channel events, and a server-sent event stream for other programs.
 - Prompts that make common tasks one step: catching up and drafting a reply.
+- Handing tawk what tawk keeps beside a message: the transcript of a voice note, made on this computer, and the TL;DR of a long message, written by the connected agent's model when tawk asks for it. tawk decides which chats are transcribed or summarised, and tawk-mcp leaves the others alone.
 - Memory that helps a model write the way you do: voices with a version per audience, a rule-based check of drafts against them, profiles of your contacts, knowledge about people and topics in the Open Knowledge Format, and reply templates. It lives in one private file on your computer and can be switched off.
 - Keeping that memory in step between your own machines, through a private repository you name. Off until you set it up.
 - Telling a connected agent how to work: fixed server instructions, a memory workflow handed over every so many rounds, and your own standing instructions from a file you write.
@@ -22,7 +23,7 @@ In scope:
 ## Out of scope
 
 - Talking to WhatsApp directly. tawk-mcp only ever talks to a running tawk.
-- Storing messages. tawk-mcp keeps no copy of your chats, no cache and no log file. Its memory holds only what you or an agent choose to save about voices, contacts and templates, and averages measured from your own messages, never the messages themselves.
+- Storing messages, transcripts or summaries. Finished transcripts and summaries go to tawk, which keeps them; tawk-mcp holds a transcription job in memory for a short while and nothing on disk. tawk-mcp keeps no copy of your chats, no cache and no log file. Its memory holds only what you or an agent choose to save about voices, contacts and templates, and averages measured from your own messages, never the messages themselves.
 - Inferring sensitive things about people. Health, beliefs and similar matters can be recorded only as you state them, and personality is kept to coarse bands used for tone.
 - Deciding what a client may do. Access, visible chats and rate limits live in tawk's settings, and tawk-mcp cannot change them.
 - Unlocking locked chats, logging out, encryption, backups, Automation settings, settings that run programs, and folders and files: tawk keeps these out of reach, and tawk-mcp offers no way to them.

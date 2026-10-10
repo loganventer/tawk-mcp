@@ -165,6 +165,8 @@ WhatsApp voice notes are Opus in an Ogg container.
 
 ### 6.6 What is kept
 
+Since tawk-mcp 0.9.0 a finished transcript is also handed to tawk (0.13.0 or later), which keeps it in its own database and shows it under the voice note. What this section says still holds for tawk-mcp itself: it writes nothing to disk.
+
 `INTENT.md` says tawk-mcp stores no messages. Transcripts follow that: finished jobs are held in memory only, a bounded number (default 50) for a bounded time (default 30 minutes), so `get_transcript` works, and they are gone on restart. Nothing is written to disk or to the log.
 
 ### 6.7 The in-process model: one instance, reused

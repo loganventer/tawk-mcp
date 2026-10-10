@@ -137,6 +137,8 @@ Anyone who can read your token file can use tawk-mcp as you. Treat it like a pas
 
 ## What leaves the machine
 
+Transcribing happens on this computer and a transcript goes only to tawk and to the agent that asked. A TL;DR summary is different: it is written by the model of the agent you connected, so when you put a chat in TL;DR mode in tawk, the text of that chat's long messages goes to that model's service as each one is asked for, without a request from you for that message. tawk-mcp passes tawk's request on and adds nothing to it; switching the mode off in tawk stops it.
+
 tawk-mcp has no telemetry, no analytics and no update checks. It talks to tawk over a Unix socket and to MCP clients over loopback HTTP or stdio. The one thing it can send elsewhere is the memory file, to the git repository you name, over SSH, and only once you have set up [memory sync](#memory) with a repository of your own. Without one it makes no outside connection at all.
 
 Your MCP client, however, sends what tawk-mcp returns to its model service: message text, names, phone numbers in JIDs, statuses, and whatever memory it reads. Only connect clients you would trust with those chats, and use tawk's `chats` setting to limit what they can see.
