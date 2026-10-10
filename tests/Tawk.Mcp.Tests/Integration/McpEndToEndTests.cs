@@ -46,8 +46,9 @@ public class McpEndToEndTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(names, Has.Count.EqualTo(90));
+            Assert.That(names, Has.Count.EqualTo(91));
             Assert.That(names, Does.Contain("set_summary"));
+            Assert.That(names, Does.Contain("sync_memory"));
             Assert.That(names, Does.Contain("list_labels").And.Contain("set_label").And.Contain("list_reminders").And.Contain("set_reminder")
                 .And.Contain("cancel_reminder").And.Contain("awaiting_replies"));
             Assert.That(names, Does.Contain("view_image"));

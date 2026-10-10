@@ -46,7 +46,7 @@ public static class TawkMcpComposition
 {
     public static string Version { get; } =
         typeof(TawkMcpComposition).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
-        ?? "0.12.1";
+        ?? "0.13.0";
 
     public static IMcpServerBuilder AddTawkMcp(this IServiceCollection services, TawkMcpOptions options)
     {
@@ -360,6 +360,7 @@ public static class TawkMcpComposition
                 .WithTools<ContactTools>()
                 .WithTools<KnowledgeTools>()
                 .WithTools<TemplateTools>()
+                .WithTools<MemorySyncTools>()
                 .WithResources<MemoryResources>();
 
     private static void AddMemory(IServiceCollection services, TawkMcpOptions options, string home)
